@@ -5,7 +5,7 @@ export function Testimonials() {
     {
       name: "Kasturi Ray",
       location: "Kolkata, India",
-      content: "Joining Yogodyaan has been a life changing experience since the past six months. Yog, meditation and individual attendtion by Bratati is giving new way of holistic well being. Thank You 🙏",
+      content: "Joining Yogique has been a life changing experience since the past six months. Yog, meditation and individual attendtion by Bratati is giving new way of holistic well being. Thank You 🙏",
       image: "/images/testimonial_Kasturi_Ray.jpg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
       rating: 5,
       type: "Private Group"
@@ -21,7 +21,7 @@ export function Testimonials() {
     {
       name: "Moumita Pradhan",
       location: "Kolkata, India",
-      content: "I have been associated with yogodyaan for a quiet a few years.. Practicing under Bratati's guidance has been a wonderful experience. She teaches each asana in such a clear and supportive way that even the most challenging pose feel achievable. What stands out most is the care she takes for each individual's needs, making sure we feel comfortable, safe and confident throughout the session. Her approach creates a nurturing and motivating environment that makes yoga truly enjoyable and sustainable.",
+      content: "I have been associated with Yogique for a quiet a few years.. Practicing under Bratati's guidance has been a wonderful experience. She teaches each asana in such a clear and supportive way that even the most challenging pose feel achievable. What stands out most is the care she takes for each individual's needs, making sure we feel comfortable, safe and confident throughout the session. Her approach creates a nurturing and motivating environment that makes yoga truly enjoyable and sustainable.",
       image: "/images/testimonial_Moumita_Pradhan.jpg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
       rating: 5,
       type: "1-on-1"
@@ -91,7 +91,7 @@ export function Testimonials() {
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">What Our Global Community Says</h1>
           <p className="text-xl text-gray-600 dark:text-slate-300 leading-relaxed">
             Real stories from professionals around the world who have transformed their lives
-            with Yogodyaan's personalized wellness programs.
+            with Yogique's personalized wellness programs.
           </p>
         </div>
       </section>

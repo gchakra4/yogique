@@ -55,7 +55,7 @@ export function Home() {
       name: "Kasturi Ray",
       location: "Kolkata, India",
       position: "Student",
-      content: "Joining Yogodyaan has been a life changing experience since the past six months. Yog, meditation and individual attendtion by Bratati is giving new way of holistic well being. Thank You 🙏",
+      content: "Joining Yogique has been a life changing experience since the past six months. Yog, meditation and individual attendtion by Bratati is giving new way of holistic well being. Thank You 🙏",
       image: "/images/testimonial_Kasturi_Ray.jpg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
       rating: 5,
       type: "1-on-1"
@@ -73,7 +73,7 @@ export function Home() {
       name: "Moumita Pradhan",
       location: "Kolkata, India",
       position: "Student",
-      content: "I have been associated with yogodyaan for a quiet a few years.. Practicing under Bratati's guidance has been a wonderful experience. She teaches each asana in such a clear and supportive way that even the most challenging pose feel achievable. What stands out most is the care she takes for each individual's needs, making sure we feel comfortable, safe and confident throughout the session. Her approach creates a nurturing and motivating environment that makes yoga truly enjoyable and sustainable.",
+      content: "I have been associated with Yogique for a quiet a few years.. Practicing under Bratati's guidance has been a wonderful experience. She teaches each asana in such a clear and supportive way that even the most challenging pose feel achievable. What stands out most is the care she takes for each individual's needs, making sure we feel comfortable, safe and confident throughout the session. Her approach creates a nurturing and motivating environment that makes yoga truly enjoyable and sustainable.",
       image: "/images/testimonial_Moumita_Pradhan.jpg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop"
     }
   ]
@@ -92,7 +92,7 @@ export function Home() {
                   <span className="block text-emerald-600 dark:text-emerald-400">and Body — Online</span>
                 </h1>
                 <p className="text-xl text-gray-600 dark:text-slate-300 leading-relaxed">
-                  Yogodyaan brings personalized corporate and wellness yoga programs
+                  Yogique brings personalized corporate and wellness yoga programs
                   to professionals worldwide. Experience the power of yoga from anywhere.
                 </p>
               </div>
@@ -236,11 +236,11 @@ export function Home() {
         </div>
       </section>
 
-      {/* Why Choose Yogodyaan */}
+      {/* Why Choose Yogique */}
       <section className="py-20 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Why Choose Yogodyaan</h2>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Why Choose Yogique</h2>
             <p className="text-xl text-gray-600 dark:text-slate-300">
               Experience the difference with our unique approach to online yoga
             </p>
@@ -266,7 +266,7 @@ export function Home() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">What Our Global Community Says</h2>
             <p className="text-xl text-gray-600 dark:text-slate-300">
-              Real stories from professionals who transformed their lives with Yogodyaan
+              Real stories from professionals who transformed their lives with Yogique
             </p>
           </div>
 

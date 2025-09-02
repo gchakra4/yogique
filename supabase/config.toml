@@ -107,13 +107,13 @@ file_size_limit = "50MiB"
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "https://yogodyaan.site"
+site_url = "https://yogique.life"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
     "http://localhost:3000/auth/callback",
-    "https://yogodyaan.netlify.app/auth/callback",
-    "https://yogodyaan.site/auth/callback",
-    "https://yogodyaan.site/auth/v1/callback"
+    "https://Yogique.netlify.app/auth/callback",
+    "https://yogique.life/auth/callback",
+    "https://yogique.life/auth/v1/callback"
 ]
 
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
@@ -337,3 +337,4 @@ entrypoint = "./functions/hello-world/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/hello-world/*.html" ]
+

@@ -79,7 +79,7 @@ export function UserRoleManagement({ userId, userEmail, currentRoles, onRoleUpda
       const mockRoleChanges: RoleChange[] = [
         {
           timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          changed_by: 'admin@yogodyaan.com',
+          changed_by: 'admin@Yogique.com',
           old_role: 'user',
           new_role: 'instructor'
         }

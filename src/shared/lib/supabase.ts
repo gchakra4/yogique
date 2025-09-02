@@ -10,7 +10,7 @@ if (!supabaseUrl || !supabaseUrl.includes('.supabase.co')) {
         '[Supabase Config] VITE_SUPABASE_URL is invalid or missing:',
         supabaseUrl,
         'Expected something like https://<project-ref>.supabase.co. ' +
-        'If you see your site origin here (https://yogodyaan.site) your Netlify env var names are wrong (must be VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) and you must redeploy.'
+        'If you see your site origin here (https://yogique.life) your Netlify env var names are wrong (must be VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) and you must redeploy.'
     )
 }
 
@@ -19,3 +19,4 @@ if (!supabaseAnonKey || supabaseAnonKey.length < 20) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+

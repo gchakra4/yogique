@@ -86,7 +86,7 @@ export function About() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 text-gray-900 dark:text-white py-20">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h1 className="text-5xl font-bold mb-6 text-gray-900 dark:text-white">About Yogodyaan</h1>
+          <h1 className="text-5xl font-bold mb-6 text-gray-900 dark:text-white">About Yogique</h1>
           <p className="text-xl text-gray-600 dark:text-slate-300">
             Dedicated to spreading the transformative power of yoga and creating a community
             where everyone can find their path to wellness and inner peace.
@@ -99,10 +99,10 @@ export function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">Welcome to Yogodyaan – Breathe. Move. Transform.</h2>
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">Welcome to Yogique – Breathe. Move. Transform.</h2>
               <div className="space-y-4 text-gray-700 dark:text-white text-lg">
                 <p>
-                  Founded by Ms. Bratati Batabyal in 2021, Yogodyaan is an all-online yoga platform empowering people to live healthier, more mindful lives through yoga.
+                  Founded by Ms. Bratati Batabyal in 2021, Yogique is an all-online yoga platform empowering people to live healthier, more mindful lives through yoga.
                 </p>
                 <p>
                   We’ve trained 1000+ students in different parts of the world—offering accessible, expert-led sessions that blend ancient yogic wisdom with modern lifestyles.

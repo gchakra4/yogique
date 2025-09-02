@@ -49,7 +49,7 @@ export function UserRoleManagement({ userId, userEmail, currentRoles, onRoleUpda
             const mockRoleChanges = [
                 {
                     timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-                    changed_by: 'admin@yogodyaan.com',
+                    changed_by: 'admin@Yogique.com',
                     old_role: 'user',
                     new_role: 'instructor'
                 }
@@ -226,3 +226,4 @@ export function UserRoleManagement({ userId, userEmail, currentRoles, onRoleUpda
                                                                 : 'text-gray-900'}`, children: role.name })] }), role.description && (_jsx("p", { className: "text-sm text-gray-500 mt-1 ml-6", children: role.description }))] }, role.id))) }), _jsx("div", { className: "mt-4", children: _jsxs("p", { className: "text-sm text-gray-500 mb-2", children: [_jsx(Shield, { className: "w-4 h-4 inline mr-1 text-amber-500" }), "Warning: Admin roles grant significant permissions"] }) })] }))] }), _jsxs("div", { children: [_jsx("h4", { className: "font-medium text-gray-900 mb-3", children: "Role Change History" }), _jsx("div", { className: "bg-gray-50 p-4 rounded-lg", children: roleChanges.length > 0 ? (_jsx("div", { className: "space-y-3", children: roleChanges.map((change, index) => (_jsx("div", { className: "border-b border-gray-200 pb-3 last:border-0 last:pb-0", children: _jsxs("div", { className: "flex items-start", children: [_jsx(Clock, { className: "w-4 h-4 text-gray-400 mt-0.5 mr-2" }), _jsxs("div", { children: [_jsxs("p", { className: "text-sm text-gray-700", children: ["Changed from ", _jsx("span", { className: "font-medium capitalize", children: change.old_role }), " to", ' ', _jsx("span", { className: "font-medium capitalize", children: change.new_role })] }), _jsx("div", { className: "text-xs text-gray-500 mt-1", children: _jsxs("p", { children: ["By ", change.changed_by, " on ", formatDate(change.timestamp)] }) })] })] }) }, index))) })) : (_jsx("p", { className: "text-gray-500 text-sm", children: "No role changes recorded" })) })] }), _jsxs("div", { className: "flex justify-end space-x-3 pt-4", children: [_jsx(Button, { variant: "outline", onClick: onClose, children: "Cancel" }), _jsx(Button, { onClick: handleUpdateRoles, loading: updating, className: "bg-blue-600 hover:bg-blue-700", children: updating ? 'Updating...' : 'Update Roles' })] })] })] }));
 }
 export default UserRoleManagement;
+

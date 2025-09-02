@@ -1,4 +1,4 @@
-# Google DNS TXT Verification — Instructions for Yogodyaan
+# Google DNS TXT Verification — Instructions for Yogique
 
 This document shows step‑by‑step instructions to verify your domain with Google using a DNS TXT record. Google will provide a TXT value (example: `google-site-verification=XXXXXXXXXXXX`). You must add the exact value Google gives you to your DNS provider.
 
@@ -104,7 +104,7 @@ When writing back to Google Trust & Safety / Verification team, include:
 - Short note: where the TXT record was added (provider name), and timestamp when you verified.
 
 Example reply text you can copy/paste:
-> I have added the Google verification TXT record to the DNS for `yogodyaan.com` using [Cloudflare/GoDaddy/etc.]. Attached are (1) screenshot of the DNS record, (2) dig output showing the TXT value, (3) Search Console verification success screenshot. OAuth client ID: `YOUR_OAUTH_CLIENT_ID`. Project ID: `yogodyaan`.
+> I have added the Google verification TXT record to the DNS for `Yogique.com` using [Cloudflare/GoDaddy/etc.]. Attached are (1) screenshot of the DNS record, (2) dig output showing the TXT value, (3) Search Console verification success screenshot. OAuth client ID: `YOUR_OAUTH_CLIENT_ID`. Project ID: `Yogique`.
 
 ## 7) Checklist
 - [ ] Obtain TXT value from Google console
@@ -118,3 +118,4 @@ Example reply text you can copy/paste:
 If you paste the exact TXT value from Google here (the string starting with `google-site-verification=`), I can:
 - produce the exact DNS record text for you to copy into your DNS provider, and
 - generate the recommended reply text (with placeholders filled: domain, OAuth client ID, project ID) ready to send to Trust & Safety.
+

@@ -103,6 +103,20 @@ Deno.serve(async (req) => {
             billing_period_month = null,
         } = body || {};
 
+        // Normalize billing_period_month (frontend sends "YYYY-MM" from <input type='month'>)
+        // Postgres `date` expects YYYY-MM-DD, so convert "YYYY-MM" -> "YYYY-MM-01".
+        let billing_period_date: string | null = null;
+        if (billing_period_month) {
+            if (/^\d{4}-\d{2}$/.test(billing_period_month)) {
+                billing_period_date = `${billing_period_month}-01`;
+            } else {
+                const parsed = new Date(billing_period_month);
+                if (!isNaN(parsed.getTime())) {
+                    billing_period_date = parsed.toISOString().slice(0, 10);
+                }
+            }
+        }
+
         // If user_id not provided but an email is, try to resolve an existing auth user
         // Use service-role client to query auth.users
         let resolvedUserId = user_id;
@@ -140,7 +154,8 @@ Deno.serve(async (req) => {
             stripe_payment_intent_id,
             description,
             billing_plan_type: billing_plan_type ?? null,
-            billing_period_month: billing_period_month ?? null,
+            // Use normalized date (YYYY-MM-DD) or null
+            billing_period_month: billing_period_date ?? null,
             user_email: user_email ?? null,
             user_full_name: user_full_name ?? null,
         };

@@ -11,11 +11,11 @@ export function Footer() {
   const social = settings.social_links || {}
   const legal = settings.legal_disclaimer || {}
 
-  const brandName = profile.name || 'Yogodyaan'
+  const brandName = profile.name || 'Yogique'
   // Prefer a footer-specific logo if present, then fall back to the general profile logo
   const logoUrl = profile.footer_logo_url || profile.logo_url || ''
   const description = profile.tagline || 'Transform your life through the ancient practice of yoga.'
-  const email = contact.email || 'info@yogodyaan.com'
+  const email = contact.email || 'info@Yogique.com'
   const phone = contact.phone || '+1 (555) 123-4567'
   const addressLines = (contact.address_lines && contact.address_lines.join('\n')) || '123 Wellness Street\nYoga City, YC 12345'
 
@@ -44,7 +44,7 @@ export function Footer() {
               {social.facebook ? (
                 <a href={social.facebook} className="text-gray-400 hover:text-emerald-400 transition-colors"><Facebook size={20} /></a>
               ) : (
-                <a href="https://www.facebook.com/yogodyaan" className="text-gray-400 hover:text-emerald-400 transition-colors"><Facebook size={20} /></a>
+                <a href="https://www.facebook.com/Yogique" className="text-gray-400 hover:text-emerald-400 transition-colors"><Facebook size={20} /></a>
               )}
               {social.instagram ? (
                 <a href={social.instagram} className="text-gray-400 hover:text-emerald-400 transition-colors"><Instagram size={20} /></a>
@@ -54,7 +54,7 @@ export function Footer() {
               {social.youtube ? (
                 <a href={social.youtube} className="text-gray-400 hover:text-emerald-400 transition-colors"><Youtube size={20} /></a>
               ) : (
-                <a href="https://www.youtube.com/@yogodyaan1628" className="text-gray-400 hover:text-emerald-400 transition-colors"><Youtube size={20} /></a>
+                <a href="https://www.youtube.com/@Yogique1628" className="text-gray-400 hover:text-emerald-400 transition-colors"><Youtube size={20} /></a>
               )}
             </div>
           </div>
@@ -117,3 +117,4 @@ export function Footer() {
     </footer >
   )
 }
+

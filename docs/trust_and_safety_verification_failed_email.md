@@ -1,28 +1,28 @@
 # Email to Google Trust & Safety Team - Verification Failed Issue
 
 ## Subject
-Domain verification evidence for Yogodyaan - Verification Failed Despite Proper Implementation (Project: yogodyaan)
+Domain verification evidence for Yogique - Verification Failed Despite Proper Implementation (Project: Yogique)
 
 ## Email Body
 
 Hello Google Trust & Safety Team,
 
-I am writing regarding the Google OAuth verification for our Yogodyaan application, which is currently failing despite having properly implemented all required elements including visible privacy policy and terms of service links on our homepage.
+I am writing regarding the Google OAuth verification for our Yogique application, which is currently failing despite having properly implemented all required elements including visible privacy policy and terms of service links on our homepage.
 
 **Issue Summary:**
 Though our privacy policy and terms of service links are clearly visible on our homepage footer and the pages are fully accessible through the provided links, the Google verification process is still failing. I have attached comprehensive evidence showing our compliance with all requirements.
 
 **Project Details:**
-- Domain: https://yogodyaan.site
-- Project ID: yogodyaan
+- Domain: https://yogique.life
+- Project ID: Yogique
 - OAuth Client ID: 196749664391-vdefv78ahi97j38f5bl9foegptf9nt96.apps.googleusercontent.com
 - DNS TXT value added: google-site-verification=MiyWUfOivIrV6G74DySx0RXM-KJ7QGXMyvixZAqZzsE
 - DNS provider: [FILL: e.g., Cloudflare / GoDaddy / Route 53]
 - Date/time added (timezone): [FILL: timestamp when DNS record was added]
 
 **Compliance Status:**
-1. ✅ Privacy Policy page is live and accessible at https://yogodyaan.site/privacy
-2. ✅ Terms of Service page is live and accessible at https://yogodyaan.site/terms
+1. ✅ Privacy Policy page is live and accessible at https://yogique.life/privacy
+2. ✅ Terms of Service page is live and accessible at https://yogique.life/terms
 3. ✅ Both links are prominently displayed in the homepage footer under "Quick Links" section
 4. ✅ Privacy Policy contains comprehensive Google OAuth data handling information
 5. ✅ DNS TXT verification record has been properly configured
@@ -36,7 +36,7 @@ Though our privacy policy and terms of service links are clearly visible on our 
 
 **2. DNS Verification Output:**
 - Text file with dig/nslookup output confirming TXT record propagation
-- Command used: `dig TXT yogodyaan.site +short` and `nslookup -type=TXT yogodyaan.site`
+- Command used: `dig TXT yogique.life +short` and `nslookup -type=TXT yogique.life`
 - Filename: `DNS_Verification_Output.txt`
 
 **3. Privacy and Terms Pages Screenshots:**
@@ -68,7 +68,7 @@ I am happy to provide any additional information or make any necessary adjustmen
 Thank you for your time and assistance.
 
 Best regards,  
-Yogodyaan Team
+Yogique Team
 
 ---
 
@@ -86,14 +86,14 @@ Yogodyaan Team
 **Terminal Commands to Run for DNS Verification:**
 ```bash
 # Run these commands and save output to DNS_Verification_Output.txt
-dig TXT yogodyaan.site +short
-nslookup -type=TXT yogodyaan.site
+dig TXT yogique.life +short
+nslookup -type=TXT yogique.life
 ```
 
 **URLs to Screenshot:**
-- https://yogodyaan.site (homepage footer section)
-- https://yogodyaan.site/privacy (full privacy policy page)
-- https://yogodyaan.site/terms (full terms of service page)
+- https://yogique.life (homepage footer section)
+- https://yogique.life/privacy (full privacy policy page)
+- https://yogique.life/terms (full terms of service page)
 
 ## Pre-Send Checklist
 
@@ -108,3 +108,4 @@ Before sending this email, ensure you have:
 ## Notes
 
 This email template addresses the specific scenario where Google verification is failing despite proper compliance. The comprehensive evidence should help Google support identify any potential issues with their verification system or provide specific guidance on what needs to be corrected.
+

@@ -3,7 +3,7 @@ import { Link as RouterLink } from 'react-router-dom';
 
 export function Terms(): JSX.Element {
     useEffect(() => {
-        document.title = 'Terms of Service — Yogodyaan';
+        document.title = 'Terms of Service — Yogique';
     }, []);
 
     return (
@@ -12,7 +12,7 @@ export function Terms(): JSX.Element {
                 <div className="max-w-5xl mx-auto px-6">
                     <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight">Terms of Service</h1>
                     <p className="mt-3 text-lg text-gray-700 dark:text-slate-300 max-w-3xl">
-                        These Terms govern your use of the Yogodyaan website and services. By using the Service you agree to these terms.
+                        These Terms govern your use of the Yogique website and services. By using the Service you agree to these terms.
                     </p>
                 </div>
             </header>
@@ -22,7 +22,7 @@ export function Terms(): JSX.Element {
                     <section>
                         <h2>1. Acceptance of Terms</h2>
                         <p className="mt-2 text-sm text-gray-700 dark:text-slate-300">
-                            By accessing or using Yogodyaan (the “Service”), you agree to be bound by these Terms of Service and any additional terms posted on the Service.
+                            By accessing or using Yogique (the “Service”), you agree to be bound by these Terms of Service and any additional terms posted on the Service.
                         </p>
                     </section>
 
@@ -50,14 +50,14 @@ export function Terms(): JSX.Element {
                     <section className="mt-6">
                         <h2>5. Intellectual Property</h2>
                         <p className="mt-2 text-sm text-gray-700 dark:text-slate-300">
-                            The Service and its original content are the exclusive property of Yogodyaan and its licensors and are protected by intellectual property laws.
+                            The Service and its original content are the exclusive property of Yogique and its licensors and are protected by intellectual property laws.
                         </p>
                     </section>
 
                     <section className="mt-6">
                         <h2>6. Limitation of Liability</h2>
                         <p className="mt-2 text-sm text-gray-700 dark:text-slate-300">
-                            To the maximum extent permitted by law, Yogodyaan will not be liable for indirect, incidental, special, consequential or punitive damages arising out of your use of the Service.
+                            To the maximum extent permitted by law, Yogique will not be liable for indirect, incidental, special, consequential or punitive damages arising out of your use of the Service.
                         </p>
                     </section>
 
@@ -71,7 +71,7 @@ export function Terms(): JSX.Element {
                     <section className="mt-6">
                         <h2>8. Contact</h2>
                         <p className="mt-2 text-sm text-gray-700 dark:text-slate-300">
-                            For questions about these Terms, contact us at <a href="mailto:namaste@yogodyaan.site" className="text-emerald-600 dark:text-emerald-400 hover:underline">namaste@yogodyaan.site</a>.
+                            For questions about these Terms, contact us at <a href="mailto:namaste@yogique.life" className="text-emerald-600 dark:text-emerald-400 hover:underline">namaste@yogique.life</a>.
                         </p>
                     </section>
 
@@ -85,3 +85,4 @@ export function Terms(): JSX.Element {
 }
 
 export default Terms;
+

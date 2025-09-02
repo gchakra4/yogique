@@ -1,13 +1,13 @@
-DNS Verification Output for yogodyaan.site
+DNS Verification Output for yogique.life
 Generated on: [FILL: Date and time]
 
 === DIG COMMAND OUTPUT ===
-Command: dig TXT yogodyaan.site +short
+Command: dig TXT yogique.life +short
 
 [PASTE YOUR DIG OUTPUT HERE]
 
 === NSLOOKUP COMMAND OUTPUT ===
-Command: nslookup -type=TXT yogodyaan.site
+Command: nslookup -type=TXT yogique.life
 
 [PASTE YOUR NSLOOKUP OUTPUT HERE]
 
@@ -24,15 +24,16 @@ Propagation Complete: [Yes/No]
 To generate this file, run these commands in your terminal:
 
 1. For dig command:
-   dig TXT yogodyaan.site +short
+   dig TXT yogique.life +short
 
 2. For nslookup command:
-   nslookup -type=TXT yogodyaan.site
+   nslookup -type=TXT yogique.life
 
 3. On Windows PowerShell (alternative):
-   Resolve-DnsName -Name yogodyaan.site -Type TXT
+   Resolve-DnsName -Name yogique.life -Type TXT
 
 4. Online verification (alternative):
-   Visit: https://toolbox.googleapps.com/apps/dig/#TXT/yogodyaan.site
+   Visit: https://toolbox.googleapps.com/apps/dig/#TXT/yogique.life
 
 Copy the output from these commands and paste them into the respective sections above.
+

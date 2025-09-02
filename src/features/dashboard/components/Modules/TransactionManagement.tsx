@@ -638,7 +638,7 @@ const TransactionManagement = () => {
           const brandNameY = (logoMetrics.height
             ? (logoMetrics.y + (logoMetrics.height / 2) + (brandFontSize / 3))
             : (height - 82));
-          const brandName = businessConfig?.profile?.name || 'Yogodyaan';
+          const brandName = businessConfig?.profile?.name || 'Yogique';
           page.drawText(brandName, {
             x: computedX,
             y: brandNameY,
@@ -665,7 +665,7 @@ const TransactionManagement = () => {
         const address = [
           ...addressLines,
           `Phone: ${businessConfig?.contact?.phone || '+91 98765 43210'}`,
-          `Email: ${businessConfig?.contact?.email || 'info@yogodyaan.site'}`
+          `Email: ${businessConfig?.contact?.email || 'info@yogique.life'}`
         ];
         address.forEach((line, i) => {
           page.drawText(line, {
@@ -953,10 +953,10 @@ const TransactionManagement = () => {
           color: primaryColor
         });
 
-        const footerName = businessConfig?.profile?.name || 'Yogodyaan';
+        const footerName = businessConfig?.profile?.name || 'Yogique';
         // Force .site domain even if business settings still have .com
-        let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogodyaan.site';
-        hostDomainRaw = hostDomainRaw.replace(/yogodyaan\.com/gi, 'yogodyaan.site');
+        let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogique.life';
+        hostDomainRaw = hostDomainRaw.replace(/Yogique\.com/gi, 'yogique.life');
         const hostDomain = hostDomainRaw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
         const footerEmail = businessConfig?.contact?.email || `contact@${hostDomain}`;
         const footerPhone = businessConfig?.contact?.phone || '+91 98765 43210';
@@ -996,7 +996,7 @@ const TransactionManagement = () => {
       // Email template colors strictly from DB (no forced fallback). If undefined, template defaults apply.
       const primaryHex = businessConfig?.invoice?.color_primary;
       const accentHex = businessConfig?.invoice?.color_accent;
-      const companyName = businessConfig?.profile?.name || 'Yogodyaan';
+      const companyName = businessConfig?.profile?.name || 'Yogique';
       const companyAddress = (businessConfig?.contact?.address_lines || []).join(', ');
 
       // GST / Total calculations for email body
@@ -1031,7 +1031,7 @@ const TransactionManagement = () => {
 
       const res = await EmailService.sendTransactionalEmail(
         newTx.userEmail,
-        'Your Yogodyaan Invoice',
+        'Your Yogique Invoice',
         html,
         [
           {
@@ -1643,3 +1643,4 @@ const TransactionManagement = () => {
 };
 
 export default TransactionManagement;
+

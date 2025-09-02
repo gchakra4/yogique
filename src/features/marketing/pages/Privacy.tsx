@@ -3,7 +3,7 @@ import { Link as RouterLink } from 'react-router-dom';
 
 export function Privacy(): JSX.Element {
     useEffect(() => {
-        document.title = 'Privacy Policy — Yogodyaan';
+        document.title = 'Privacy Policy — Yogique';
     }, []);
 
     return (
@@ -14,7 +14,7 @@ export function Privacy(): JSX.Element {
                     <p className="text-sm text-gray-500 dark:text-slate-400">Last updated: August 27, 2025</p>
                     <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight">Privacy Policy</h1>
                     <p className="mt-3 text-lg text-gray-700 dark:text-slate-300 max-w-3xl">
-                        This page explains how Yogodyaan collects, uses, and protects your personal information.
+                        This page explains how Yogique collects, uses, and protects your personal information.
                         We aim to be clear and transparent — read the sections below or use the quick links to jump to a topic.
                     </p>
                 </div>
@@ -60,12 +60,12 @@ export function Privacy(): JSX.Element {
                                 <ul>
                                     <li><strong>Account</strong> — a unique account created to access the Service.</li>
                                     <li><strong>Affiliate</strong> — an entity controlling or controlled by the Company.</li>
-                                    <li><strong>Company</strong> — Yogodyaan (referred to as "We", "Us" or "Our").</li>
+                                    <li><strong>Company</strong> — Yogique (referred to as "We", "Us" or "Our").</li>
                                     <li><strong>Cookies</strong> — small files stored on your device to improve experience.</li>
                                     <li><strong>Country</strong> — West Bengal, India.</li>
                                     <li><strong>Device</strong> — any device used to access the Service.</li>
                                     <li><strong>Personal Data</strong> — information identifying an individual.</li>
-                                    <li><strong>Service</strong> — the Yogodyaan website and related services (https://yogodyaan.site/).</li>
+                                    <li><strong>Service</strong> — the Yogique website and related services (https://yogique.life/).</li>
                                     <li><strong>Service Provider</strong> — third parties who process data on our behalf.</li>
                                     <li><strong>Usage Data</strong> — data collected automatically (IP, browser, pages visited, etc.).</li>
                                     <li><strong>You</strong> — the person or entity using the Service.</li>
@@ -212,7 +212,7 @@ export function Privacy(): JSX.Element {
                                     <li><strong>Withdraw Consent:</strong> Withdraw consent for data processing</li>
                                 </ul>
                                 <p className="mt-3">
-                                    To exercise these rights, contact us at namaste@yogodyaan.site
+                                    To exercise these rights, contact us at namaste@yogique.life
                                 </p>
                                 <p className="mt-3">
                                     <strong>Google Account Data:</strong> If you signed in using Google OAuth, you can also manage your data through your Google account settings and revoke our app's access at any time through your Google Account permissions.
@@ -245,7 +245,7 @@ export function Privacy(): JSX.Element {
                                 <p>If you have any questions about this Privacy Policy, your data, or our privacy practices, you can contact us:</p>
 
                                 <div className="mt-4">
-                                    <p><strong>Email:</strong> <a href="mailto:namaste@yogodyaan.site" className="text-emerald-600 dark:text-emerald-400 hover:underline">namaste@yogodyaan.site</a></p>
+                                    <p><strong>Email:</strong> <a href="mailto:namaste@yogique.life" className="text-emerald-600 dark:text-emerald-400 hover:underline">namaste@yogique.life</a></p>
                                     <p><strong>Address:</strong> 15 Garia Station Road, Kolkata, West Bengal, India</p>
                                     <p><strong>Response Time:</strong> We aim to respond to privacy inquiries within 7 business days</p>
                                 </div>
@@ -267,3 +267,4 @@ export function Privacy(): JSX.Element {
 }
 
 export default Privacy;
+
