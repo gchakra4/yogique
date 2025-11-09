@@ -11,4 +11,3 @@ if (!supabaseAnonKey || supabaseAnonKey.length < 20) {
     console.warn('[Supabase Config] VITE_SUPABASE_ANON_KEY looks missing/short. Auth will fail.');
 }
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-

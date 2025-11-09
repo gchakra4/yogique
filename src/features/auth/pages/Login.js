@@ -131,4 +131,3 @@ export function Login() {
                                             setFormData({ email: '', password: '', confirmPassword: '' });
                                         }, className: "text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium", children: isSignUp ? 'Sign in' : 'Sign up' })] }) })] }), _jsx("div", { className: "text-center", children: _jsx(Link, { to: "/", className: "text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium", children: "\u2190 Back to Home" }) })] }) }));
 }
-

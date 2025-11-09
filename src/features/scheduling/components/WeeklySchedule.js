@@ -22,6 +22,7 @@ function WeeklyScheduleContent() {
         }
         setBookingLoading(schedule.id);
         try {
+            const className = schedule.name || schedule.class_type.name;
             const today = new Date();
             const targetDay = schedule.day_of_week;
             const daysUntilTarget = (targetDay - today.getDay() + 7) % 7;
@@ -34,7 +35,7 @@ function WeeklyScheduleContent() {
                 .eq('user_id', user.id)
                 .eq('class_date', classDate)
                 .eq('class_time', schedule.start_time)
-                .eq('class_name', schedule.class_type.name)
+                .eq('class_name', className)
                 .maybeSingle();
             if (checkError) {
                 throw checkError;
@@ -65,7 +66,7 @@ function WeeklyScheduleContent() {
             const phone = meta?.phone || meta?.phone_number || user.phone || '';
             const bookingData = {
                 user_id: user.id,
-                class_name: schedule.class_type.name,
+                class_name: className,
                 instructor: schedule.instructor.full_name,
                 class_date: classDate,
                 class_time: schedule.start_time,
@@ -95,7 +96,7 @@ function WeeklyScheduleContent() {
             if (bookingError)
                 throw bookingError;
             const bookingId = bookingResult?.[0]?.booking_id || 'N/A';
-            alert(`Successfully booked ${schedule.class_type.name} for ${nextClassDate.toLocaleDateString()}!\n\nYour Booking ID: ${bookingId}\n\nPlease save this ID for your records.`);
+            alert(`Successfully booked ${className} for ${nextClassDate.toLocaleDateString()}!\n\nYour Booking ID: ${bookingId}\n\nPlease save this ID for your records.`);
         }
         catch (error) {
             console.error('Booking error:', error);
@@ -119,7 +120,7 @@ function WeeklyScheduleContent() {
         return acc;
     }, {});
     const days = [0, 1, 2, 3, 4, 5, 6];
-    return (_jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-slate-600", children: [_jsxs("div", { className: "p-6 border-b border-gray-200 dark:border-slate-600", children: [_jsxs("h2", { className: "text-2xl font-bold text-gray-900 dark:text-white flex items-center", children: [_jsx(Calendar, { className: "w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" }), "Weekly Class Schedule"] }), _jsx("p", { className: "text-gray-600 dark:text-slate-300 mt-1", children: "Regular weekly classes - book your spot today!" })] }), _jsx("div", { className: "grid grid-cols-1 lg:grid-cols-7 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-slate-600", children: days.map(day => (_jsxs("div", { className: "p-4", children: [_jsx("h3", { className: "font-semibold text-gray-900 dark:text-white mb-4 text-center", children: getDayName(day) }), _jsx("div", { className: "space-y-3", children: schedulesByDay[day]?.map(schedule => (_jsxs("div", { className: "bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4 hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-slate-500", children: [_jsxs("div", { className: "flex items-start justify-between mb-2", children: [_jsx("h4", { className: "font-medium text-gray-900 dark:text-white text-sm leading-tight", children: schedule.class_type.name }), _jsx("span", { className: `px-2 py-1 text-xs rounded-full ${schedule.class_type.difficulty_level === 'beginner'
+    return (_jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-slate-600", children: [_jsxs("div", { className: "p-6 border-b border-gray-200 dark:border-slate-600", children: [_jsxs("h2", { className: "text-2xl font-bold text-gray-900 dark:text-white flex items-center", children: [_jsx(Calendar, { className: "w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" }), "Weekly Class Schedule"] }), _jsx("p", { className: "text-gray-600 dark:text-slate-300 mt-1", children: "Regular weekly classes - book your spot today!" })] }), _jsx("div", { className: "grid grid-cols-1 lg:grid-cols-7 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-slate-600", children: days.map(day => (_jsxs("div", { className: "p-4", children: [_jsx("h3", { className: "font-semibold text-gray-900 dark:text-white mb-4 text-center", children: getDayName(day) }), _jsx("div", { className: "space-y-3", children: schedulesByDay[day]?.map(schedule => (_jsxs("div", { className: "bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4 hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-slate-500", children: [_jsxs("div", { className: "flex items-start justify-between mb-2", children: [_jsx("h4", { className: "font-medium text-gray-900 dark:text-white text-sm leading-tight", children: schedule.name || schedule.class_type.name }), _jsx("span", { className: `px-2 py-1 text-xs rounded-full ${schedule.class_type.difficulty_level === 'beginner'
                                                     ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                                                     : schedule.class_type.difficulty_level === 'intermediate'
                                                         ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'

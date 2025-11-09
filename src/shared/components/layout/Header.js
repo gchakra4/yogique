@@ -49,4 +49,3 @@ export function Header() {
                                                     setIsMenuOpen(false);
                                                 }, className: "flex items-center space-x-1 w-full justify-center", children: [_jsx(LogOut, { size: 16 }), _jsx("span", { children: "Sign Out" })] })] })) : (_jsx(Link, { to: "/login", onClick: () => setIsMenuOpen(false), children: _jsx(Button, { variant: "outline", size: "sm", className: "w-full", children: "Sign In" }) }))] })] }) }))] }) }));
 }
-

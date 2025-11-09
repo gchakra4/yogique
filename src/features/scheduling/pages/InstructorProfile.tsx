@@ -67,6 +67,7 @@ interface InstructorProfileData {
 }
 
 interface ClassSchedule {
+  name?: string
   id: string
   day_of_week: number
   start_time: string

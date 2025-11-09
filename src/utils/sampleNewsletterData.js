@@ -130,4 +130,3 @@ export async function clearAllNewsletters() {
         return { success: false, error: error.message };
     }
 }
-
