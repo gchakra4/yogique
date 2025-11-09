@@ -321,6 +321,26 @@ export function Services() {
           </div>
         </div>
       </section>
+
+      {/* Our Company strip */}
+      <section className="py-12 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-slate-800 dark:to-slate-900">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Our Company</h3>
+                <p className="text-sm text-gray-700 dark:text-slate-300 mt-1">
+                  Yogique is an initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). LLPIN: <span className="font-mono">[LLPIN-XXXXX]</span> • Registered Office: <span className="font-mono">[Please provide official registered address]</span>.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <a href="/privacy" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline mr-4">Privacy</a>
+                <a href="/terms" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Terms</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

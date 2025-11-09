@@ -17,6 +17,11 @@ export function Privacy(): JSX.Element {
                         This page explains how Yogique collects, uses, and protects your personal information.
                         We aim to be clear and transparent — read the sections below or use the quick links to jump to a topic.
                     </p>
+                    <div className="mt-4 text-sm bg-white/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-md p-3 inline-block">
+                        <p className="text-gray-700 dark:text-slate-300">
+                            Yogique is an initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). Company details: LLPIN: [LLPIN-XXXXX], Registered Office: [Please provide official registered address].
+                        </p>
+                    </div>
                 </div>
             </header>
 

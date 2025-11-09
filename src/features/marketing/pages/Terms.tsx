@@ -14,6 +14,11 @@ export function Terms(): JSX.Element {
                     <p className="mt-3 text-lg text-gray-700 dark:text-slate-300 max-w-3xl">
                         These Terms govern your use of the Yogique website and services. By using the Service you agree to these terms.
                     </p>
+                    <div className="mt-4 text-sm bg-white/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-md p-3 inline-block">
+                        <p className="text-gray-700 dark:text-slate-300">
+                            Yogique is a brand/initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). Company details: LLPIN: [LLPIN-XXXXX], Registered Office: [Please provide official registered address].
+                        </p>
+                    </div>
                 </div>
             </header>
 

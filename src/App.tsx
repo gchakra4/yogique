@@ -23,6 +23,7 @@ import { ArticleView } from './features/learning/pages/ArticleView';
 import { Learning } from './features/learning/pages/Learning';
 import { About } from './features/marketing/pages/About';
 import { Achievements } from './features/marketing/pages/Achievements';
+import { BookLanding } from './features/marketing/pages/BookLanding';
 import { Contact } from './features/marketing/pages/Contact';
 import { Home } from './features/marketing/pages/Home';
 import { Privacy } from './features/marketing/pages/Privacy';
@@ -30,6 +31,7 @@ import { Services } from './features/marketing/pages/Services';
 import { Terms } from './features/marketing/pages/Terms';
 import { Testimonials } from './features/marketing/pages/Testimonials';
 import Unsubscribe from './features/marketing/pages/Unsubscribe';
+import { YogaForYou } from './features/marketing/pages/YogaForYou';
 import { BookClass } from './features/scheduling/pages/BookClass';
 import { BookCorporate } from './features/scheduling/pages/BookCorporate';
 import { BookOneOnOne } from './features/scheduling/pages/BookOneOnOne';
@@ -109,6 +111,8 @@ function AppRoutes() {
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/services" element={<Services />} />
+              <Route path="/yoga-for-you" element={<YogaForYou />} />
+              <Route path="/book" element={<BookLanding />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/testimonials" element={<Testimonials />} />
               <Route path="/privacy" element={<Privacy />} />

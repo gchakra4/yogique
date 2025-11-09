@@ -91,6 +91,9 @@ export function About() {
             Dedicated to spreading the transformative power of yoga and creating a community
             where everyone can find their path to wellness and inner peace.
           </p>
+          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 shadow-sm">
+            <span className="text-sm text-gray-700 dark:text-slate-200">Yogique is a brand of Sampurnayogam LLP (registered)</span>
+          </div>
         </div>
       </section>
 
@@ -102,10 +105,10 @@ export function About() {
               <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">Welcome to Yogique – Breathe. Move. Transform.</h2>
               <div className="space-y-4 text-gray-700 dark:text-white text-lg">
                 <p>
-                  Founded by Ms. Bratati Batabyal in 2021, Yogique is an all-online yoga platform empowering people to live healthier, more mindful lives through yoga.
+                  Founded by Ms. Bratati Batabyal in 2021, Yogique is an all-online yoga platform empowering people to live healthier, more mindful lives through yoga. Yogique operates under the umbrella of Sampurnayogam LLP, a registered company.
                 </p>
                 <p>
-                  We’ve trained 1000+ students in different parts of the world—offering accessible, expert-led sessions that blend ancient yogic wisdom with modern lifestyles.
+                  We’ve trained 1000+ students in different parts of the world—offering accessible, expert-led sessions that blend ancient yogic wisdom with modern lifestyles. We offer online B2C classes, group programs, and specialized wellness sessions.
                 </p>
                 <p>
                   From corporate wellness and chair yoga to programs for beginners and advanced practitioners, we’re here to help you de-stress, strengthen, and reconnect—wherever you are.

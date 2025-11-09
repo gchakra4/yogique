@@ -104,14 +104,24 @@ export function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-          <p className="text-gray-400">
-            © {new Date().getFullYear()} {brandName}. All rights reserved.
-            {' '}
-            <Link to="/privacy" className="text-gray-300 hover:text-emerald-400 underline ml-2">Privacy Policy</Link>
-            {' '}
-            <Link to="/terms" className="text-gray-300 hover:text-emerald-400 underline ml-2">Terms of Service</Link>
-            {legal.disclaimer ? '' : ' Made with ❤️ for your wellness journey.'}
-          </p>
+          <div className="space-y-3">
+            <p className="text-gray-400 text-sm">
+              Yogique is a brand operating under the umbrella of <span className="font-semibold text-gray-300">Sampurnayogam LLP</span> (a registered company). All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.
+            </p>
+            <p className="text-gray-400 text-sm">
+              <span className="font-semibold text-gray-300">Sampurnayogam LLP</span>
+              {' '}• LLPIN: {legal.llpin || 'LLPIN-XXXXX'}
+              {' '}• Registered Office: {contact.address_lines?.length ? contact.address_lines.join(', ') : 'Please provide official registered address'}
+            </p>
+            <p className="text-gray-400">
+              © {new Date().getFullYear()} {brandName} • Sampurnayogam LLP. All rights reserved.
+              {' '}
+              <Link to="/privacy" className="text-gray-300 hover:text-emerald-400 underline ml-2">Privacy Policy</Link>
+              {' '}
+              <Link to="/terms" className="text-gray-300 hover:text-emerald-400 underline ml-2">Terms of Service</Link>
+              {legal.disclaimer ? '' : ' Made with ❤️ for your wellness journey.'}
+            </p>
+          </div>
         </div>
       </div>
     </footer >
