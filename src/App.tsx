@@ -14,6 +14,7 @@ import { ProtectedRoute } from './features/auth/components/ProtectedRoute';
 // Dashboard component - new import
 import UniversalDashboard from './features/dashboard/components/UniversalDashboard';
 // Page imports - updated paths
+import { Navigate } from 'react-router-dom';
 import NewArticlePage from './features/articles/pages/NewArticlePage';
 import { AuthCallback } from './features/auth/components/AuthCallback';
 import { Login } from './features/auth/pages/Login';
@@ -27,7 +28,6 @@ import { BookLanding } from './features/marketing/pages/BookLanding';
 import { Contact } from './features/marketing/pages/Contact';
 import { Home } from './features/marketing/pages/Home';
 import { Privacy } from './features/marketing/pages/Privacy';
-import { Services } from './features/marketing/pages/Services';
 import { Terms } from './features/marketing/pages/Terms';
 import { Testimonials } from './features/marketing/pages/Testimonials';
 import Unsubscribe from './features/marketing/pages/Unsubscribe';
@@ -110,8 +110,8 @@ function AppRoutes() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/yoga-for-you" element={<YogaForYou />} />
+              <Route path="/services" element={<Navigate to="/yogique-for-you" replace />} />
+              <Route path="/yogique-for-you" element={<YogaForYou />} />
               <Route path="/book" element={<BookLanding />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/testimonials" element={<Testimonials />} />

@@ -20,8 +20,7 @@ export function Header() {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
-    { name: 'Services', href: '/services' },
-    { name: 'Yoga for You', href: '/yoga-for-you' },
+    { name: 'Yogique for You', href: '/yogique-for-you' },
     { name: 'Schedule', href: '/schedule' },
     { name: 'Learning', href: '/learning' },
     { name: 'Contact', href: '/contact' },

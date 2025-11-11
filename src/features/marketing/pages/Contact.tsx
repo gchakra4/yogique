@@ -332,8 +332,8 @@ export function Contact() {
                     <a href="/book-class" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
                       Book a Session
                     </a>
-                    <a href="/services" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
-                      View Services
+                    <a href="/yogique-for-you" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
+                      View Offerings
                     </a>
                     <a href="/testimonials" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
                       Read Testimonials

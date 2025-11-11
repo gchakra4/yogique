@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { Calendar, Clock, Users, CreditCard } from 'lucide-react';
+import { Calendar, Clock, CreditCard, Users } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/Button';
 import { WeeklySchedule } from '../components/WeeklySchedule';
 export function Schedule() {

@@ -319,17 +319,18 @@ export function Home() {
               <h2 className="text-4xl font-bold text-gray-900 dark:text-white">Your Global Yoga Journey Starts Here</h2>
               <div className="space-y-4 text-gray-700 dark:text-slate-300 leading-relaxed">
                 <p>
-                  With over 5 years of expertise combining traditional yoga practices with modern wellness needs,
-                  I specialize in bringing the transformative power of yoga to professionals worldwide.
+                  With over five years of experience blending traditional yogic wisdom and modern wellness,
+                  we bring the transformative power of yoga to professionals around the world.
                 </p>
                 <p>
-                  My focus on online teaching and global reach ensures that distance is never a barrier to
-                  your wellness journey. Whether you're a busy executive in New York or a startup founder
-                  in Singapore, personalized yoga guidance is just a click away.
+                  Our online-first approach and global reach mean distance is never a barrier to your
+                  wellbeing. Whether you're a busy executive in New York or a startup founder in Singapore,
+                  personalized yoga guidance is just a click away.
                 </p>
                 <p>
-                  I believe that yoga is not just about physical postures—it's about creating balance,
-                  reducing stress, and enhancing overall well-being in our fast-paced professional lives.
+                  We see yoga as more than postures — it is a practical way to restore balance, reduce
+                  stress, and improve overall wellbeing so you can perform better and feel calmer in
+                  fast-paced professional lives.
                 </p>
               </div>
 
@@ -758,7 +759,7 @@ export function Home() {
             Schedule your first class today and take the first step towards a healthier, more balanced life.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/services">
+            <Link to="/yogique-for-you">
               <Button
                 size="lg"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 text-lg font-semibold rounded-lg transition-all duration-300 shadow-md"

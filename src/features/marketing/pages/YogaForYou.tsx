@@ -62,6 +62,13 @@ export function YogaForYou() {
             points: ['Joint-friendly sequences', 'Balance + fall prevention', 'Chair/prop support'],
             gradient: 'from-amber-50 to-yellow-50 dark:from-slate-800/60 dark:to-slate-900/60'
         }
+        ,
+        {
+            icon: <Heart className="w-8 h-8 text-emerald-500 dark:text-emerald-400" />,
+            title: 'Therapeutic Yoga',
+            points: ['Injury rehab & mobility', 'Chronic pain & posture care', 'Individualized modifications', 'Suitable for postnatal & seniors'],
+            gradient: 'from-teal-50 to-emerald-50 dark:from-slate-800/60 dark:to-slate-900/60'
+        }
     ]
 
     const benefits = [
@@ -121,26 +128,27 @@ export function YogaForYou() {
                                         <h3 className="text-xl font-semibold">{s.title}</h3>
                                         <p className="text-sm text-gray-600 dark:text-slate-300">{s.desc}</p>
                                     </div>
-                                    {s.badge && (
+                                    {s.badge && s.title !== 'Group Classes' && (
                                         <span className="ml-auto text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{s.badge}</span>
                                     )}
                                 </div>
                                 <div className="mt-5">
                                     {s.title === 'Group Classes' ? (
                                         <div className="space-y-3">
-                                            <p className="text-gray-600 dark:text-slate-300 text-sm">
-                                                If you have a group and want to book a private session, use the button below. To join our scheduled weekly classes, please check the class schedule.
+                                            <p className="text-sm italic text-gray-600 dark:text-slate-400">
+                                                Have a private group? Use the "Private Group" button to request a dedicated session. To join our regular public classes or try a free demo, click "View &amp; Join" to see the schedule.
                                             </p>
-                                            <div className="flex flex-col sm:flex-row gap-3">
+                                            <div className="flex flex-col sm:flex-row gap-3 items-center">
                                                 <Link to="/book-class">
-                                                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transform hover:scale-[1.02]">
-                                                        Book Group Session
+                                                    <Button variant="outline" className="border-2 border-emerald-600 text-emerald-600 px-6 py-3 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transform hover:scale-[1.02]">
+                                                        Private Group
                                                     </Button>
                                                 </Link>
-                                                <Link to="/schedule">
-                                                    <Button variant="outline" className="border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transform hover:scale-[1.02]">
-                                                        View Class Schedule
+                                                <Link to="/schedule" className="relative inline-block">
+                                                    <Button className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-3">
+                                                        <span>View &amp; Join</span>
                                                     </Button>
+                                                    <span className="absolute -top-2 -right-2 inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 shadow">Free Demo</span>
                                                 </Link>
                                             </div>
                                         </div>
