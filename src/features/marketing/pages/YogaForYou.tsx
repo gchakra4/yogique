@@ -126,11 +126,31 @@ export function YogaForYou() {
                                     )}
                                 </div>
                                 <div className="mt-5">
-                                    <Link to={s.to}>
-                                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-all duration-300">
-                                            {s.cta}
-                                        </Button>
-                                    </Link>
+                                    {s.title === 'Group Classes' ? (
+                                        <div className="space-y-3">
+                                            <p className="text-gray-600 dark:text-slate-300 text-sm">
+                                                If you have a group and want to book a private session, use the button below. To join our scheduled weekly classes, please check the class schedule.
+                                            </p>
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <Link to="/book-class">
+                                                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transform hover:scale-[1.02]">
+                                                        Book Group Session
+                                                    </Button>
+                                                </Link>
+                                                <Link to="/schedule">
+                                                    <Button variant="outline" className="border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transform hover:scale-[1.02]">
+                                                        View Class Schedule
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <Link to={s.to}>
+                                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-all duration-300">
+                                                {s.cta}
+                                            </Button>
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                         ))}

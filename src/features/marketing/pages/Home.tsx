@@ -215,7 +215,7 @@ export function Home() {
                   </Button>
                 </Link>
                 <Link to="/book/corporate">
-                  <Button variant="outline" size="lg" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-4 text-lg font-semibold rounded-lg">
+                  <Button variant="outline" size="lg" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 hover:scale-105 px-8 py-4 text-lg font-semibold rounded-lg">
                     Corporate Enquiry
                   </Button>
                 </Link>
@@ -680,7 +680,7 @@ export function Home() {
                       <div className="relative bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 p-8 md:p-10 flex flex-col items-center justify-center min-w-[280px] border-r border-gray-100 dark:border-slate-700">
                         {/* Decorative Quote */}
                         <div className="absolute top-4 left-4 text-blue-200 dark:text-blue-900/30 text-6xl font-serif leading-none">"</div>
-                        
+
                         <img
                           src={testimonial.image}
                           alt={testimonial.name}
@@ -770,7 +770,7 @@ export function Home() {
               </Button>
             </Link>
             <Link to="/contact">
-              <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300">
+              <Button variant="outline" size="lg" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 hover:scale-105 px-8 py-4 text-lg font-semibold rounded-lg">
                 Learn More
               </Button>
             </Link>

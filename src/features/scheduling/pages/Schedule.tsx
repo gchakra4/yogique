@@ -1,4 +1,4 @@
-import { Calendar, Clock, Users, CreditCard } from 'lucide-react'
+import { Calendar, Clock, CreditCard, Users } from 'lucide-react'
 import { Button } from '../../../shared/components/ui/Button'
 import { WeeklySchedule } from '../components/WeeklySchedule'
 
@@ -10,7 +10,7 @@ export function Schedule() {
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">Class Schedule</h1>
           <p className="text-xl text-gray-600 dark:text-slate-300 leading-relaxed">
-            Find the perfect class time that fits your schedule. Our regular weekly classes 
+            Find the perfect class time that fits your schedule. Our regular weekly classes
             are designed to help you build a consistent yoga practice. Book instantly with just one click!
           </p>
         </div>
@@ -32,7 +32,7 @@ export function Schedule() {
               Experience the benefits of structured, regular yoga practice with instant booking
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center p-6 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-600">
               <Calendar className="w-12 h-12 text-blue-500 dark:text-blue-400 mx-auto mb-4" />
@@ -41,7 +41,7 @@ export function Schedule() {
                 Regular weekly classes help you build a sustainable yoga practice and see real progress.
               </p>
             </div>
-            
+
             <div className="text-center p-6 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-600">
               <Users className="w-12 h-12 text-emerald-500 dark:text-emerald-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Small Groups</h3>
@@ -49,7 +49,7 @@ export function Schedule() {
                 Limited class sizes ensure personalized attention and a supportive community atmosphere.
               </p>
             </div>
-            
+
             <div className="text-center p-6 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-600">
               <Clock className="w-12 h-12 text-purple-500 dark:text-purple-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Instant Booking</h3>
@@ -78,7 +78,7 @@ export function Schedule() {
               Simple, fast, and secure booking process
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white dark:bg-slate-700 rounded-xl p-8 shadow-lg border border-gray-200 dark:border-slate-600 text-center">
               <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -134,12 +134,12 @@ export function Schedule() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="#schedule">
-              <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-slate-200 dark:text-slate-800 dark:hover:bg-slate-100 px-8 py-4 text-lg font-semibold rounded-lg">
+              <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 hover:scale-105 px-8 py-4 text-lg font-semibold rounded-lg shadow-md">
                 View Schedule Above
               </Button>
             </a>
             <a href="/contact">
-              <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg font-semibold rounded-lg">
+              <Button variant="outline" size="lg" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 hover:scale-105 px-8 py-4 text-lg font-semibold rounded-lg">
                 Ask Questions
               </Button>
             </a>
