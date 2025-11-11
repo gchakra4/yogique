@@ -1,4 +1,4 @@
-# Google DNS TXT Verification — Filled for yogodyaan.com
+# Google DNS TXT Verification — Filled for Yogique.com
 
 Provided TXT value:
 `google-site-verification=MiyWUfOivIrV6G74DySx0RXM-KJ7QGXMyvixZAqZzsE`
@@ -24,8 +24,8 @@ CLI verification examples (run from your terminal):
 
 ```bash
 # Replace example.com with your domain
-dig TXT yogodyaan.com +short
-nslookup -type=TXT yogodyaan.com
+dig TXT Yogique.com +short
+nslookup -type=TXT Yogique.com
 ```
 
 Expected output should include the exact string `google-site-verification=MiyWUfOivIrV6G74DySx0RXM-KJ7QGXMyvixZAqZzsE`.
@@ -39,7 +39,7 @@ cat > changes.json <<'JSON'
     {
       "Action": "UPSERT",
       "ResourceRecordSet": {
-        "Name": "yogodyaan.com.",
+        "Name": "Yogique.com.",
         "Type": "TXT",
         "TTL": 300,
         "ResourceRecords": [
@@ -58,15 +58,15 @@ Propagation: allow up to 48 hours; most providers are faster.
 
 Exact reply to Google Trust & Safety (copy/paste and fill placeholders):
 
-Subject: Domain verification evidence for Yogodyaan (Project: YOUR_PROJECT_ID)
+Subject: Domain verification evidence for Yogique (Project: YOUR_PROJECT_ID)
 
 Body:
 > Hello,
 >
-> I have added the Google verification TXT record to the DNS for `yogodyaan.com`.
+> I have added the Google verification TXT record to the DNS for `Yogique.com`.
 >
 > Details:
-> - Domain: https://yogodyaan.com/  
+> - Domain: https://Yogique.com/  
 > - DNS provider: [e.g., Cloudflare / GoDaddy / Route 53]  
 > - TXT record value: `google-site-verification=MiyWUfOivIrV6G74DySx0RXM-KJ7QGXMyvixZAqZzsE`  
 > - OAuth Client ID: YOUR_OAUTH_CLIENT_ID  
@@ -74,16 +74,16 @@ Body:
 >
 > Attached evidence:
 > 1) Screenshot of the TXT record in the DNS provider console showing the exact value.  
-> 2) Terminal output of `dig TXT yogodyaan.com +short` (shows the TXT record).  
+> 2) Terminal output of `dig TXT Yogique.com +short` (shows the TXT record).  
 > 3) Screenshot of Google verification success page (or Search Console verification).  
 > 4) Screenshots of Privacy and Terms URLs on the live site:
->    - https://yogodyaan.com/privacy
->    - https://yogodyaan.com/terms
+>    - https://Yogique.com/privacy
+>    - https://Yogique.com/terms
 >
 > I added the TXT record at: YYYY-MM-DD HH:MM (timezone). Please confirm once verification can proceed.
 >
 > Regards,  
-> Yogodyaan Team
+> Yogique Team
 
 Checklist (current status):
 - [x] Obtain TXT value from Google console
@@ -98,3 +98,4 @@ Checklist (current status):
 Notes:
 - If your DNS provider hides TXT content in the UI, capture a screenshot of the DNS record listing plus an authoritative `dig` output.  
 - If you want, paste your OAuth Client ID and Project ID here and I will fill them into the reply text and produce a ready-to-send email body and attachments checklist.
+

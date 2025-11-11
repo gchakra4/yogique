@@ -1,6 +1,6 @@
-# Yogodyaan - Global Online Yoga Platform
+# Yogique - Global Online Yoga Platform
 
-Yogodyaan is a modern, feature-rich web application designed to provide a global platform for online yoga. It connects users with instructors, offering personalized yoga programs tailored for professionals and corporate wellness.
+Yogique is a modern, feature-rich web application designed to provide a global platform for online yoga. It connects users with instructors, offering personalized yoga programs tailored for professionals and corporate wellness.
 
 ## ✨ Features
 
@@ -24,8 +24,8 @@ These instructions will get you a copy of the project up and running on your loc
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/gizmoyogi/yogodyaan-gizmo.git
-    cd yogodyaan-gizmo
+    git clone https://github.com/gizmoyogi/Yogique-gizmo.git
+    cd Yogique-gizmo
     ```
 
 2.  **Install dependencies:**
@@ -93,3 +93,4 @@ Contributions are welcome! Please feel free to submit a pull request.
 ## 📄 License
 
 This project is licensed under the MIT License.
+

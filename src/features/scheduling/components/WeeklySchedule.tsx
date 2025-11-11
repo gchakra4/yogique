@@ -25,6 +25,7 @@ function WeeklyScheduleContent() {
     setBookingLoading(schedule.id)
 
     try {
+      const className = schedule.name || schedule.class_type.name
       const today = new Date()
       const targetDay = schedule.day_of_week
       const daysUntilTarget = (targetDay - today.getDay() + 7) % 7
@@ -39,7 +40,7 @@ function WeeklyScheduleContent() {
         .eq('user_id', user.id)
         .eq('class_date', classDate)
         .eq('class_time', schedule.start_time)
-        .eq('class_name', schedule.class_type.name)
+        .eq('class_name', className)
         .maybeSingle()
 
       if (checkError) {
@@ -75,7 +76,7 @@ function WeeklyScheduleContent() {
 
       const bookingData = {
         user_id: user.id,
-        class_name: schedule.class_type.name,
+        class_name: className,
         instructor: schedule.instructor.full_name,
         class_date: classDate,
         class_time: schedule.start_time,
@@ -110,7 +111,7 @@ function WeeklyScheduleContent() {
       if (bookingError) throw bookingError
 
       const bookingId = bookingResult?.[0]?.booking_id || 'N/A'
-      alert(`Successfully booked ${schedule.class_type.name} for ${nextClassDate.toLocaleDateString()}!\n\nYour Booking ID: ${bookingId}\n\nPlease save this ID for your records.`)
+      alert(`Successfully booked ${className} for ${nextClassDate.toLocaleDateString()}!\n\nYour Booking ID: ${bookingId}\n\nPlease save this ID for your records.`)
     } catch (error: any) {
       console.error('Booking error:', error)
       alert('Failed to book class. Please try again.')
@@ -169,7 +170,7 @@ function WeeklyScheduleContent() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="font-medium text-gray-900 dark:text-white text-sm leading-tight">
-                      {schedule.class_type.name}
+                      {schedule.name || schedule.class_type.name}
                     </h4>
                     <span className={`px-2 py-1 text-xs rounded-full ${schedule.class_type.difficulty_level === 'beginner'
                       ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'

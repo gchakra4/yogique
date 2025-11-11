@@ -4,6 +4,6 @@
     "type": "module",
     "private": true,
     "dependencies": {
-        "luxon": "^3.4.0"
+        "luxon": "^3.7.1"
     }
 }

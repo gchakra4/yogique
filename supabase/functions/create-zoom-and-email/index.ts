@@ -311,21 +311,71 @@ serve(async (req) => {
             return new Response(JSON.stringify({ error: updateErr.message }), { status: 500 });
         }
 
-        // 8) prepare email HTML
-        const formatHtml = (name: string, isInstructor = false) => {
-            const url = isInstructor ? zoomData.start_url : zoomData.join_url;
-            const displayTitle = ct?.name || "Class";
-            const startDisplay = cls.date && cls.start_time ? `${cls.date} ${cls.start_time} (${cls.timezone || "UTC"})` : "scheduled time";
+        // 8) prepare email HTML - replace previous template with the provided yoga-themed builder
+        const PUBLIC_SITE_URL = Deno.env.get('PUBLIC_SITE_URL') || Deno.env.get('SITE_URL') || null;
+        const LOGO_URL = PUBLIC_SITE_URL ? `${PUBLIC_SITE_URL.replace(/\/$/, '')}/images/Brand-orange.png` : '/images/Brand-orange.png';
+
+        function buildEmailTemplate({
+            recipientName,
+            isInstructor,
+            classTitle,
+            classDisplay,
+            localTime,
+            zoomUrl,
+            assignmentCode,
+            instructorName,
+            instructorEmail,
+            meetingId,
+            passcode,
+        }: {
+            recipientName: string,
+            isInstructor?: boolean,
+            classTitle: string,
+            classDisplay: string,
+            localTime?: string | null,
+            zoomUrl: string,
+            assignmentCode: string,
+            instructorName: string,
+            instructorEmail: string,
+            meetingId?: string,
+            passcode?: string,
+        }) {
             return `
-        <div style="font-family:Arial,Helvetica,sans-serif;color:#111">
-          <h2>${displayTitle}</h2>
-          <p>Hi ${name},</p>
-          <p>Your class is scheduled at <strong>${startDisplay}</strong>.</p>
-          <p><a href="${url}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;">${isInstructor ? "Start Class (Host)" : "Join Class"}</a></p>
-          <p style="font-size:13px;color:#555">Meeting ID: ${zoomData.id}${zoomData.password ? ` | Passcode: ${zoomData.password}` : ""}</p>
+    <div style="max-width:600px;margin:0 auto;padding:20px;font-family:Arial,Helvetica,sans-serif;color:#111;background:#f9fafb;border-radius:8px;">
+
+        <div style="text-align:center;margin-bottom:20px;">
+            ${LOGO_URL ? `<img src="${LOGO_URL}" alt="Yoga Brand Logo" style="max-width:160px;height:auto;">` : ''}
         </div>
-      `;
-        };
+
+        <h2 style="margin-top:0;color:#d97706;text-align:center;">${classTitle}</h2>
+
+        <p style="font-size:16px;">Namaste ${recipientName},</p>
+        <p style="font-size:16px;">Your yoga class is scheduled at <strong>${classDisplay}</strong>.</p>
+        ${localTime ? `<p style="font-size:16px;">Your local time: <strong>${localTime}</strong></p>` : ''}
+
+        <div style="text-align:center;margin:24px 0;">
+            <a href="${zoomUrl}" 
+                style="display:inline-block;padding:14px 24px;background:#d97706;color:#fff;font-weight:bold;
+                             border-radius:6px;text-decoration:none;font-size:16px;">
+                ${isInstructor ? "Start Class (Host)" : "Join Class"}
+            </a>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:16px;margin-top:20px;">
+            <h3 style="margin:0 0 12px 0;color:#111;font-size:18px;">Class Details</h3>
+            <p style="margin:4px 0;font-size:14px;"><strong>Assignment Code:</strong> ${assignmentCode}</p>
+            <p style="margin:4px 0;font-size:14px;"><strong>Instructor:</strong> ${instructorName} (${instructorEmail})</p>
+            <p style="margin:4px 0;font-size:14px;"><strong>Meeting ID:</strong> ${meetingId || "TBD"}</p>
+            ${passcode ? `<p style="margin:4px 0;font-size:14px;"><strong>Passcode:</strong> ${passcode}</p>` : ""}
+        </div>
+
+        <p style="font-size:12px;color:#6b7280;margin-top:24px;text-align:center;">
+            May your practice be peaceful and fulfilling.<br>
+            For assistance, write to <a href="mailto:${FROM_EMAIL}" style="color:#d97706;">${FROM_EMAIL}</a>.
+        </p>
+    </div>
+    `;
+        }
 
         // 9) send notifications: single email per attendee (To includes attendee + instructor), BCC admins
         const sendResults: Array<{ to: string[]; bcc?: string[]; result: any }> = [];
@@ -357,18 +407,29 @@ serve(async (req) => {
                     }
                 } catch (e) { attendeeLocalDisplay = null; }
 
-                const bodyHtml = `
-                                        <div style="font-family:Arial,Helvetica,sans-serif;color:#111">
-                                            <p>Hi ${a.full_name || 'Student'},</p>
-                                            <p>Your class is scheduled at <strong>${classDisplay}</strong>.</p>
-                                            ${attendeeLocalDisplay ? `<p>Your local time: <strong>${attendeeLocalDisplay}</strong></p>` : ''}
-                                            <p><a href="${zoomData.join_url}">Join Zoom</a></p>
-                                            <h4>Class Details</h4>
-                                            <p>Assignment code: ${cls.assignment_code || cls.id}</p>
-                                            <p>Instructor: ${instructor?.full_name || 'TBD'} (${instructor?.email || 'TBD'})</p>
-                                            <p>Topic: ${ct?.name || 'Class'}</p>
-                                        </div>
+                const details = `
+                                    <div style="font-size:14px;color:#6b7280;">
+                                        <p style="margin:6px 0"><strong>Class time:</strong> ${classDisplay}</p>
+                                        ${attendeeLocalDisplay ? `<p style="margin:6px 0"><strong>Your local time:</strong> ${attendeeLocalDisplay}</p>` : ''}
+                                        <p style="margin:6px 0"><strong>Assignment code:</strong> ${cls.assignment_code || cls.id}</p>
+                                        <p style="margin:6px 0"><strong>Instructor:</strong> ${instructor?.full_name || 'TBD'} (${instructor?.email || 'TBD'})</p>
+                                        <p style="margin:6px 0"><strong>Topic:</strong> ${ct?.name || 'Class'}</p>
+                                    </div>
                                 `;
+
+                const bodyHtml = buildEmailTemplate({
+                    recipientName: a.full_name || 'Student',
+                    isInstructor: false,
+                    classTitle: ct?.name || 'Class — Join details',
+                    classDisplay: classDisplay,
+                    localTime: attendeeLocalDisplay || null,
+                    zoomUrl: zoomData.join_url,
+                    assignmentCode: cls.assignment_code || cls.id,
+                    instructorName: instructor?.full_name || 'TBD',
+                    instructorEmail: instructor?.email || 'TBD',
+                    meetingId: String(zoomData.id || ''),
+                    passcode: zoomData.password || undefined,
+                });
                 const res = await sendResendEmail(toList, `${ct?.name || 'Class'} — Join details`, bodyHtml, bccList);
                 sendResults.push({ to: toList, bcc: bccList, result: res });
             }
@@ -376,27 +437,50 @@ serve(async (req) => {
             // no attendees — send single host email and CC admins
             const toList = [instructor.email];
             const bccList = ADMIN_EMAILS.length ? ADMIN_EMAILS : undefined;
-            const hostHtml = `
-                                <div style="font-family:Arial,Helvetica,sans-serif;color:#111">
-                                    <p>Hi ${instructor.full_name || 'Instructor'},</p>
-                                    <p>Your class is scheduled at <strong>${classDisplay}</strong>.</p>
-                                    <p><a href="${zoomData.start_url}">Start Class (Host)</a></p>
-                                    <h4>Class Details</h4>
-                                    <p>Assignment code: ${cls.assignment_code || cls.id}</p>
-                                    <p>Topic: ${ct?.name || 'Class'}</p>
-                                </div>
-                        `;
+            const hostDetails = `
+                <div style="font-size:14px;color:#6b7280;">
+                    <p style="margin:6px 0"><strong>Class time:</strong> ${classDisplay}</p>
+                    <p style="margin:6px 0"><strong>Assignment code:</strong> ${cls.assignment_code || cls.id}</p>
+                    <p style="margin:6px 0"><strong>Topic:</strong> ${ct?.name || 'Class'}</p>
+                </div>
+            `;
+            const hostHtml = buildEmailTemplate({
+                recipientName: instructor.full_name || 'Instructor',
+                isInstructor: true,
+                classTitle: `${ct?.name || 'Class'} — Host join details`,
+                classDisplay: classDisplay,
+                localTime: null,
+                zoomUrl: zoomData.start_url,
+                assignmentCode: cls.assignment_code || cls.id,
+                instructorName: instructor.full_name || 'Instructor',
+                instructorEmail: instructor.email || '',
+                meetingId: String(zoomData.id || ''),
+                passcode: zoomData.password || undefined,
+            });
             const res = await sendResendEmail(toList, `${ct?.name || 'Class'} — Host join details`, hostHtml, bccList);
             sendResults.push({ to: toList, bcc: bccList, result: res });
         } else {
             // no instructor email found — notify admins only (existing behavior)
-            const adminHtml = `
-                            <div style="font-family:Arial,Helvetica,sans-serif;color:#111">
-                                <p>No instructor email found for class <strong>${ct?.name || 'Class'}</strong> (assignment ${cls.assignment_code || cls.id}).</p>
-                                <p>Zoom join link: <a href="${zoomData.join_url}">${zoomData.join_url}</a></p>
-                            </div>
+            const adminDetails = `
+                                <div style="font-size:14px;color:#6b7280;">
+                                    <p style="margin:6px 0">No instructor email found for class <strong>${ct?.name || 'Class'}</strong> (assignment ${cls.assignment_code || cls.id}).</p>
+                                    <p style="margin:6px 0">Zoom join link: <a href="${zoomData.join_url}">${zoomData.join_url}</a></p>
+                                </div>
                         `;
             if (ADMIN_EMAILS.length) {
+                const adminHtml = buildEmailTemplate({
+                    recipientName: 'Admin',
+                    isInstructor: false,
+                    classTitle: `Admin: class created (no instructor) — ${ct?.name || 'Class'}`,
+                    classDisplay: '',
+                    localTime: null,
+                    zoomUrl: zoomData.join_url,
+                    assignmentCode: cls.assignment_code || cls.id,
+                    instructorName: instructor?.full_name || 'TBD',
+                    instructorEmail: instructor?.email || '',
+                    meetingId: String(zoomData.id || ''),
+                    passcode: zoomData.password || undefined,
+                });
                 const ar = await sendResendEmail([FROM_EMAIL], `Admin: class created (no instructor) — ${ct?.name || 'Class'}`, adminHtml, ADMIN_EMAILS);
                 sendResults.push({ to: [FROM_EMAIL], bcc: ADMIN_EMAILS, result: ar });
             }

@@ -90,6 +90,8 @@ Deno.serve(async (req) => {
         const body = await req.json().catch(() => ({}));
         const {
             user_id = null,
+            user_email = null,
+            user_full_name = null,
             subscription_id = null,
             amount,
             currency = 'USD',
@@ -97,7 +99,42 @@ Deno.serve(async (req) => {
             payment_method = null,
             stripe_payment_intent_id = null,
             description = null,
+            billing_plan_type = null,
+            billing_period_month = null,
         } = body || {};
+
+        // Normalize billing_period_month (frontend sends "YYYY-MM" from <input type='month'>)
+        // Postgres `date` expects YYYY-MM-DD, so convert "YYYY-MM" -> "YYYY-MM-01".
+        let billing_period_date: string | null = null;
+        if (billing_period_month) {
+            if (/^\d{4}-\d{2}$/.test(billing_period_month)) {
+                billing_period_date = `${billing_period_month}-01`;
+            } else {
+                const parsed = new Date(billing_period_month);
+                if (!isNaN(parsed.getTime())) {
+                    billing_period_date = parsed.toISOString().slice(0, 10);
+                }
+            }
+        }
+
+        // If user_id not provided but an email is, try to resolve an existing auth user
+        // Use service-role client to query auth.users
+        let resolvedUserId = user_id;
+        try {
+            if (!resolvedUserId && user_email) {
+                const { data: foundUsers, error: findError } = await supabaseAdmin
+                    .from('auth.users')
+                    .select('id, email, raw_user_meta_data')
+                    .eq('email', user_email)
+                    .limit(1);
+                if (!findError && foundUsers && foundUsers.length > 0) {
+                    resolvedUserId = foundUsers[0].id;
+                }
+            }
+        } catch (e) {
+            console.error('Error resolving user by email:', e);
+            // proceed without resolvedUserId; we'll still insert snapshot fields
+        }
 
         if (typeof amount !== 'number') {
             return new Response(JSON.stringify({ error: 'Invalid amount' }), {
@@ -107,18 +144,25 @@ Deno.serve(async (req) => {
         }
 
         // Insert into transactions via service role (bypasses RLS)
+        const insertPayload = {
+            user_id: resolvedUserId,
+            subscription_id,
+            amount,
+            currency,
+            status,
+            payment_method,
+            stripe_payment_intent_id,
+            description,
+            billing_plan_type: billing_plan_type ?? null,
+            // Use normalized date (YYYY-MM-DD) or null
+            billing_period_month: billing_period_date ?? null,
+            user_email: user_email ?? null,
+            user_full_name: user_full_name ?? null,
+        };
+
         const { data: inserted, error: insertError } = await supabaseAdmin
             .from('transactions')
-            .insert({
-                user_id,
-                subscription_id,
-                amount,
-                currency,
-                status,
-                payment_method,
-                stripe_payment_intent_id,
-                description,
-            })
+            .insert(insertPayload)
             .select('*')
             .single();
 

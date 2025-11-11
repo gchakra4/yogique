@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../shared/lib/supabase'
 
 interface ClassSchedule {
+  name?: string
   id: string
   class_type_id: string
   instructor_id: string

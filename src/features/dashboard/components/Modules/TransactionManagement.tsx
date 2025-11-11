@@ -50,6 +50,36 @@ const TransactionManagement = () => {
     billing_period_month: '', // YYYY-MM when monthly
     gst_rate: '0'
   });
+
+  // combobox / user search state
+  const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
+  const [userSearchLoading, setUserSearchLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+
+  const searchUsers = async (q: string) => {
+    if (!q || q.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+    setUserSearchLoading(true);
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-users?q=${encodeURIComponent(q)}&limit=10`;
+      const res = await fetch(url, {
+        headers: { apikey: (import.meta.env as any).VITE_SUPABASE_ANON_KEY || '' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserSearchResults(Array.isArray(data) ? data : []);
+      } else {
+        setUserSearchResults([]);
+      }
+    } catch (e) {
+      console.warn('search users failed', e);
+      setUserSearchResults([]);
+    } finally {
+      setUserSearchLoading(false);
+    }
+  };
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -349,8 +379,9 @@ const TransactionManagement = () => {
         body: {
           // Prefer explicit user_id when available; otherwise provide email so the edge function
           // can resolve it to the correct user PK.
-          user_id: null,
+          user_id: selectedUser?.id || null,
           user_email: newTx.userEmail || null,
+          user_full_name: selectedUser?.full_name || newTx.user_name || null,
           subscription_id: null,
           amount: tx.amount,
           currency: tx.currency,
@@ -607,7 +638,7 @@ const TransactionManagement = () => {
           const brandNameY = (logoMetrics.height
             ? (logoMetrics.y + (logoMetrics.height / 2) + (brandFontSize / 3))
             : (height - 82));
-          const brandName = businessConfig?.profile?.name || 'Yogodyaan';
+          const brandName = businessConfig?.profile?.name || 'Yogique';
           page.drawText(brandName, {
             x: computedX,
             y: brandNameY,
@@ -634,7 +665,7 @@ const TransactionManagement = () => {
         const address = [
           ...addressLines,
           `Phone: ${businessConfig?.contact?.phone || '+91 98765 43210'}`,
-          `Email: ${businessConfig?.contact?.email || 'info@yogodyaan.site'}`
+          `Email: ${businessConfig?.contact?.email || 'info@yogique.life'}`
         ];
         address.forEach((line, i) => {
           page.drawText(line, {
@@ -922,10 +953,10 @@ const TransactionManagement = () => {
           color: primaryColor
         });
 
-        const footerName = businessConfig?.profile?.name || 'Yogodyaan';
+        const footerName = businessConfig?.profile?.name || 'Yogique';
         // Force .site domain even if business settings still have .com
-        let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogodyaan.site';
-        hostDomainRaw = hostDomainRaw.replace(/yogodyaan\.com/gi, 'yogodyaan.site');
+        let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogique.life';
+        hostDomainRaw = hostDomainRaw.replace(/Yogique\.com/gi, 'yogique.life');
         const hostDomain = hostDomainRaw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
         const footerEmail = businessConfig?.contact?.email || `contact@${hostDomain}`;
         const footerPhone = businessConfig?.contact?.phone || '+91 98765 43210';
@@ -965,7 +996,7 @@ const TransactionManagement = () => {
       // Email template colors strictly from DB (no forced fallback). If undefined, template defaults apply.
       const primaryHex = businessConfig?.invoice?.color_primary;
       const accentHex = businessConfig?.invoice?.color_accent;
-      const companyName = businessConfig?.profile?.name || 'Yogodyaan';
+      const companyName = businessConfig?.profile?.name || 'Yogique';
       const companyAddress = (businessConfig?.contact?.address_lines || []).join(', ');
 
       // GST / Total calculations for email body
@@ -1000,7 +1031,7 @@ const TransactionManagement = () => {
 
       const res = await EmailService.sendTransactionalEmail(
         newTx.userEmail,
-        'Your Yogodyaan Invoice',
+        'Your Yogique Invoice',
         html,
         [
           {
@@ -1306,22 +1337,90 @@ const TransactionManagement = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">User Email</label>
-                  <input
-                    type="email"
-                    value={newTx.userEmail}
-                    onChange={(e) => setNewTx({ ...newTx, userEmail: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">User Name</label>
-                  <input
-                    type="text"
-                    value={newTx.user_name}
-                    onChange={(e) => setNewTx({ ...newTx, user_name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">User</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={selectedUser ? (selectedUser.full_name || selectedUser.email) : newTx.userEmail}
+                      onChange={async (e) => {
+                        const v = e.target.value;
+                        setSelectedUser(null);
+                        setNewTx(prev => ({ ...prev, userEmail: v }));
+                        await searchUsers(v);
+                      }}
+                      placeholder="Type name or email to search..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    {userSearchLoading && (
+                      <div className="absolute right-3 top-3 text-xs text-gray-500">Searching...</div>
+                    )}
+                    {userSearchResults.length > 0 && (
+                      <ul className="absolute z-10 left-0 right-0 mt-1 max-h-48 overflow-auto bg-white border border-gray-200 rounded shadow">
+                        {userSearchResults.map((u: any) => (
+                          <li
+                            key={u.id}
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setNewTx(prev => ({ ...prev, userEmail: u.email || '', user_name: u.full_name || '' }));
+                              setUserSearchResults([]);
+                            }}
+                            className="px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <div className="text-sm font-medium">{u.full_name || u.email}</div>
+                            <div className="text-xs text-gray-500">{u.email}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {!selectedUser && newTx.userEmail && (
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const ok = window.confirm(`Create new user with email: ${newTx.userEmail}?`);
+                          if (!ok) return;
+                          try {
+                            const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`;
+                            try {
+                              const { data: sessionData } = await supabase.auth.getSession();
+                              const jwt = sessionData?.session?.access_token;
+                              const headers: Record<string, string> = {
+                                'Content-Type': 'application/json',
+                                apikey: (import.meta.env as any).VITE_SUPABASE_ANON_KEY || ''
+                              };
+                              if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
+                              const res = await fetch(url, {
+                                method: 'POST',
+                                headers,
+                                body: JSON.stringify({ email: newTx.userEmail, full_name: newTx.user_name || null })
+                              });
+                              if (res.ok) {
+                                const created = await res.json();
+                                setSelectedUser({ id: created.id, email: created.email, full_name: created.full_name || created.email });
+                                setNewTx(prev => ({ ...prev, userEmail: created.email || prev.userEmail, user_name: created.full_name || prev.user_name }));
+                                alert('User created');
+                              } else {
+                                const err = await res.text();
+                                console.warn('create-user failed', err);
+                                alert('Failed to create user');
+                              }
+                            } catch (e) {
+                              console.error('create-user error', e);
+                              alert('Failed to create user');
+                            }
+                          } catch (e) {
+                            console.error('create-user error', e);
+                            alert('Failed to create user');
+                          }
+                        }}
+                        className="px-3 py-2 bg-yellow-500 text-white rounded"
+                      >
+                        Create user
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1329,7 +1428,7 @@ const TransactionManagement = () => {
                     <input
                       type="number"
                       value={newTx.amount}
-                      onChange={(e) => setNewTx({ ...newTx, amount: Number(e.target.value) })}
+                      onChange={(e) => setNewTx(prev => ({ ...prev, amount: Number(e.target.value) }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -1337,7 +1436,7 @@ const TransactionManagement = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
                     <select
                       value={newTx.currency}
-                      onChange={(e) => setNewTx({ ...newTx, currency: e.target.value })}
+                      onChange={(e) => setNewTx(prev => ({ ...prev, currency: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="INR">INR</option>
@@ -1350,7 +1449,7 @@ const TransactionManagement = () => {
                   <input
                     type="text"
                     value={newTx.description}
-                    onChange={(e) => setNewTx({ ...newTx, description: e.target.value })}
+                    onChange={(e) => setNewTx(prev => ({ ...prev, description: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -1358,7 +1457,7 @@ const TransactionManagement = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                   <select
                     value={newTx.payment_method}
-                    onChange={(e) => setNewTx({ ...newTx, payment_method: e.target.value })}
+                    onChange={(e) => setNewTx(prev => ({ ...prev, payment_method: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     {paymentMethodOptions.map(pm => (
@@ -1370,7 +1469,7 @@ const TransactionManagement = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">GST %</label>
                   <select
                     value={newTx.gst_rate}
-                    onChange={(e) => setNewTx({ ...newTx, gst_rate: e.target.value })}
+                    onChange={(e) => setNewTx(prev => ({ ...prev, gst_rate: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     {['0', '5', '10', '18', '28'].map(r => <option key={r} value={r}>{r}%</option>)}
@@ -1382,11 +1481,11 @@ const TransactionManagement = () => {
                     value={newTx.billing_plan_type}
                     onChange={(e) => {
                       const val = e.target.value as BillingPlanType;
-                      setNewTx({
-                        ...newTx,
+                      setNewTx(prev => ({
+                        ...prev,
                         billing_plan_type: val,
-                        billing_period_month: val === 'monthly' ? newTx.billing_period_month : ''
-                      });
+                        billing_period_month: val === 'monthly' ? prev.billing_period_month : ''
+                      }));
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
@@ -1401,7 +1500,7 @@ const TransactionManagement = () => {
                     <input
                       type="month"
                       value={newTx.billing_period_month}
-                      onChange={(e) => setNewTx({ ...newTx, billing_period_month: e.target.value })}
+                      onChange={(e) => setNewTx(prev => ({ ...prev, billing_period_month: e.target.value, billing_plan_type: 'monthly' }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -1544,3 +1643,4 @@ const TransactionManagement = () => {
 };
 
 export default TransactionManagement;
+

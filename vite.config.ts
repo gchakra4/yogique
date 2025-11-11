@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), visualizer({ open: true, filename: 'stats.html' })],
   server: {
     port: 5173,
-    strictPort: true,
+    // Allow Vite to pick the next available port if 5173 is busy
+    strictPort: false,
   },
 })

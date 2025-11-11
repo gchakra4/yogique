@@ -11,11 +11,11 @@ export function Footer() {
   const social = settings.social_links || {}
   const legal = settings.legal_disclaimer || {}
 
-  const brandName = profile.name || 'Yogodyaan'
+  const brandName = profile.name || 'Yogique'
   // Prefer a footer-specific logo if present, then fall back to the general profile logo
   const logoUrl = profile.footer_logo_url || profile.logo_url || ''
   const description = profile.tagline || 'Transform your life through the ancient practice of yoga.'
-  const email = contact.email || 'info@yogodyaan.com'
+  const email = contact.email || 'info@Yogique.com'
   const phone = contact.phone || '+1 (555) 123-4567'
   const addressLines = (contact.address_lines && contact.address_lines.join('\n')) || '123 Wellness Street\nYoga City, YC 12345'
 
@@ -44,7 +44,7 @@ export function Footer() {
               {social.facebook ? (
                 <a href={social.facebook} className="text-gray-400 hover:text-emerald-400 transition-colors"><Facebook size={20} /></a>
               ) : (
-                <a href="https://www.facebook.com/yogodyaan" className="text-gray-400 hover:text-emerald-400 transition-colors"><Facebook size={20} /></a>
+                <a href="https://www.facebook.com/Yogique" className="text-gray-400 hover:text-emerald-400 transition-colors"><Facebook size={20} /></a>
               )}
               {social.instagram ? (
                 <a href={social.instagram} className="text-gray-400 hover:text-emerald-400 transition-colors"><Instagram size={20} /></a>
@@ -54,7 +54,7 @@ export function Footer() {
               {social.youtube ? (
                 <a href={social.youtube} className="text-gray-400 hover:text-emerald-400 transition-colors"><Youtube size={20} /></a>
               ) : (
-                <a href="https://www.youtube.com/@yogodyaan1628" className="text-gray-400 hover:text-emerald-400 transition-colors"><Youtube size={20} /></a>
+                <a href="https://www.youtube.com/@Yogique1628" className="text-gray-400 hover:text-emerald-400 transition-colors"><Youtube size={20} /></a>
               )}
             </div>
           </div>
@@ -104,16 +104,27 @@ export function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-          <p className="text-gray-400">
-            © {new Date().getFullYear()} {brandName}. All rights reserved.
-            {' '}
-            <Link to="/privacy" className="text-gray-300 hover:text-emerald-400 underline ml-2">Privacy Policy</Link>
-            {' '}
-            <Link to="/terms" className="text-gray-300 hover:text-emerald-400 underline ml-2">Terms of Service</Link>
-            {legal.disclaimer ? '' : ' Made with ❤️ for your wellness journey.'}
-          </p>
+          <div className="space-y-3">
+            <p className="text-gray-400 text-sm">
+              Yogique is a brand operating under the umbrella of <span className="font-semibold text-gray-300">Sampurnayogam LLP</span> (a registered company). All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.
+            </p>
+            <p className="text-gray-400 text-sm">
+              <span className="font-semibold text-gray-300">Sampurnayogam LLP</span>
+              {' '}• LLPIN: {legal.llpin || 'LLPIN-XXXXX'}
+              {' '}• Registered Office: {contact.address_lines?.length ? contact.address_lines.join(', ') : 'Please provide official registered address'}
+            </p>
+            <p className="text-gray-400">
+              © {new Date().getFullYear()} {brandName} • Sampurnayogam LLP. All rights reserved.
+              {' '}
+              <Link to="/privacy" className="text-gray-300 hover:text-emerald-400 underline ml-2">Privacy Policy</Link>
+              {' '}
+              <Link to="/terms" className="text-gray-300 hover:text-emerald-400 underline ml-2">Terms of Service</Link>
+              {legal.disclaimer ? '' : ' Made with ❤️ for your wellness journey.'}
+            </p>
+          </div>
         </div>
       </div>
     </footer >
   )
 }
+

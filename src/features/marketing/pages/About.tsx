@@ -69,6 +69,15 @@ export function About() {
       specialization: "Kids Yoga",
       image: "/images/Instructor_Amita.jpg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop",
       bio: "Amita inspires children with playful, safe yoga practices that build confidence and coordination."
+    },
+    {
+      name: "Sima Purakayastha",
+      title: "Certified Yoga Instructor & Fitness trainer",
+      certifications: ["Masters in Yoga", "ADYT"],
+      experience: "10+ years",
+      specialization: "Yoga Therapy",
+      image: "/images/Instructor_Sima.jpg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop",
+      bio: "Sima combines her expertise in yoga and fitness to offer holistic wellness solutions, focusing on individual needs."
     }
   ]
 
@@ -77,11 +86,164 @@ export function About() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 text-gray-900 dark:text-white py-20">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h1 className="text-5xl font-bold mb-6 text-gray-900 dark:text-white">About Yogodyaan</h1>
-          <p className="text-xl text-gray-600 dark:text-slate-300">
-            Dedicated to spreading the transformative power of yoga and creating a community
-            where everyone can find their path to wellness and inner peace.
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white mb-6">Welcome to Yogique – Breathe. Move. Transform.</h1>
+          <p className="text-lg text-gray-700 dark:text-slate-300">
+            Sharing traditional practice with modern life — accessible, therapeutic, and community-led. We help people
+            build steady, sustainable habits for wellbeing, movement, and calm.
           </p>
+          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 shadow-sm">
+            <span className="text-sm text-gray-700 dark:text-slate-200">Yogique is a brand of Sampurnayogam LLP (registered)</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Teaching Approach Section */}
+      <section className="py-20 bg-white dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-6">How we teach</h2>
+              <div className="space-y-4 text-lg text-gray-700 dark:text-slate-300">
+                <p>
+                  Our teaching blends classical yogic wisdom with modern, evidence-informed practices. We focus on building a safe,
+                  progressive practice that respects individual needs — whether you're a beginner, returning after injury, or an
+                  experienced practitioner.
+                </p>
+                <p>
+                  We work across five complementary layers: breath (pranayama), movement & alignment (asana), mindful sequencing
+                  and pacing, restorative practices (relaxation & meditation), and practical guidance for integrating yoga into
+                  daily life. In every class instructors offer clear options and modifications so students can practice with
+                  stability (sthira) and ease (sukha).
+                </p>
+                <p>
+                  Our teachers are trained to observe, cue, and adapt — creating personalized progress pathways within the group
+                  setting and through private sessions where needed.
+                </p>
+              </div>
+            </div>
+            <div>
+              <img
+                src="https://images.pexels.com/photos/3822643/pexels-photo-3822643.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop"
+                alt="Yoga practice"
+                className="rounded-2xl shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What to Expect Section */}
+      <section className="py-16 bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h3 className="text-3xl font-semibold text-gray-900 dark:text-white">What you can expect</h3>
+            <p className="text-gray-600 dark:text-slate-300 mt-2">
+              Clear structure, safe progressions, and measurable improvements in wellbeing.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
+              <h4 className="text-xl font-semibold mb-2">Structured classes</h4>
+              <p className="text-gray-600 dark:text-slate-300">Warm-up, skill practice, main sequence, and a guided relaxation or meditation.</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
+              <h4 className="text-xl font-semibold mb-2">Personal attention</h4>
+              <p className="text-gray-600 dark:text-slate-300">Options and modifications for all bodies; private sessions for therapeutic needs.</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
+              <h4 className="text-xl font-semibold mb-2">Sustainable outcomes</h4>
+              <p className="text-gray-600 dark:text-slate-300">Improved mobility, stress reduction, better sleep and daily energy — with simple home practices to keep progress.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Values Section */}
+      <section className="py-20 bg-gradient-to-br from-purple-50 via-indigo-50 to-emerald-50 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl font-semibold text-gray-900 dark:text-white mb-4">Our Values</h3>
+            <p className="text-lg text-gray-700 dark:text-slate-300 max-w-3xl mx-auto">
+              These core values guide everything we do and shape the experience we create for our students.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {values.map((value, index) => (
+              <div key={index} className="bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-slate-600 transition-all duration-300">
+                <div className="flex justify-center mb-4">
+                  {value.icon}
+                </div>
+                <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{value.title}</h4>
+                <p className="text-lg text-gray-700 dark:text-slate-300">{value.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Differentiators Section */}
+      <section className="py-16 bg-white dark:bg-slate-900">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h3 className="text-3xl font-semibold text-gray-900 dark:text-white">Why we're different</h3>
+            <p className="text-lg text-gray-700 dark:text-slate-300 mt-2">Practical, personalized and therapy-aware yoga that fits modern lives.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <svg className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Therapeutic expertise</h4>
+                <p className="text-lg text-gray-700 dark:text-slate-300">We combine yoga therapy and physiotherapy principles for safe, effective programs.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <svg className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 1.343-3 3v2h6v-2c0-1.657-1.343-3-3-3z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Small groups & personalization</h4>
+                <p className="text-lg text-gray-700 dark:text-slate-300">Intimate classes + tailored progress plans so students get real results.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <svg className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Online & accessible</h4>
+                <p className="text-lg text-gray-700 dark:text-slate-300">Live classes, recordings, and flexible schedules that fit busy lives across time zones.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <svg className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7 7h.01M17 7h.01" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Corporate & group programs</h4>
+                <p className="text-lg text-gray-700 dark:text-slate-300">Tailored sessions for teams, ergonomics-informed chair yoga, and measurable wellbeing outcomes.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <a href="/yogique-for-you" className="inline-flex items-center px-6 py-3 rounded-md bg-emerald-600 text-white font-medium shadow hover:bg-emerald-700">View classes</a>
+            <a href="/contact" className="ml-4 inline-flex items-center px-6 py-3 rounded-md border border-emerald-600 text-emerald-600 font-medium hover:bg-emerald-50 dark:hover:bg-slate-800">Book a free demo</a>
+          </div>
         </div>
       </section>
 
@@ -90,13 +252,13 @@ export function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">Welcome to Yogodyaan – Breathe. Move. Transform.</h2>
-              <div className="space-y-4 text-gray-700 dark:text-white text-lg">
+              <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-6">Our Journey: Growing a Global Yoga Community</h2>
+              <div className="space-y-4 text-lg text-gray-700 dark:text-slate-300">
                 <p>
-                  Founded by Ms. Bratati Batabyal in 2021, Yogodyaan is an all-online yoga platform empowering people to live healthier, more mindful lives through yoga.
+                  Founded by Ms. Bratati Batabyal in 2021, Yogique is an all-online yoga platform empowering people to live healthier, more mindful lives through yoga. Yogique operates under the umbrella of Sampurnayogam LLP, a registered company.
                 </p>
                 <p>
-                  We’ve trained 1000+ students in different parts of the world—offering accessible, expert-led sessions that blend ancient yogic wisdom with modern lifestyles.
+                  We’ve trained 1000+ students in different parts of the world—offering accessible, expert-led sessions that blend ancient yogic wisdom with modern lifestyles. We offer online B2C classes, group programs, and specialized wellness sessions.
                 </p>
                 <p>
                   From corporate wellness and chair yoga to programs for beginners and advanced practitioners, we’re here to help you de-stress, strengthen, and reconnect—wherever you are.
@@ -117,35 +279,13 @@ export function About() {
         </div>
       </section>
 
-      {/* Values Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 via-indigo-50 to-emerald-50 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Our Values</h2>
-            <p className="text-xl text-gray-600 dark:text-slate-300 max-w-3xl mx-auto">
-              These core values guide everything we do and shape the experience we create for our students.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {values.map((value, index) => (
-              <div key={index} className="bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-slate-600 transition-all duration-300">
-                <div className="flex justify-center mb-4">
-                  {value.icon}
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{value.title}</h3>
-                <p className="text-gray-600 dark:text-slate-300">{value.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Instructors Section */}
       <section className="py-20 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Meet Our Instructors</h2>
-            <p className="text-xl text-gray-600 dark:text-slate-300">
+            <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-4">Meet Our Instructors</h2>
+            <p className="text-lg text-gray-700 dark:text-slate-300">
               Our certified instructors bring years of experience and passion to every class.
             </p>
           </div>
@@ -173,12 +313,12 @@ export function About() {
                   </p>
                 </div>
 
-                <p className="text-gray-700 dark:text-white">{instructor.bio}</p>
+                <p className="text-lg text-gray-700 dark:text-slate-300">{instructor.bio}</p>
 
                 {/* Certifications (optional) - rendered only when provided */}
                 {instructor.certifications && instructor.certifications.length > 0 && (
                   <div className="mt-4 text-left">
-                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Certifications</h4>
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Certifications</h4>
                     <div className="flex flex-wrap gap-2">
                       {instructor.certifications.map((c, i) => (
                         <span

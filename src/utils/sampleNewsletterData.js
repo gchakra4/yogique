@@ -15,7 +15,7 @@ const sampleNewsletters = [
     
     <p>Stay tuned for amazing content that will help you on your wellness journey!</p>
     
-    <p>Namaste,<br>The Yogodyaan Team</p>`,
+    <p>Namaste,<br>The Yogique Team</p>`,
         template: 'modern-gradient',
         status: 'draft'
     },
@@ -71,7 +71,7 @@ const sampleNewsletters = [
     
     <p>Thank you for being part of our amazing community!</p>
     
-    <p>With gratitude,<br>The Yogodyaan Team</p>`,
+    <p>With gratitude,<br>The Yogique Team</p>`,
         template: 'newsletter-magazine',
         status: 'sent'
     }

@@ -25,7 +25,7 @@ export function Contact() {
 
   const validateForm = () => {
     const newErrors: any = {}
-    
+
     if (!formData.name.trim()) newErrors.name = 'Name is required'
     if (!formData.email.trim()) newErrors.email = 'Email is required'
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid'
@@ -38,11 +38,11 @@ export function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) return
 
     setLoading(true)
-    
+
     try {
       const contactData = {
         name: formData.name,
@@ -142,7 +142,7 @@ export function Contact() {
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">Begin Your Wellness Journey</h1>
           <p className="text-xl text-gray-600 dark:text-slate-300 leading-relaxed">
-            Schedule a class or learn more about our programs. We're here to support your 
+            Schedule a class or learn more about our programs. We're here to support your
             wellness goals and answer any questions you may have.
           </p>
         </div>
@@ -195,9 +195,8 @@ export function Contact() {
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${
-                        errors.name ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'
-                      }`}
+                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${errors.name ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'
+                        }`}
                       placeholder="Your full name"
                     />
                     {errors.name && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.name}</p>}
@@ -212,9 +211,8 @@ export function Contact() {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${
-                        errors.email ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'
-                      }`}
+                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${errors.email ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'
+                        }`}
                       placeholder="your@email.com"
                     />
                     {errors.email && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.email}</p>}
@@ -246,9 +244,8 @@ export function Contact() {
                       name="subject"
                       value={formData.subject}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${
-                        errors.subject ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'
-                      }`}
+                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${errors.subject ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'
+                        }`}
                       placeholder="How can we help?"
                     />
                     {errors.subject && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.subject}</p>}
@@ -266,9 +263,8 @@ export function Contact() {
                     value={formData.message}
                     onChange={handleInputChange}
                     placeholder="Tell us about your wellness goals, questions about our services, or how we can help you..."
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${
-                      errors.message ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${errors.message ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'
+                      }`}
                   />
                   {errors.message && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.message}</p>}
                 </div>
@@ -296,7 +292,7 @@ export function Contact() {
               <p className="text-gray-600 dark:text-slate-300 mb-6">
                 We offer sessions across all time zones. Here are our typical availability windows:
               </p>
-              
+
               <div className="space-y-4">
                 {timeZones.map((tz, index) => (
                   <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
@@ -305,11 +301,11 @@ export function Contact() {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Flexible Scheduling</h3>
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Can't find a suitable time? Contact us for custom scheduling options. 
+                  Can't find a suitable time? Contact us for custom scheduling options.
                   We're committed to finding a time that works for your busy lifestyle.
                 </p>
               </div>
@@ -329,21 +325,41 @@ export function Contact() {
                     </a>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Quick Links</h3>
                   <div className="space-y-2">
                     <a href="/book-class" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
                       Book a Session
                     </a>
-                    <a href="/services" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
-                      View Services
+                    <a href="/yogique-for-you" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
+                      View Offerings
                     </a>
                     <a href="/testimonials" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
                       Read Testimonials
                     </a>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Our Company strip */}
+      <section className="py-12 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-slate-800 dark:to-slate-900">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Our Company</h3>
+                <p className="text-sm text-gray-700 dark:text-slate-300 mt-1">
+                  Yogique is an initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). LLPIN: <span className="font-mono">[LLPIN-XXXXX]</span> • Registered Office: <span className="font-mono">[Please provide official registered address]</span>.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <a href="/privacy" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline mr-4">Privacy</a>
+                <a href="/terms" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Terms</a>
               </div>
             </div>
           </div>

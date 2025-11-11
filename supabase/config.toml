@@ -107,13 +107,13 @@ file_size_limit = "50MiB"
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "https://yogodyaan.site"
+site_url = "https://yogique.life"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
     "http://localhost:3000/auth/callback",
-    "https://yogodyaan.netlify.app/auth/callback",
-    "https://yogodyaan.site/auth/callback",
-    "https://yogodyaan.site/auth/v1/callback"
+    "https://Yogique.netlify.app/auth/callback",
+    "https://yogique.life/auth/callback",
+    "https://yogique.life/auth/v1/callback"
 ]
 
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
@@ -326,3 +326,15 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+[functions.hello-world]
+enabled = true
+verify_jwt = true
+import_map = "./functions/hello-world/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/hello-world/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/hello-world/*.html" ]
+

@@ -23,6 +23,21 @@ const isValidTime = (timeString: string): boolean => {
     return timeRegex.test(timeString)
 }
 
+// Parse date string "YYYY-MM-DD" to a Date at UTC midnight (avoids timezone shifts)
+const parseDateToUTC = (dateString: string): Date => {
+    const parts = dateString.split('-').map(Number)
+    return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]))
+}
+
+
+// Format a Date to IST "YYYY-MM-DD" (for display / DB in IST)
+const formatDateIST = (date: Date): string => {
+    // IST is UTC+5:30 => 5.5 hours in milliseconds
+    const istOffsetMs = 5.5 * 60 * 60 * 1000
+    const ist = new Date(date.getTime() + istOffsetMs)
+    return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, '0')}-${String(ist.getUTCDate()).padStart(2, '0')}`
+}
+
 // Helper function to validate booking exists in database
 const validateBookingExists = async (bookingId: string): Promise<boolean> => {
     if (!bookingId || bookingId.trim() === '' || bookingId.trim() === 'null' || bookingId.trim() === 'undefined') {
@@ -493,10 +508,10 @@ export class AssignmentCreationService {
             throw new Error('Payment amount must be a valid positive number')
         }
 
-        // Validate date is not in the past
-        const classDate = new Date(formData.date + 'T00:00:00')
+        // Validate date is not in the past (use UTC to avoid local timezone shifting date)
+        const classDate = parseDateToUTC(formData.date)
         const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        today.setUTCHours(0, 0, 0, 0)
         if (classDate < today) {
             throw new Error('Class date cannot be in the past')
         }
@@ -768,14 +783,14 @@ export class AssignmentCreationService {
             throw new Error('Valid start date is required')
         }
 
-        const startDate = new Date(formData.start_date + 'T00:00:00')
+        const startDate = parseDateToUTC(formData.start_date)
 
         // Use end_date if provided and valid, otherwise default to end of current year
         let endDate: Date
         if (formData.end_date && isValidDate(formData.end_date)) {
-            endDate = new Date(formData.end_date + 'T00:00:00')
+            endDate = parseDateToUTC(formData.end_date)
         } else {
-            endDate = new Date(`${new Date().getFullYear()}-12-31T00:00:00`)
+            endDate = parseDateToUTC(`${new Date().getFullYear()}-12-31`)
         }
 
         // Validate date range
@@ -783,10 +798,10 @@ export class AssignmentCreationService {
             throw new Error('End date must be after start date')
         }
 
-        // Find the first occurrence of the specified day
+        // Find the first occurrence of the specified day (UTC-safe)
         const currentDate = new Date(startDate)
-        while (currentDate.getDay() !== dayOfWeek && currentDate <= endDate) {
-            currentDate.setDate(currentDate.getDate() + 1)
+        while (currentDate.getUTCDay() !== dayOfWeek && currentDate <= endDate) {
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1)
         }
 
         if (currentDate > endDate) {
@@ -797,7 +812,7 @@ export class AssignmentCreationService {
         while (currentDate <= endDate) {
             const assignment: any = {
                 class_type_id: classTypeId,
-                date: currentDate.toISOString().split('T')[0],
+                date: formatDateIST(currentDate),
                 start_time: startTime,
                 end_time: endTime,
                 instructor_id: formData.instructor_id,
@@ -818,8 +833,8 @@ export class AssignmentCreationService {
 
             assignments.push(assignment)
 
-            // Move to next week
-            currentDate.setDate(currentDate.getDate() + 7)
+            // Move to next week (UTC-safe)
+            currentDate.setUTCDate(currentDate.getUTCDate() + 7)
         }
 
         return assignments
@@ -913,15 +928,15 @@ export class AssignmentCreationService {
         const sortedWeeklyDays = [...formData.weekly_days].sort((a, b) => a - b)
 
         // Continue creating assignments until we hit the class count or end date
-        const startDate = new Date(formData.start_date + 'T00:00:00')
+        const startDate = parseDateToUTC(formData.start_date)
         const validityEndDate = formData.validity_end_date && isValidDate(formData.validity_end_date)
-            ? new Date(formData.validity_end_date + 'T00:00:00')
+            ? parseDateToUTC(formData.validity_end_date)
             : null
         let classesCreated = 0
         let currentWeekStart = new Date(startDate)
 
         // Find the start of the week (Sunday)
-        currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay())
+        currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() - currentWeekStart.getUTCDay())
 
         while (classesCreated < formData.total_classes) {
             // For each week, create classes for all selected days
@@ -931,7 +946,7 @@ export class AssignmentCreationService {
                 }
 
                 const classDate = new Date(currentWeekStart)
-                classDate.setDate(currentWeekStart.getDate() + dayOfWeek)
+                classDate.setUTCDate(currentWeekStart.getUTCDate() + dayOfWeek)
 
                 // Skip if the class date is before the start date
                 if (classDate < startDate) {
@@ -948,7 +963,7 @@ export class AssignmentCreationService {
                     package_id: formData.package_id,
                     class_package_id: formData.package_id,
                     scheduled_class_id: null,
-                    date: classDate.toISOString().split('T')[0],
+                    date: formatDateIST(classDate),
                     start_time: formData.start_time,
                     end_time: formData.end_time,
                     instructor_id: formData.instructor_id,
@@ -969,7 +984,7 @@ export class AssignmentCreationService {
             }
 
             // Move to next week
-            currentWeekStart.setDate(currentWeekStart.getDate() + 7)
+            currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() + 7)
 
             // Safety check to prevent infinite loops
             if (assignments.length > 1000) {
@@ -1140,24 +1155,24 @@ export class AssignmentCreationService {
         }
 
         const dates = []
-        const currentDate = new Date(startDate + 'T00:00:00')
+        const currentDate = parseDateToUTC(startDate)
 
         for (let i = 0; i < classCount; i++) {
-            dates.push(currentDate.toISOString().split('T')[0])
+            dates.push(formatDateIST(currentDate))
 
             switch (frequency) {
                 case 'daily':
-                    currentDate.setDate(currentDate.getDate() + 1)
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 1)
                     break
                 case 'weekly':
-                    currentDate.setDate(currentDate.getDate() + 7)
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 7)
                     break
                 case 'specific':
                     // TODO: Implement specific days logic based on formData.specific_days
-                    currentDate.setDate(currentDate.getDate() + 7) // Default to weekly for now
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 7) // Default to weekly for now
                     break
                 default:
-                    currentDate.setDate(currentDate.getDate() + 7) // Default to weekly
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 7) // Default to weekly
             }
         }
 
@@ -1294,8 +1309,8 @@ export class AssignmentCreationService {
         // Calculate validity end date from start date + validity days
         let validityEndDate: Date | null = null
         if (selectedPackage.validity_days && selectedPackage.validity_days > 0) {
-            validityEndDate = new Date(formData.start_date + 'T00:00:00')
-            validityEndDate.setDate(validityEndDate.getDate() + selectedPackage.validity_days)
+            validityEndDate = parseDateToUTC(formData.start_date)
+            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + selectedPackage.validity_days)
         }
 
         // Sort selected days to ensure proper chronological order
@@ -1304,12 +1319,12 @@ export class AssignmentCreationService {
         console.log(`Package assignment: Target ${targetClassCount} classes for days: ${sortedWeeklyDays.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ')}`)
 
         // Continue creating assignments until we hit the package class count or end date
-        const startDate = new Date(formData.start_date + 'T00:00:00')
+        const startDate = parseDateToUTC(formData.start_date)
         let classesCreated = 0
         let currentWeekStart = new Date(startDate)
 
         // Find the start of the week (Sunday)
-        currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay())
+        currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() - currentWeekStart.getUTCDay())
 
         while (classesCreated < targetClassCount) {
             // For each week, create classes for all selected days
@@ -1333,12 +1348,12 @@ export class AssignmentCreationService {
                 }
 
                 const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayOfWeek]
-                console.log(`Creating class on ${classDate.toISOString().split('T')[0]} (${dayName}) - Class ${classesCreated + 1}/${targetClassCount}`)
+                console.log(`Creating class on ${formatDateIST(classDate)} (${dayName}) - Class ${classesCreated + 1}/${targetClassCount}`)
 
                 const assignment: any = {
                     package_id: formData.package_id,
                     class_package_id: formData.package_id,
-                    date: classDate.toISOString().split('T')[0],
+                    date: formatDateIST(classDate),
                     start_time: formData.start_time,
                     end_time: formData.end_time,
                     instructor_id: formData.instructor_id,
@@ -1359,7 +1374,7 @@ export class AssignmentCreationService {
             }
 
             // Move to next week
-            currentWeekStart.setDate(currentWeekStart.getDate() + 7)
+            currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() + 7)
 
             // Safety check to prevent infinite loops
             if (assignments.length > 1000) {
@@ -1391,20 +1406,20 @@ export class AssignmentCreationService {
         // Calculate validity end date from start date + validity days
         let validityEndDate: Date | null = null
         if (selectedPackage.validity_days && selectedPackage.validity_days > 0) {
-            validityEndDate = new Date(formData.start_date + 'T00:00:00')
-            validityEndDate.setDate(validityEndDate.getDate() + selectedPackage.validity_days)
+            validityEndDate = parseDateToUTC(formData.start_date)
+            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + selectedPackage.validity_days)
         }
 
         // Sort selected days to ensure proper chronological order
         const sortedWeeklyDays = [...formData.weekly_days].sort((a, b) => a - b)
 
         // Continue creating assignments until we hit the package class count or end date
-        const startDate = new Date(formData.start_date + 'T00:00:00')
+        const startDate = parseDateToUTC(formData.start_date)
         let classesCreated = 0
         let currentWeekStart = new Date(startDate)
 
         // Find the start of the week (Sunday)
-        currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay())
+        currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() - currentWeekStart.getUTCDay())
 
         while (classesCreated < targetClassCount) {
             // For each week, create classes for all selected days
@@ -1414,7 +1429,7 @@ export class AssignmentCreationService {
                 }
 
                 const classDate = new Date(currentWeekStart)
-                classDate.setDate(currentWeekStart.getDate() + dayOfWeek)
+                classDate.setUTCDate(currentWeekStart.getUTCDate() + dayOfWeek)
 
                 // Skip if the class date is before the start date
                 if (classDate < startDate) {
@@ -1431,7 +1446,7 @@ export class AssignmentCreationService {
                     package_id: formData.package_id,
                     class_package_id: formData.package_id,
                     scheduled_class_id: null,
-                    date: classDate.toISOString().split('T')[0],
+                    date: formatDateIST(classDate),
                     start_time: formData.start_time,
                     end_time: formData.end_time,
                     instructor_id: formData.instructor_id,
@@ -1452,7 +1467,7 @@ export class AssignmentCreationService {
             }
 
             // Move to next week
-            currentWeekStart.setDate(currentWeekStart.getDate() + 7)
+            currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() + 7)
 
             // Safety check to prevent infinite loops
             if (assignments.length > 1000) {

@@ -19,6 +19,7 @@ export interface ClassType {
 
 export interface ClassSchedule {
     id: string;
+    name?: string;
     day_of_week: number;
     start_time: string;
     duration_minutes: number;
