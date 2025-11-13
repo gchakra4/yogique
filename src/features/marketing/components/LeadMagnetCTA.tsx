@@ -15,13 +15,24 @@ export function LeadMagnetCTA() {
         setError(null)
         setSuccess(null)
         try {
-            // Insert or upsert subscriber
-            const { error: upsertError } = await supabase
-                .from('newsletter_subscribers')
-                .upsert({ email, status: 'active', tags: ['lead-magnet'] }, { onConflict: 'email' })
+            // Call server-side function which records the signup and emails the guide
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+            const payload = { email, timezone, source: 'lead-magnet' }
 
-            if (upsertError) throw upsertError
-            setSuccess('Check your inbox for the 7-day series / guide link!')
+            const { data, error } = await supabase.functions.invoke('send-guide', {
+                method: 'POST',
+                body: JSON.stringify(payload),
+            })
+
+            if (error) throw error
+
+            // `data` may be a Response-like object depending on supabase client; handle common shapes
+            const result = data || {}
+            if (result?.error || result?.email_sent === false) {
+                throw new Error(result?.error || 'Failed to send guide')
+            }
+
+            setSuccess('Check your inbox — we emailed your 7‑Day Guide (link valid 24 hours).')
             setEmail('')
         } catch (err: any) {
             console.error(err)
@@ -56,7 +67,7 @@ export function LeadMagnetCTA() {
                             disabled={loading}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold inline-flex items-center justify-center"
                         >
-                            {loading ? 'Sending…' : (<span className="inline-flex items-center">Get Free Access <Download className="ml-2 w-4 h-4" /></span>)}
+                            {loading ? 'Sending…' : (<span className="inline-flex items-center">Get the 7‑Day Guide <Download className="ml-2 w-4 h-4" /></span>)}
                         </Button>
                     </div>
                     {success && (
@@ -67,6 +78,7 @@ export function LeadMagnetCTA() {
                     {error && (
                         <div className="mt-4 text-rose-600 dark:text-rose-400 text-sm">{error}</div>
                     )}
+                    <p className="mt-3 text-sm text-gray-600 dark:text-slate-400">By signing up you'll be added to our newsletter subscribers list. You can unsubscribe anytime.</p>
                 </form>
             </div>
         </section>

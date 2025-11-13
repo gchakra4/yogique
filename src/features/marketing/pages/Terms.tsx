@@ -16,7 +16,7 @@ export function Terms(): JSX.Element {
                     </p>
                     <div className="mt-4 text-sm bg-white/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-md p-3 inline-block">
                         <p className="text-gray-700 dark:text-slate-300">
-                            Yogique is a brand/initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). Company details: LLPIN: [LLPIN-XXXXX], Registered Office: [Please provide official registered address].
+                            Yogique is a brand/initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). Company details: LLPIN: ACS-6592, Registered Office: Flat 3C, 3rd Floor, Annapurna Apartment, 15 Garia Station Road, Kolkata 700084.
                         </p>
                     </div>
                 </div>

@@ -354,7 +354,7 @@ export function Contact() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Our Company</h3>
                 <p className="text-sm text-gray-700 dark:text-slate-300 mt-1">
-                  Yogique is an initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). LLPIN: <span className="font-mono">[LLPIN-XXXXX]</span> • Registered Office: <span className="font-mono">[Please provide official registered address]</span>.
+                  Yogique is an initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). LLPIN: <span className="font-mono">ACS-6592</span> • Registered Office: <span className="font-mono">Flat 3C, 3rd Floor, Annapurna Apartment, 15 Garia Station Road, Kolkata 700084</span>.
                 </p>
               </div>
               <div className="shrink-0">

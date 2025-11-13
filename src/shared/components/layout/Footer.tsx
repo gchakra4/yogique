@@ -17,7 +17,7 @@ export function Footer() {
   const description = profile.tagline || 'Transform your life through the ancient practice of yoga.'
   const email = contact.email || 'info@Yogique.com'
   const phone = contact.phone || '+1 (555) 123-4567'
-  const addressLines = (contact.address_lines && contact.address_lines.join('\n')) || '123 Wellness Street\nYoga City, YC 12345'
+  const addressLines = (contact.address_lines && contact.address_lines.join('\n')) || 'Flat 3C, 3rd Floor, Annapurna Apartment\n15 Garia Station Road\nKolkata 700084'
 
   return (
     <footer className="bg-slate-900 dark:bg-slate-950 text-white border-t border-slate-800 dark:border-slate-700">
@@ -110,8 +110,8 @@ export function Footer() {
             </p>
             <p className="text-gray-400 text-sm">
               <span className="font-semibold text-gray-300">Sampurnayogam LLP</span>
-              {' '}• LLPIN: {legal.llpin || 'LLPIN-XXXXX'}
-              {' '}• Registered Office: {contact.address_lines?.length ? contact.address_lines.join(', ') : 'Please provide official registered address'}
+              {' '}• LLPIN: {legal.llpin || 'ACS-6592'}
+              {' '}• Registered Office: {contact.address_lines?.length ? contact.address_lines.join(', ') : 'Flat 3C, 3rd Floor, Annapurna Apartment, 15 Garia Station Road, Kolkata 700084'}
             </p>
             <p className="text-gray-400">
               © {new Date().getFullYear()} {brandName} • Sampurnayogam LLP. All rights reserved.

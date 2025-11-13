@@ -19,7 +19,7 @@ export function Privacy(): JSX.Element {
                     </p>
                     <div className="mt-4 text-sm bg-white/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-md p-3 inline-block">
                         <p className="text-gray-700 dark:text-slate-300">
-                            Yogique is an initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). Company details: LLPIN: [LLPIN-XXXXX], Registered Office: [Please provide official registered address].
+                            Yogique is an initiative by <span className="font-semibold">Sampurnayogam LLP</span> (registered). Company details: LLPIN: ACS-6592, Registered Office: Flat 3C, 3rd Floor, Annapurna Apartment, 15 Garia Station Road, Kolkata 700084.
                         </p>
                     </div>
                 </div>
@@ -251,7 +251,7 @@ export function Privacy(): JSX.Element {
 
                                 <div className="mt-4">
                                     <p><strong>Email:</strong> <a href="mailto:namaste@yogique.life" className="text-emerald-600 dark:text-emerald-400 hover:underline">namaste@yogique.life</a></p>
-                                    <p><strong>Address:</strong> 15 Garia Station Road, Kolkata, West Bengal, India</p>
+                                    <p><strong>Address:</strong> Flat 3C, 3rd Floor, Annapurna Apartment, 15 Garia Station Road, Kolkata 700084</p>
                                     <p><strong>Response Time:</strong> We aim to respond to privacy inquiries within 7 business days</p>
                                 </div>
 
