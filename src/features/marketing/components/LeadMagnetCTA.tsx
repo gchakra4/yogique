@@ -18,25 +18,44 @@ export function LeadMagnetCTA() {
             // Call server-side function which records the signup and emails the guide
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
             const payload = { email, timezone, source: 'lead-magnet' }
-
             const { data, error } = await supabase.functions.invoke('send-guide', {
                 method: 'POST',
                 body: JSON.stringify(payload),
             })
 
-            if (error) throw error
+            if (error) {
+                // network / client-level error
+                console.error('supabase.functions.invoke error', error)
+                throw error
+            }
 
-            // `data` may be a Response-like object depending on supabase client; handle common shapes
-            const result = data || {}
+            // `data` is often a Response object from fetch. Try to parse JSON safely.
+            let result: any = null
+            try {
+                if (data && typeof (data as any).json === 'function') {
+                    result = await (data as any).json()
+                } else {
+                    result = data || {}
+                }
+            } catch (parseErr) {
+                console.error('Failed to parse response JSON from send-guide', parseErr)
+                throw new Error('Unexpected server response')
+            }
+
+            // If the server returned an error payload, surface it to the user
             if (result?.error || result?.email_sent === false) {
-                throw new Error(result?.error || 'Failed to send guide')
+                console.error('send-guide response error', result)
+                const serverMessage = result?.error || result?.message || 'Failed to send guide'
+                throw new Error(serverMessage)
             }
 
             setSuccess('Check your inbox — we emailed your 7‑Day Guide (link valid 24 hours).')
             setEmail('')
         } catch (err: any) {
-            console.error(err)
-            setError('Something went wrong. Please try again in a moment.')
+            console.error('LeadMagnetCTA submit error', err)
+            // Show detailed message when available, otherwise fallback to generic text
+            const friendly = (err && (err.message || err?.toString())) || 'Something went wrong. Please try again in a moment.'
+            setError(friendly)
         } finally {
             setLoading(false)
         }
