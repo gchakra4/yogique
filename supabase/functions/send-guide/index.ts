@@ -197,7 +197,14 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error('Unhandled error in send-guide', err);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    // Controlled debug output: only include stack/details when DEBUG_SEND_GUIDE=true
+    const DEBUG = Deno.env.get('DEBUG_SEND_GUIDE') === 'true'
+    const payload: any = { error: 'Internal server error' }
+    if (DEBUG) {
+      payload.details = String(err?.message || err)
+      payload.stack = err?.stack
+    }
+    return new Response(JSON.stringify(payload), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
