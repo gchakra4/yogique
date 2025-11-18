@@ -105,25 +105,31 @@ export function About() {
               <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-6">How we teach</h2>
               <div className="space-y-4 text-lg text-gray-700 dark:text-slate-300">
                 <p>
-                  Our teaching blends classical yogic wisdom with modern, evidence-informed practices. We focus on building a safe,
-                  progressive practice that respects individual needs — whether you're a beginner, returning after injury, or an
-                  experienced practitioner.
+                  At Sampurnayogam, we bring together the depth of classical yogic wisdom and the clarity of modern, evidence-informed practice. Our approach is gentle yet progressive, designed to support every individual — whether you are just beginning, returning after an injury, or refining an established practice.
                 </p>
+
+                <p>We guide students through five harmonious layers of learning:</p>
+
+                <ul className="list-disc list-inside ml-5 space-y-1 text-lg text-gray-700 dark:text-slate-300">
+                  <li>Breath (pranayama)</li>
+                  <li>Movement &amp; alignment (asana)</li>
+                  <li>Mindful sequencing &amp; pacing</li>
+                  <li>Restorative practices (relaxation &amp; meditation)</li>
+                  <li>Practical guidance for weaving yoga into daily life</li>
+                </ul>
+
                 <p>
-                  We work across five complementary layers: breath (pranayama), movement & alignment (asana), mindful sequencing
-                  and pacing, restorative practices (relaxation & meditation), and practical guidance for integrating yoga into
-                  daily life. In every class instructors offer clear options and modifications so students can practice with
-                  stability (sthira) and ease (sukha).
+                  In every class, our instructors offer thoughtful options and modifications, helping you move with stability (sthira), ease (sukha), and confidence.
                 </p>
+
                 <p>
-                  Our teachers are trained to observe, cue, and adapt — creating personalized progress pathways within the group
-                  setting and through private sessions where needed.
+                  Our teachers are trained to observe, cue, and adapt with care — creating personalized growth pathways in both group classes and one-to-one sessions. Wherever you are in your journey, we’re here to support you with presence, precision, and compassion.
                 </p>
               </div>
             </div>
             <div>
               <img
-                src="https://images.pexels.com/photos/3822643/pexels-photo-3822643.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop"
+                src="/images/aboutus.png?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop"
                 alt="Yoga practice"
                 className="rounded-2xl shadow-lg"
               />
