@@ -948,7 +948,6 @@ const TransactionManagement = () => {
         });
 
         // Footer variables (declare here so they're available when drawing footer content)
-        const footerName = businessConfig?.profile?.name || 'Yogique';
         let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogique.life';
         hostDomainRaw = hostDomainRaw.replace(/Yogique\.com/gi, 'yogique.life');
         const hostDomain = hostDomainRaw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
