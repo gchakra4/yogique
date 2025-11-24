@@ -937,7 +937,7 @@ const TransactionManagement = () => {
 
         currentY -= (25 + paymentInfo.length * 15 + 40);
 
-        const footerHeight = 160; // increased to fit terms, contact, website, legal lines and copyright
+        const footerHeight = 110; // increased to fit terms, contact, website, legal lines and copyright
         page.drawRectangle({ x: 0, y: 0, width, height: footerHeight, color: lightGray });
 
         // Footer variables (declare here so they're available when drawing footer content)
@@ -967,7 +967,7 @@ const TransactionManagement = () => {
           // Line 2: Contact
           page.drawText(`Questions? Contact ${footerEmail} or ${footerPhone}`, {
             x: leftX,
-            y: footerHeight - 36,
+            y: footerHeight - 25,
             size: 8,
             font,
             color: footerTextRgb
@@ -982,12 +982,12 @@ const TransactionManagement = () => {
           const websiteSize = 9;
           const websiteTextWidth = font.widthOfTextAtSize(displayUrl, websiteSize);
           const websiteX = Math.max(width - 40 - websiteTextWidth, leftX); // ensure not overlapping left column
-          page.drawText(displayUrl, { x: websiteX, y: footerHeight - 36 - blankLineGap, size: websiteSize, font, color: footerTextRgb });
+          page.drawText(displayUrl, { x: websiteX, y: footerHeight - 25 - blankLineGap, size: websiteSize, font, color: footerTextRgb });
 
           // Combined legal sentence (single line). Keep it single-line; if it exceeds available width, truncate to fit.
           const legalSentenceFull =
             'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
-          let footerY = footerHeight - 36 - blankLineGap - 18;
+          let footerY = footerHeight - 30 - blankLineGap - 18;
           const maxLineWidth = width - leftX - 40;
           const legalSentenceWidth = font.widthOfTextAtSize(legalSentenceFull, 7);
           const legalToDraw =
