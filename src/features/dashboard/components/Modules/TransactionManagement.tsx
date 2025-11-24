@@ -962,7 +962,7 @@ const TransactionManagement = () => {
           const leftX = 40;
 
           // Line 1: Terms (no truncation per requirement) — use bold font
-          page.drawText(footerTerms, { x: leftX, y: footerHeight - 25, size: 9, font: boldFont, color: footerTextRgb });
+          page.drawText(footerTerms, { x: leftX, y: footerHeight - 15, size: 9, font: boldFont, color: footerTextRgb });
 
           // Line 2: Contact
           page.drawText(`Questions? Contact ${footerEmail} or ${footerPhone}`, {
