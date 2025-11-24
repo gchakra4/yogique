@@ -17,6 +17,9 @@ export interface EmailTemplateVariables {
     preferencesUrl?: string
     logoUrl?: string
     headerTitle?: string
+    llpin?: string
+    gstNumber?: string
+    cinNumber?: string
 }
 
 export const renderEmailTemplate = (templateId: string, variables: EmailTemplateVariables): string => {
@@ -298,11 +301,22 @@ const corporateProfessionalTemplate = (vars: EmailTemplateVariables): string => 
                     
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #ecf0f1; padding: 20px; text-align: center;">
-                            <p style="margin: 0 0 5px 0; color: #7f8c8d; font-size: 13px; font-family: ${vars.fontFamily};">
+                        <td style="background-color: #f7f7f7; padding: 20px; text-align: center; border-top: 1px solid #dddddd;">
+                            ${vars.llpin || vars.gstNumber || vars.cinNumber || vars.companyAddress ? `
+                            <p style="margin: 0 0 6px 0; color: #333333; font-size: 12px; font-family: ${vars.fontFamily};">
+                                ${vars.companyName || 'Your Company'}
+                                ${vars.llpin ? ` • LLPIN: ${vars.llpin}` : ''}
+                                ${vars.gstNumber ? ` • GSTIN: ${vars.gstNumber}` : ''}
+                                ${vars.cinNumber ? ` • CIN: ${vars.cinNumber}` : ''}
+                            </p>
+                            <p style="margin: 0 0 10px 0; color: #333333; font-size: 12px; font-family: ${vars.fontFamily};">
+                                ${vars.companyAddress || ''}
+                            </p>
+                            ` : ''}
+                            <p style="margin: 0 0 5px 0; color: #333333; font-size: 13px; font-family: ${vars.fontFamily};">
                                 © ${new Date().getFullYear()} ${vars.companyName || 'Your Company'}. All rights reserved.
                             </p>
-                            <a href="${vars.unsubscribeUrl}" style="color: #7f8c8d; text-decoration: none; font-size: 13px; font-family: ${vars.fontFamily};">
+                            <a href="${vars.unsubscribeUrl}" style="color: #333333; text-decoration: underline; font-size: 13px; font-family: ${vars.fontFamily};">
                                 Unsubscribe
                             </a>
                         </td>

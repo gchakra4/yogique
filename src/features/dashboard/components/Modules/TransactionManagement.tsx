@@ -96,7 +96,7 @@ const TransactionManagement = () => {
         const { data, error } = await supabase
           .from('business_settings')
           .select('key,value')
-          .in('key', ['business_profile', 'business_contact', 'invoice_preferences']);
+          .in('key', ['business_profile', 'business_contact', 'invoice_preferences', 'legal_disclaimer']); // added legal_disclaimer
         if (!error && data) {
           const map = data.reduce((acc, row) => {
             acc[row.key] = row.value;
@@ -105,7 +105,8 @@ const TransactionManagement = () => {
           setBusinessConfig({
             profile: map.business_profile || {},
             contact: map.business_contact || {},
-            invoice: map.invoice_preferences || {}
+            invoice: map.invoice_preferences || {},
+            legal: map.legal_disclaimer || {} // new: legal fields (llpin, gst_number, cin_number)
           });
         }
       } catch (e) {
@@ -435,14 +436,14 @@ const TransactionManagement = () => {
           return rgb(r / 255, g / 255, b / 255);
         };
 
-        const primaryColor = primaryHex ? hexToRgbNorm(primaryHex) : rgb(0.97, 0.97, 0.97); // light neutral fallback (avoid pure white so logo/text visible)
-        const accentColor = accentHex ? hexToRgbNorm(accentHex) : primaryColor;   // reuse primary if accent absent
+        const primaryColor = primaryHex ? hexToRgbNorm(primaryHex) : rgb(0.97, 0.97, 0.97);
+        const accentColor = accentHex ? hexToRgbNorm(accentHex) : primaryColor;
         const darkGray = rgb(0.2, 0.2, 0.2);
-        const lightGray = rgb(0.985, 0.972, 0.952);
+        const lightGray = rgb(0.94, 0.94, 0.94);
         const white = rgb(1, 1, 1);
         const black = rgb(0, 0, 0);
 
-        // Determine readable header text color (contrast-based) so header never becomes "all white".
+        // Compute readable header text color once (no duplicate declarations)
         const getHexRgb = (hex: string): [number, number, number] => {
           const h = hex.replace('#', '');
           const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
@@ -456,15 +457,16 @@ const TransactionManagement = () => {
         const luminance = (0.299 * pr + 0.587 * pg + 0.114 * pb) / 255;
         const headerTextColor = luminance > 0.6 ? darkGray : white;
 
+        // Ensure vertical cursor exists for layout calculations
         let currentY = height - 40;
 
-        // Header band
+        // Header band (B/W friendly)
         page.drawRectangle({
           x: 0,
           y: height - 140,
           width,
           height: 140,
-          color: primaryColor
+          color: lightGray
         });
 
         // Logo
@@ -770,21 +772,21 @@ const TransactionManagement = () => {
         const headers = ['Description', 'Qty', 'Rate', 'Amount'];
         const colStartX = [40, 290, 370, 450];
 
+        // Section header for table (light gray bg + black text for print)
         page.drawRectangle({
           x: 40,
           y: tableStartY - rowHeight,
           width: width - 80,
           height: rowHeight,
-          color: primaryColor
+          color: lightGray
         });
-
         headers.forEach((h, i) => {
           page.drawText(h, {
             x: colStartX[i] + 10,
             y: tableStartY - 22,
             size: 11,
             font: boldFont,
-            color: white
+            color: black
           });
         });
 
@@ -944,17 +946,47 @@ const TransactionManagement = () => {
 
         currentY -= (25 + paymentInfo.length * 15 + 40);
 
-        // Footer
+        // LEGAL / COMPANY INFORMATION above footer (B/W friendly)
+        {
+          const legal = businessConfig?.legal || {};
+          const company = businessConfig?.profile?.name || 'Company';
+          const registeredOffice = (businessConfig?.contact?.address_lines || []).join(', ');
+
+          const line1Parts: string[] = [company];
+          if (legal.llpin) line1Parts.push(`LLPIN: ${legal.llpin}`);
+          if (legal.gst_number) line1Parts.push(`GSTIN: ${legal.gst_number}`);
+          if (legal.cin_number) line1Parts.push(`CIN: ${legal.cin_number}`);
+          const line1 = line1Parts.join(' • ');
+
+          const legalBlockY = 110;
+          page.drawText(line1, {
+            x: 40,
+            y: legalBlockY,
+            size: 9,
+            font: boldFont,
+            color: darkGray
+          });
+          if (registeredOffice) {
+            page.drawText(`Registered Office: ${registeredOffice}`, {
+              x: 40,
+              y: legalBlockY - 14,
+              size: 9,
+              font,
+              color: darkGray
+            });
+          }
+        }
+
+        // Footer (light gray bg + dark text for print)
         page.drawRectangle({
           x: 0,
           y: 0,
           width,
           height: 80,
-          color: primaryColor
+          color: lightGray
         });
 
         const footerName = businessConfig?.profile?.name || 'Yogique';
-        // Force .site domain even if business settings still have .com
         let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogique.life';
         hostDomainRaw = hostDomainRaw.replace(/Yogique\.com/gi, 'yogique.life');
         const hostDomain = hostDomainRaw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
@@ -968,7 +1000,7 @@ const TransactionManagement = () => {
           y: 50,
           size: 12,
           font: boldFont,
-          color: white
+          color: black
         });
 
         page.drawText(`Questions? Contact ${footerName} at ${footerEmail} or ${footerPhone}`, {
@@ -976,7 +1008,7 @@ const TransactionManagement = () => {
           y: 30,
           size: 9,
           font,
-          color: white
+          color: darkGray
         });
 
         page.drawText(footerWebsite, {
@@ -984,7 +1016,7 @@ const TransactionManagement = () => {
           y: 40,
           size: 10,
           font: boldFont,
-          color: white
+          color: black
         });
 
         const base64 = await pdfDoc.saveAsBase64({ dataUri: false });
@@ -993,13 +1025,16 @@ const TransactionManagement = () => {
 
       const pdfBase64 = await generateInvoicePdfBase64();
 
-      // Email template colors strictly from DB (no forced fallback). If undefined, template defaults apply.
+      // AFTER finishing PDF generation and before building email HTML: compute tax values used in the email body
       const primaryHex = businessConfig?.invoice?.color_primary;
       const accentHex = businessConfig?.invoice?.color_accent;
       const companyName = businessConfig?.profile?.name || 'Yogique';
       const companyAddress = (businessConfig?.contact?.address_lines || []).join(', ');
+      const companyLLPIN = businessConfig?.legal?.llpin || '';
+      const companyGST = businessConfig?.legal?.gst_number || '';
+      const companyCIN = businessConfig?.legal?.cin_number || '';
 
-      // GST / Total calculations for email body
+      // define values used in the email HTML (ensure they're available when template is built)
       const taxRateDisplay = Number(newTx.gst_rate || businessConfig?.invoice?.tax_rate || 0);
       const taxAmountDisplay = tx.amount * (taxRateDisplay / 100);
       const grandTotalDisplay = tx.amount + taxAmountDisplay;
@@ -1025,7 +1060,9 @@ const TransactionManagement = () => {
         fontFamily: 'Arial, sans-serif',
         companyName,
         companyAddress,
-        // Intentionally omit logoUrl so logo not shown in email body
+        llpin: companyLLPIN,
+        gstNumber: companyGST,
+        cinNumber: companyCIN,
         unsubscribeUrl: `${window.location.origin}/unsubscribe`
       });
 

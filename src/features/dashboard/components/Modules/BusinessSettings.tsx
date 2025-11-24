@@ -280,6 +280,12 @@ export default function BusinessSettings() {
           value={settings.legal_disclaimer?.cin_number || ''}
           onChange={(e) => handleNestedChange('legal_disclaimer', 'cin_number', e.target.value)}
         />
+        {/* NEW: LLPIN */}
+        <TextInput
+          label="LLPIN"
+          value={settings.legal_disclaimer?.llpin || ''}
+          onChange={(e) => handleNestedChange('legal_disclaimer', 'llpin', e.target.value)}
+        />
         <TextInput
           label="GST Number"
           value={settings.legal_disclaimer?.gst_number || ''}
