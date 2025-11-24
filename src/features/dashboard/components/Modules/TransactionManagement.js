@@ -890,39 +890,53 @@ const TransactionManagement = () => {
                     // Terms - bold, top-left
                     page.drawText(footerTerms.length > 80 ? footerTerms.slice(0, 77) + '...' : footerTerms, {
                         x: leftX,
-                        y: 100,
-                        size: 10,
+                        y: 62,
+                        size: 9,
                         font: boldFont,
                         color: footerTextRgb
                     });
                     // Contact - top-right
                     page.drawText(`Contact: ${footerEmail} • ${footerPhone}`, {
                         x: rightX,
-                        y: 100,
-                        size: 10,
+                        y: 62,
+                        size: 9,
                         font,
                         color: footerTextRgb
                     });
-                    // BOTTOM SECTION: Legal/Company info (small text spanning width)
+                    // MIDDLE SECTION: Legal/Company info (small text)
                     const legalSentenceFull = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
                     // Split into two lines for better fit
                     const legalLine1 = legalSentenceFull.slice(0, legalSentenceFull.indexOf('.') + 1);
                     const legalLine2 = legalSentenceFull.slice(legalSentenceFull.indexOf('.') + 1).trim();
+                    let currentY = 42;
                     page.drawText(legalLine1, {
                         x: leftX,
-                        y: 60,
-                        size: 8,
+                        y: currentY,
+                        size: 7,
                         font,
                         color: footerTextRgb
                     });
+                    currentY -= 8; // tight spacing
                     page.drawText(legalLine2, {
                         x: leftX,
-                        y: 50,
-                        size: 8,
+                        y: currentY,
+                        size: 7,
                         font,
                         color: footerTextRgb
                     });
-                    // LLPIN / GST / CIN / Registered Office (smallest, bottom)
+                    // IMMEDIATELY BELOW: Registered Company / LLPIN / GST / CIN / Registered Office (no gap)
+                    currentY -= 8;
+                    // Registered Company name
+                    const registeredCompany = businessConfig?.profile?.registered_company || 'Sampurnayogam LLP';
+                    page.drawText(registeredCompany, {
+                        x: leftX,
+                        y: currentY,
+                        size: 7,
+                        font: boldFont,
+                        color: footerTextRgb
+                    });
+                    currentY -= 8;
+                    // LLPIN / GST / CIN
                     const idParts = [];
                     if (legal.llpin)
                         idParts.push(`LLPIN: ${legal.llpin}`);
@@ -930,32 +944,32 @@ const TransactionManagement = () => {
                         idParts.push(`GSTIN: ${legal.gst_number}`);
                     if (legal.cin_number)
                         idParts.push(`CIN: ${legal.cin_number}`);
-                    let bottomY = 20;
                     if (idParts.length) {
                         page.drawText(idParts.join(' • '), {
                             x: leftX,
-                            y: bottomY,
+                            y: currentY,
                             size: 7,
                             font,
                             color: footerTextRgb
                         });
-                        bottomY -= 12;
+                        currentY -= 8;
                     }
+                    // Registered Office
                     if (registeredOffice) {
                         page.drawText(`Registered Office: ${registeredOffice.length > 90 ? registeredOffice.slice(0, 87) + '...' : registeredOffice}`, {
                             x: leftX,
-                            y: bottomY,
+                            y: currentY,
                             size: 7,
                             font,
                             color: footerTextRgb
                         });
                     }
-                    // Copyright centered at very bottom
-                    const copyright = `© ${new Date().getFullYear()} ${businessConfig?.profile?.registered_company || 'Sampurnayogam LLP'}`;
+                    // Copyright centered at VERY BOTTOM of footer (absolute bottom)
+                    const copyright = `© ${new Date().getFullYear()} ${registeredCompany}. All rights reserved.`;
                     const cpWidth = copyright.length * 3.5; // rough estimate for centering
                     page.drawText(copyright, {
                         x: (width / 2) - (cpWidth / 2),
-                        y: 14,
+                        y: 4, // absolute bottom
                         size: 7,
                         font,
                         color: footerTextRgb
