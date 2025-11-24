@@ -113,8 +113,6 @@ export function Footer() {
               {' '}• LLPIN: {legal.llpin || 'ACS-6592'}
               {' '}• Registered Office: {contact.address_lines?.length ? contact.address_lines.join(', ') : 'Flat 3C, 3rd Floor, Annapurna Apartment, 15 Garia Station Road, Kolkata 700084'}
             </p>
-          </div>
-          <div className="mt-4">
             <p className="text-gray-400">
               © {new Date().getFullYear()} {brandName} • Sampurnayogam LLP. All rights reserved.
               {' '}

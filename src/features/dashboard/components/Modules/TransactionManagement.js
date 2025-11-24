@@ -864,15 +864,9 @@ const TransactionManagement = () => {
                     });
                 });
                 currentY -= (25 + paymentInfo.length * 15 + 40);
-                // Footer band (reduced height, use light bg and footer text color)
-                const footerHeight = 60; // reduced from 80
-                page.drawRectangle({
-                    x: 0,
-                    y: 0,
-                    width,
-                    height: footerHeight,
-                    color: lightGray
-                });
+                // Footer band (increased height to fit new multi-line layout)
+                const footerHeight = 128; // increased to fit terms, contact, website, legal lines and copyright
+                page.drawRectangle({ x: 0, y: 0, width, height: footerHeight, color: lightGray });
                 // Footer variables (declare here so they're available when drawing footer content)
                 let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogique.life';
                 hostDomainRaw = hostDomainRaw.replace(/Yogique\.com/gi, 'yogique.life');
@@ -880,56 +874,49 @@ const TransactionManagement = () => {
                 const footerEmail = businessConfig?.contact?.email || `contact@${hostDomain}`;
                 const footerPhone = businessConfig?.contact?.phone || '+91 98765 43210';
                 const footerTerms = businessConfig?.invoice?.terms || 'Thank you for supporting your holistic health journey with us.';
-                // Draw formatted footer: terms & contact at top, legal/company at bottom
+                // Draw formatted footer: render in this order:
+                // Line1: footerTerms (no truncation)
+                // Line2: "Questions? Contact <email> or <phone>"
+                // Blank line
+                // Right-aligned website URL on its own line
+                // Combined legal sentence (single line)
+                // Immediately below: RegisteredCompany • LLPIN/GST/CIN • Registered Office (single line)
+                // Small gap, then centered copyright at the very bottom.
                 {
                     const legal = businessConfig?.legal || {};
                     const registeredOffice = (businessConfig?.contact?.address_lines || []).join(', ');
                     const leftX = 40;
-                    const rightX = width - 280;
-                    // TOP LEFT: Terms - reduced top margin
-                    page.drawText(footerTerms.length > 80 ? footerTerms.slice(0, 77) + '...' : footerTerms, {
+                    // Line 1: Terms (no truncation per requirement) — use bold font
+                    page.drawText(footerTerms, { x: leftX, y: footerHeight - 12, size: 9, font: boldFont, color: footerTextRgb });
+                    // Line 2: Contact
+                    page.drawText(`Questions? Contact ${footerEmail} or ${footerPhone}`, {
                         x: leftX,
-                        y: footerHeight - 10,
-                        size: 9,
-                        font: boldFont,
-                        color: footerTextRgb
-                    });
-                    // BELOW TERMS: Contact line with "Questions? Contact Yogique at email or phone"
-                    page.drawText(`Questions? Contact ${footerEmail} at ${footerPhone}`, {
-                        x: leftX,
-                        y: footerHeight - 22,
+                        y: footerHeight - 26,
                         size: 8,
                         font,
                         color: footerTextRgb
                     });
-                    // TOP RIGHT: Website URL (right-aligned)
+                    // Blank line (breathing room)
+                    const blankLineGap = 10;
+                    // Right-aligned website URL on its own line (use font measurement for alignment)
                     const websiteUrl = businessConfig?.profile?.website_url || 'https://www.yogique.life';
-                    const displayUrl = websiteUrl.replace(/^https?:\/\//, ''); // remove protocol for display
-                    // measure text width and align to right margin (40pt)
-                    const websiteTextWidth = font.widthOfTextAtSize(displayUrl, 9);
-                    const websiteX = Math.max(width - 40 - websiteTextWidth, rightX);
-                    page.drawText(displayUrl, {
-                        x: websiteX,
-                        y: footerHeight - 10,
-                        size: 9,
-                        font,
-                        color: footerTextRgb
-                    });
-                    // MIDDLE SECTION: Legal/Company info (single line now)
+                    const displayUrl = websiteUrl.replace(/^https?:\/\//, '');
+                    const websiteSize = 9;
+                    const websiteTextWidth = font.widthOfTextAtSize(displayUrl, websiteSize);
+                    const websiteX = Math.max(width - 40 - websiteTextWidth, leftX); // ensure not overlapping left column
+                    page.drawText(displayUrl, { x: websiteX, y: footerHeight - 26 - blankLineGap, size: websiteSize, font, color: footerTextRgb });
+                    // Combined legal sentence (single line). Keep it single-line; if it exceeds available width, truncate to fit.
                     const legalSentenceFull = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
-                    let currentY = footerHeight - 34;
-                    page.drawText(legalSentenceFull.length > 140 ? legalSentenceFull.slice(0, 137) + '...' : legalSentenceFull, {
-                        x: leftX,
-                        y: currentY,
-                        size: 7,
-                        font,
-                        color: footerTextRgb
-                    });
-                    // SINGLE LINE: Registered Company • LLPIN/GST/CIN • Registered Office
-                    currentY -= 8;
+                    let currentY = footerHeight - 26 - blankLineGap - 18;
+                    const maxLineWidth = width - leftX - 40;
+                    const legalSentenceWidth = font.widthOfTextAtSize(legalSentenceFull, 7);
+                    const legalToDraw = legalSentenceWidth > maxLineWidth
+                        ? legalSentenceFull.slice(0, Math.max(0, Math.floor(legalSentenceFull.length * maxLineWidth / legalSentenceWidth) - 3)) + '...'
+                        : legalSentenceFull;
+                    page.drawText(legalToDraw, { x: leftX, y: currentY, size: 7, font, color: footerTextRgb });
+                    // Immediately below: RegisteredCompany • LLPIN/GST/CIN • Registered Office (single line)
+                    currentY -= 12;
                     const registeredCompany = businessConfig?.profile?.registered_company || 'Sampurnayogam LLP';
-                    const legalInfoParts = [registeredCompany];
-                    // Add LLPIN/GST/CIN
                     const idParts = [];
                     if (legal.llpin)
                         idParts.push(`LLPIN: ${legal.llpin}`);
@@ -937,32 +924,22 @@ const TransactionManagement = () => {
                         idParts.push(`GSTIN: ${legal.gst_number}`);
                     if (legal.cin_number)
                         idParts.push(`CIN: ${legal.cin_number}`);
+                    const legalInfoParts = [registeredCompany];
                     if (idParts.length)
                         legalInfoParts.push(idParts.join(', '));
-                    // Add Registered Office
-                    if (registeredOffice) {
-                        const shortOffice = registeredOffice.length > 60 ? registeredOffice.slice(0, 57) + '...' : registeredOffice;
-                        legalInfoParts.push(`Registered Office: ${shortOffice}`);
+                    if (registeredOffice)
+                        legalInfoParts.push(`Registered Office: ${registeredOffice}`);
+                    let legalInfoLine = legalInfoParts.join(' • ');
+                    const legalInfoWidth = font.widthOfTextAtSize(legalInfoLine, 7);
+                    if (legalInfoWidth > maxLineWidth) {
+                        legalInfoLine = legalInfoLine.slice(0, Math.max(0, Math.floor(legalInfoLine.length * maxLineWidth / legalInfoWidth) - 3)) + '...';
                     }
-                    page.drawText(legalInfoParts.join(' • '), {
-                        x: leftX,
-                        y: currentY,
-                        size: 7,
-                        font,
-                        color: footerTextRgb
-                    });
-                    // Add spacing before copyright
-                    currentY -= 12; // extra space before copyright
-                    // Copyright centered at bottom
+                    page.drawText(legalInfoLine, { x: leftX, y: currentY, size: 7, font, color: footerTextRgb });
+                    // Small gap, then centered copyright at the very bottom (use font measurement for centering)
                     const copyright = `© ${new Date().getFullYear()} ${registeredCompany}. All rights reserved.`;
-                    const cpWidth = copyright.length * 3.5;
-                    page.drawText(copyright, {
-                        x: (width / 2) - (cpWidth / 2),
-                        y: 4,
-                        size: 7,
-                        font,
-                        color: footerTextRgb
-                    });
+                    const cpWidth = font.widthOfTextAtSize(copyright, 7);
+                    const cpX = Math.max((width - cpWidth) / 2, leftX);
+                    page.drawText(copyright, { x: cpX, y: 6, size: 7, font, color: footerTextRgb });
                 }
                 const base64 = await pdfDoc.saveAsBase64({ dataUri: false });
                 return base64;
