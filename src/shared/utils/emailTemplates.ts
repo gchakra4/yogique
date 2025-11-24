@@ -133,11 +133,17 @@ const modernGradientTemplate = (vars: EmailTemplateVariables): string => `
                     
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 12px 12px;">
-                            <p style="margin: 0 0 10px 0; color: #666666; font-size: 14px; font-family: ${vars.fontFamily};">
-                                You received this email because you subscribed to our newsletter.
+                        <td style="background-color: #f7f7f7; padding: 20px; text-align: center; border-top: 1px solid #dddddd; color: ${vars.footerTextColor || '#333333'};">
+                            <!-- Legal / Company sentence -->
+                            <p style="margin: 0 0 6px 0; color: ${vars.footerTextColor || '#333333'}; font-size: 12px; font-family: ${vars.fontFamily};">
+                              Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.
                             </p>
-                            <a href="${vars.unsubscribeUrl}" style="color: #999999; text-decoration: none; font-size: 14px; font-family: ${vars.fontFamily};">
+                            ${vars.llpin ? `<p style="margin:0 0 6px 0; color: ${vars.footerTextColor || '#333333'}; font-size: 11px; font-family: ${vars.fontFamily};">LLPIN: ${vars.llpin}</p>` : ''}
+                            ${vars.companyAddress ? `<p style="margin:0 0 10px 0; color: ${vars.footerTextColor || '#333333'}; font-size: 11px; font-family: ${vars.fontFamily};">${vars.companyAddress}</p>` : ''}
+                            <p style="margin: 0 0 5px 0; color: ${vars.footerTextColor || '#333333'}; font-size: 13px; font-family: ${vars.fontFamily};">
+                                © ${new Date().getFullYear()} ${vars.companyName || 'Your Company'}. All rights reserved.
+                            </p>
+                            <a href="${vars.unsubscribeUrl}" style="color: ${vars.footerTextColor || '#333333'}; text-decoration: underline; font-size: 13px; font-family: ${vars.fontFamily};">
                                 Unsubscribe
                             </a>
                         </td>
@@ -304,18 +310,13 @@ const corporateProfessionalTemplate = (vars: EmailTemplateVariables): string => 
                     <!-- Footer -->
                     <tr>
                         <td style="background-color: #f7f7f7; padding: 20px; text-align: center; border-top: 1px solid #dddddd; color: ${vars.footerTextColor || '#333333'};">
-                            ${vars.llpin || vars.gstNumber || vars.cinNumber || vars.companyAddress ? `
-                            <p style="margin: 0 0 6px 0; font-size: 12px; font-family: ${vars.fontFamily};">
-                                ${vars.companyName || 'Your Company'}
-                                ${vars.llpin ? ` • LLPIN: ${vars.llpin}` : ''}
-                                ${vars.gstNumber ? ` • GSTIN: ${vars.gstNumber}` : ''}
-                                ${vars.cinNumber ? ` • CIN: ${vars.cinNumber}` : ''}
+                            <!-- Legal / Company sentence -->
+                            <p style="margin: 0 0 6px 0; color: ${vars.footerTextColor || '#333333'}; font-size: 12px; font-family: ${vars.fontFamily};">
+                              Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.
                             </p>
-                            <p style="margin: 0 0 10px 0; font-size: 12px; font-family: ${vars.fontFamily};">
-                                ${vars.companyAddress || ''}
-                            </p>
-                            ` : ''}
-                            <p style="margin: 0 0 5px 0; font-size: 13px; font-family: ${vars.fontFamily};">
+                            ${vars.llpin ? `<p style="margin:0 0 6px 0; color: ${vars.footerTextColor || '#333333'}; font-size: 11px; font-family: ${vars.fontFamily};">LLPIN: ${vars.llpin}</p>` : ''}
+                            ${vars.companyAddress ? `<p style="margin:0 0 10px 0; color: ${vars.footerTextColor || '#333333'}; font-size: 11px; font-family: ${vars.fontFamily};">${vars.companyAddress}</p>` : ''}
+                            <p style="margin: 0 0 5px 0; color: ${vars.footerTextColor || '#333333'}; font-size: 13px; font-family: ${vars.fontFamily};">
                                 © ${new Date().getFullYear()} ${vars.companyName || 'Your Company'}. All rights reserved.
                             </p>
                             <a href="${vars.unsubscribeUrl}" style="color: ${vars.footerTextColor || '#333333'}; text-decoration: underline; font-size: 13px; font-family: ${vars.fontFamily};">

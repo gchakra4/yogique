@@ -404,22 +404,7 @@ const TransactionManagement = () => {
                 const footerTextRgb = footerHex ? hexToRgbNorm(footerHex) : rgb(0.2, 0.2, 0.2);
                 const darkGray = rgb(0.2, 0.2, 0.2);
                 const lightGray = rgb(0.94, 0.94, 0.94);
-                const white = rgb(1, 1, 1);
                 const black = rgb(0, 0, 0);
-                // Compute contrast for any fallback usage once
-                const getHexRgb = (hex) => {
-                    const h = hex.replace('#', '');
-                    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
-                    return [
-                        parseInt(full.slice(0, 2), 16),
-                        parseInt(full.slice(2, 4), 16),
-                        parseInt(full.slice(4, 6), 16)
-                    ];
-                };
-                const [pr, pg, pb] = primaryHex ? getHexRgb(primaryHex) : [247, 247, 247];
-                const luminance = (0.299 * pr + 0.587 * pg + 0.114 * pb) / 255;
-                // Single header text color to be used as a fallback (kept for legacy contrast logic)
-                const headerTextColor = luminance > 0.6 ? darkGray : white;
                 // Ensure vertical cursor exists for layout calculations (declare once)
                 let currentY = 0; // will set after page size known
                 // Header band (B/W friendly)
@@ -636,7 +621,7 @@ const TransactionManagement = () => {
                         y: height - 60 - (i * 15),
                         size: 10,
                         font,
-                        color: headerTextColor
+                        color: headerTextRgb // use explicit header text color from settings (prevents it switching to white when background color changes)
                     });
                 });
                 currentY = height - 200;
@@ -879,37 +864,6 @@ const TransactionManagement = () => {
                     });
                 });
                 currentY -= (25 + paymentInfo.length * 15 + 40);
-                // LEGAL / COMPANY INFORMATION: place into footer area (above footer band)
-                {
-                    const legal = businessConfig?.legal || {};
-                    const company = businessConfig?.profile?.name || 'Company';
-                    const registeredOffice = (businessConfig?.contact?.address_lines || []).join(', ');
-                    const line1Parts = [company];
-                    if (legal.llpin)
-                        line1Parts.push(`LLPIN: ${legal.llpin}`);
-                    if (legal.gst_number)
-                        line1Parts.push(`GSTIN: ${legal.gst_number}`);
-                    if (legal.cin_number)
-                        line1Parts.push(`CIN: ${legal.cin_number}`);
-                    const line1 = line1Parts.join(' • ');
-                    const legalBlockY = 110;
-                    page.drawText(line1, {
-                        x: 40,
-                        y: legalBlockY,
-                        size: 9,
-                        font: boldFont,
-                        color: footerTextRgb // use explicit footer text color
-                    });
-                    if (registeredOffice) {
-                        page.drawText(`Registered Office: ${registeredOffice}`, {
-                            x: 40,
-                            y: legalBlockY - 14,
-                            size: 9,
-                            font,
-                            color: footerTextRgb
-                        });
-                    }
-                }
                 // Footer band (use light bg and footer text color)
                 page.drawRectangle({
                     x: 0,
@@ -918,6 +872,7 @@ const TransactionManagement = () => {
                     height: 80,
                     color: lightGray
                 });
+                // Footer variables (declare here so they're available when drawing footer content)
                 const footerName = businessConfig?.profile?.name || 'Yogique';
                 let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogique.life';
                 hostDomainRaw = hostDomainRaw.replace(/Yogique\.com/gi, 'yogique.life');
@@ -925,20 +880,56 @@ const TransactionManagement = () => {
                 const footerEmail = businessConfig?.contact?.email || `contact@${hostDomain}`;
                 const footerPhone = businessConfig?.contact?.phone || '+91 98765 43210';
                 const footerTerms = businessConfig?.invoice?.terms || 'Thank you for supporting your holistic health journey with us.';
-                page.drawText(footerTerms, {
-                    x: 40,
-                    y: 50,
-                    size: 12,
-                    font: boldFont,
-                    color: footerTextRgb // explicit footer text color
-                });
-                page.drawText(`Questions? Contact ${footerName} at ${footerEmail} or ${footerPhone}`, {
-                    x: 40,
-                    y: 30,
-                    size: 9,
-                    font,
-                    color: footerTextRgb
-                });
+                // Draw legal/company info inside footer
+                {
+                    const legal = businessConfig?.legal || {};
+                    const registeredOffice = (businessConfig?.contact?.address_lines || []).join(', ');
+                    // Fixed-company wording as requested
+                    const legalSentence = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
+                    // Draw sentence in slightly smaller font so it fits nicely in footer
+                    page.drawText(legalSentence, {
+                        x: 40,
+                        y: 58,
+                        size: 9,
+                        font,
+                        color: footerTextRgb
+                    });
+                    // LLPIN (if present) on its own smaller line
+                    if (legal.llpin) {
+                        page.drawText(`LLPIN: ${legal.llpin}`, {
+                            x: 40,
+                            y: 46,
+                            size: 8,
+                            font,
+                            color: footerTextRgb
+                        });
+                    }
+                    // Optional registered office line (small)
+                    if (registeredOffice) {
+                        page.drawText(`Registered Office: ${registeredOffice}`, {
+                            x: 40,
+                            y: legal.llpin ? 34 : 46,
+                            size: 8,
+                            font,
+                            color: footerTextRgb
+                        });
+                    }
+                    // Terms and contact (lower in the footer)
+                    page.drawText(footerTerms, {
+                        x: width - 300,
+                        y: 30,
+                        size: 10,
+                        font: boldFont,
+                        color: footerTextRgb
+                    });
+                    page.drawText(`Contact: ${footerName} • ${footerEmail} • ${footerPhone}`, {
+                        x: width - 300,
+                        y: 16,
+                        size: 8,
+                        font,
+                        color: footerTextRgb
+                    });
+                }
                 const base64 = await pdfDoc.saveAsBase64({ dataUri: false });
                 return base64;
             };

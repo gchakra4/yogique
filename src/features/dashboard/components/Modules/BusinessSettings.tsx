@@ -77,7 +77,46 @@ function Section({ title, children }: any) {
 }
 
 export default function BusinessSettings() {
-  const [settings, setSettings] = useState<any>({})
+  type InvoicePreferences = {
+    terms?: string;
+    tax_rate?: number;
+    time_zone?: string;
+    color_primary?: string;
+    color_accent?: string;
+    header_text_color?: string;
+    footer_text_color?: string;
+    invoice_number_prefix?: string;
+  };
+  type BusinessProfile = {
+    name?: string;
+    tagline?: string;
+    logo_url?: string;
+    website_url?: string;
+    registered_company?: string; // NEW
+  };
+  type BusinessContact = {
+    email?: string;
+    phone?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postal_code?: string;
+    address_lines?: string[];
+  };
+  type LegalDisclaimer = {
+    cin_number?: string;
+    llpin?: string;
+    gst_number?: string;
+    disclaimer?: string;
+  };
+  type SettingsShape = {
+    business_profile?: BusinessProfile;
+    business_contact?: BusinessContact;
+    social_links?: Record<string, string>;
+    invoice_preferences?: InvoicePreferences;
+    legal_disclaimer?: LegalDisclaimer;
+  };
+  const [settings, setSettings] = useState<SettingsShape>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const { refresh } = useSettings() || {}
@@ -174,6 +213,11 @@ export default function BusinessSettings() {
           value={settings.business_profile?.website_url || ''}
           onChange={(e) => handleNestedChange('business_profile', 'website_url', e.target.value)}
         />
+        <TextInput
+          label="Registered Company (Legal Entity)"
+          value={settings.business_profile?.registered_company || ''}
+          onChange={(e) => handleNestedChange('business_profile', 'registered_company', e.target.value)}
+        />
       </Section>
 
       {/* Business Contact */}
@@ -210,8 +254,17 @@ export default function BusinessSettings() {
         />
         <TextArea
           label="Address Lines (comma separated)"
-          value={settings.business_contact?.address_lines?.join(', ') || ''}
-          onChange={(e) => handleNestedChange('business_contact', 'address_lines', e.target.value.split(',').map((s) => s.trim()))}
+          value={(settings.business_contact?.address_lines && Array.isArray(settings.business_contact.address_lines)
+            ? settings.business_contact.address_lines.join(', ')
+            : '')}
+          onChange={(e) => handleNestedChange(
+            'business_contact',
+            'address_lines',
+            e.target.value
+              .split(',')
+              .map(s => s.trim())
+              .filter(Boolean)
+          )}
         />
       </Section>
 
