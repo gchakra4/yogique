@@ -964,30 +964,32 @@ const TransactionManagement = () => {
           // Line 1: Terms (no truncation per requirement) — use bold font
           page.drawText(footerTerms, { x: leftX, y: footerHeight - 10, size: 9, font: boldFont, color: footerTextRgb });
 
-          // Line 2: Contact
+          // Line 2: Contact (left) and website (right) on the same line
+          const contactY = footerHeight - 25;
           page.drawText(`Questions? Contact ${footerEmail} or ${footerPhone}`, {
             x: leftX,
-            y: footerHeight - 25,
+            y: contactY,
             size: 8,
             font,
             color: footerTextRgb
           });
 
-          // Blank line (breathing room)
-          const blankLineGap = 10;
-
-          // Right-aligned website URL on its own line (use font measurement for alignment)
+          // Right-aligned website on the same line as contact
           const websiteUrl = businessConfig?.profile?.website_url || 'https://www.yogique.life';
           const displayUrl = websiteUrl.replace(/^https?:\/\//, '');
           const websiteSize = 9;
           const websiteTextWidth = font.widthOfTextAtSize(displayUrl, websiteSize);
           const websiteX = Math.max(width - 40 - websiteTextWidth, leftX); // ensure not overlapping left column
-          page.drawText(displayUrl, { x: websiteX, y: footerHeight - 25 - blankLineGap, size: websiteSize, font, color: footerTextRgb });
+          page.drawText(displayUrl, { x: websiteX, y: contactY, size: websiteSize, font, color: footerTextRgb });
+
+          // Small breathing room below the contact/website line
+          const belowContactGap = 12;
 
           // Combined legal sentence (single line). Keep it single-line; if it exceeds available width, truncate to fit.
           const legalSentenceFull =
             'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
-          let footerY = footerHeight - 30 - blankLineGap - 18;
+          // position legal block below contact/website with a small gap
+          let footerY = footerHeight - 30 - belowContactGap - 18;
           const maxLineWidth = width - leftX - 40;
           const legalSentenceWidth = font.widthOfTextAtSize(legalSentenceFull, 7);
           const legalToDraw =
