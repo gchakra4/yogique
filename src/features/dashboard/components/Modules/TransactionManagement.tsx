@@ -999,7 +999,6 @@ const TransactionManagement = () => {
         const hostDomain = hostDomainRaw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
         const footerEmail = businessConfig?.contact?.email || `contact@${hostDomain}`;
         const footerPhone = businessConfig?.contact?.phone || '+91 98765 43210';
-        const footerWebsite = hostDomain;
         const footerTerms = businessConfig?.invoice?.terms || 'Thank you for supporting your holistic health journey with us.';
 
         page.drawText(footerTerms, {
@@ -1024,40 +1023,51 @@ const TransactionManagement = () => {
 
       const pdfBase64 = await generateInvoicePdfBase64();
 
+      // Email-level values — pulled from businessConfig (they were local to the PDF function earlier)
+      const emailPrimaryHex = businessConfig?.invoice?.color_primary;
+      const emailAccentHex = businessConfig?.invoice?.color_accent;
+      const emailHeaderHex = businessConfig?.invoice?.header_text_color || emailPrimaryHex || '#000000';
+      const emailFooterHex = businessConfig?.invoice?.footer_text_color || emailAccentHex || '#333333';
+      const emailCompanyName = businessConfig?.profile?.name || 'Yogique';
+      const emailCompanyAddress = (businessConfig?.contact?.address_lines || []).join(', ');
+      const emailLLPIN = businessConfig?.legal?.llpin || '';
+      const emailGST = businessConfig?.legal?.gst_number || '';
+      const emailCIN = businessConfig?.legal?.cin_number || '';
+
       // AFTER finishing PDF generation and before building email HTML: compute tax values used in the email body
       const taxRateDisplay = Number(newTx.gst_rate || businessConfig?.invoice?.tax_rate || 0);
       const taxAmountDisplay = tx.amount * (taxRateDisplay / 100);
       const grandTotalDisplay = tx.amount + taxAmountDisplay;
-
+ 
       const html = renderEmailTemplate('corporate-professional', {
-        title: 'Payment Invoice',
-        headerTitle: 'Invoice',
-        content: `
-          <p>Hi ${tx.user_name || ''},</p>
-          <p>Thanks for your payment. Your invoice is attached as a PDF.</p>
-          <p>
-            <strong>Subtotal:</strong> ${formatCurrency(tx.amount, tx.currency)}<br/>
-            ${taxRateDisplay > 0 ? `<strong>GST (${taxRateDisplay.toFixed(2)}%):</strong> ${formatCurrency(taxAmountDisplay, tx.currency)}<br/>` : ''}
-            <strong>Total:</strong> ${formatCurrency(grandTotalDisplay, tx.currency)}<br/>
-            <strong>Invoice ID:</strong> ${generateProfessionalInvoiceNumber(String(tx.id))}<br/>
-            <strong>Date:</strong> ${formatDate(tx.created_at)}<br/>
-            <strong>Plan Type:</strong> ${humanPlanType(tx.billing_plan_type)}${tx.billing_plan_type === 'monthly' && tx.billing_period_month ? `<br/><strong>Billing Month:</strong> ${formatBillingMonth(tx.billing_period_month)}` : ''}
-          </p>
-        `,
-        primaryColor: primaryHex || '#2563eb',
-        secondaryColor: accentHex || primaryHex || '#1d4ed8',
-        headerTextColor: businessConfig?.invoice?.header_text_color || headerHex || '#000000',
-        footerTextColor: businessConfig?.invoice?.footer_text_color || footerHex || '#333333',
-        backgroundColor: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        companyName,
-        companyAddress,
-        llpin: companyLLPIN,
-        gstNumber: companyGST,
-        cinNumber: companyCIN,
-        unsubscribeUrl: `${window.location.origin}/unsubscribe`
-      });
-
+         title: 'Payment Invoice',
+         headerTitle: 'Invoice',
+         content: `
+           <p>Hi ${tx.user_name || ''},</p>
+           <p>Thanks for your payment. Your invoice is attached as a PDF.</p>
+           <p>
+             <strong>Subtotal:</strong> ${formatCurrency(tx.amount, tx.currency)}<br/>
+             ${taxRateDisplay > 0 ? `<strong>GST (${taxRateDisplay.toFixed(2)}%):</strong> ${formatCurrency(taxAmountDisplay, tx.currency)}<br/>` : ''}
+             <strong>Total:</strong> ${formatCurrency(grandTotalDisplay, tx.currency)}<br/>
+             <strong>Invoice ID:</strong> ${generateProfessionalInvoiceNumber(String(tx.id))}<br/>
+             <strong>Date:</strong> ${formatDate(tx.created_at)}<br/>
+             <strong>Plan Type:</strong> ${humanPlanType(tx.billing_plan_type)}${tx.billing_plan_type === 'monthly' && tx.billing_period_month ? `<br/><strong>Billing Month:</strong> ${formatBillingMonth(tx.billing_period_month)}` : ''}
+           </p>
+         `,
+        primaryColor: emailPrimaryHex || '#2563eb',
+        secondaryColor: emailAccentHex || emailPrimaryHex || '#1d4ed8',
+        headerTextColor: emailHeaderHex,
+        footerTextColor: emailFooterHex,
+         backgroundColor: '#ffffff',
+         fontFamily: 'Arial, sans-serif',
+         companyName: emailCompanyName,
+         companyAddress: emailCompanyAddress,
+         llpin: emailLLPIN,
+         gstNumber: emailGST,
+         cinNumber: emailCIN,
+         unsubscribeUrl: `${window.location.origin}/unsubscribe`
+       });
+ 
       const res = await EmailService.sendTransactionalEmail(
         newTx.userEmail,
         'Your Yogique Invoice',

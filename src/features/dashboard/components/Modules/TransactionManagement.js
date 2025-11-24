@@ -383,14 +383,16 @@ const TransactionManagement = () => {
                 const { width, height } = page.getSize();
                 const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
                 const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-                // Palette derived strictly from DB (business_settings.invoice_preferences). No forced fallback colors.
-                // If a value is absent, sections will render with neutral defaults below.
+                // Palette derived strictly from DB (invoice preferences).
                 const primaryHex = businessConfig?.invoice?.color_primary;
                 const accentHex = businessConfig?.invoice?.color_accent;
+                // New: header/footer text color (explicit overrides)
+                const headerHex = businessConfig?.invoice?.header_text_color || primaryHex || '#000000';
+                const footerHex = businessConfig?.invoice?.footer_text_color || businessConfig?.invoice?.footer_text_color || accentHex || '#333333';
                 const hexToRgbNorm = (hex) => {
-                    const h = hex.replace('#', '');
+                    const h = (hex || '').replace('#', '');
                     const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
-                    const intVal = parseInt(full, 16);
+                    const intVal = parseInt(full || '000000', 16);
                     const r = (intVal >> 16) & 255;
                     const g = (intVal >> 8) & 255;
                     const b = intVal & 255;
@@ -398,11 +400,13 @@ const TransactionManagement = () => {
                 };
                 const primaryColor = primaryHex ? hexToRgbNorm(primaryHex) : rgb(0.97, 0.97, 0.97);
                 const accentColor = accentHex ? hexToRgbNorm(accentHex) : primaryColor;
+                const headerTextRgb = headerHex ? hexToRgbNorm(headerHex) : rgb(0, 0, 0);
+                const footerTextRgb = footerHex ? hexToRgbNorm(footerHex) : rgb(0.2, 0.2, 0.2);
                 const darkGray = rgb(0.2, 0.2, 0.2);
                 const lightGray = rgb(0.94, 0.94, 0.94);
                 const white = rgb(1, 1, 1);
                 const black = rgb(0, 0, 0);
-                // Compute readable header text color once (no duplicate declarations)
+                // Compute contrast for any fallback usage once
                 const getHexRgb = (hex) => {
                     const h = hex.replace('#', '');
                     const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
@@ -414,9 +418,10 @@ const TransactionManagement = () => {
                 };
                 const [pr, pg, pb] = primaryHex ? getHexRgb(primaryHex) : [247, 247, 247];
                 const luminance = (0.299 * pr + 0.587 * pg + 0.114 * pb) / 255;
+                // Single header text color to be used as a fallback (kept for legacy contrast logic)
                 const headerTextColor = luminance > 0.6 ? darkGray : white;
-                // Ensure vertical cursor exists for layout calculations
-                let currentY = height - 40;
+                // Ensure vertical cursor exists for layout calculations (declare once)
+                let currentY = 0; // will set after page size known
                 // Header band (B/W friendly)
                 page.drawRectangle({
                     x: 0,
@@ -588,12 +593,12 @@ const TransactionManagement = () => {
                     }
                 }
                 catch { /* ignore */ }
+                // When drawing brand/tagline use explicit headerTextRgb color (if provided)
                 // Brand text (dynamically positioned next to logo)
                 {
                     const gap = 4; // tighter gap to sit closer to logo
                     const brandFontSize = 14;
                     const computedX = (logoMetrics.width ? (logoMetrics.x + logoMetrics.width + gap) : 64);
-                    // Vertically align brand name to visual mid-line of logo if we have metrics
                     const brandNameY = (logoMetrics.height
                         ? (logoMetrics.y + (logoMetrics.height / 2) + (brandFontSize / 3))
                         : (height - 82));
@@ -603,7 +608,7 @@ const TransactionManagement = () => {
                         y: brandNameY,
                         size: brandFontSize,
                         font: boldFont,
-                        color: headerTextColor
+                        color: headerTextRgb // use explicit header text color
                     });
                     const tagline = businessConfig?.profile?.tagline || 'Holistic Health • Movement • Mindfulness';
                     const taglineY = brandNameY - (brandFontSize + 4);
@@ -612,7 +617,7 @@ const TransactionManagement = () => {
                         y: taglineY,
                         size: 8,
                         font,
-                        color: headerTextColor
+                        color: headerTextRgb
                     });
                 }
                 // Address
@@ -874,7 +879,7 @@ const TransactionManagement = () => {
                     });
                 });
                 currentY -= (25 + paymentInfo.length * 15 + 40);
-                // LEGAL / COMPANY INFORMATION above footer (B/W friendly)
+                // LEGAL / COMPANY INFORMATION: place into footer area (above footer band)
                 {
                     const legal = businessConfig?.legal || {};
                     const company = businessConfig?.profile?.name || 'Company';
@@ -893,7 +898,7 @@ const TransactionManagement = () => {
                         y: legalBlockY,
                         size: 9,
                         font: boldFont,
-                        color: darkGray
+                        color: footerTextRgb // use explicit footer text color
                     });
                     if (registeredOffice) {
                         page.drawText(`Registered Office: ${registeredOffice}`, {
@@ -901,11 +906,11 @@ const TransactionManagement = () => {
                             y: legalBlockY - 14,
                             size: 9,
                             font,
-                            color: darkGray
+                            color: footerTextRgb
                         });
                     }
                 }
-                // Footer (light gray bg + dark text for print)
+                // Footer band (use light bg and footer text color)
                 page.drawRectangle({
                     x: 0,
                     y: 0,
@@ -919,42 +924,36 @@ const TransactionManagement = () => {
                 const hostDomain = hostDomainRaw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
                 const footerEmail = businessConfig?.contact?.email || `contact@${hostDomain}`;
                 const footerPhone = businessConfig?.contact?.phone || '+91 98765 43210';
-                const footerWebsite = hostDomain;
                 const footerTerms = businessConfig?.invoice?.terms || 'Thank you for supporting your holistic health journey with us.';
                 page.drawText(footerTerms, {
                     x: 40,
                     y: 50,
                     size: 12,
                     font: boldFont,
-                    color: black
+                    color: footerTextRgb // explicit footer text color
                 });
                 page.drawText(`Questions? Contact ${footerName} at ${footerEmail} or ${footerPhone}`, {
                     x: 40,
                     y: 30,
                     size: 9,
                     font,
-                    color: darkGray
-                });
-                page.drawText(footerWebsite, {
-                    x: width - 160,
-                    y: 40,
-                    size: 10,
-                    font: boldFont,
-                    color: black
+                    color: footerTextRgb
                 });
                 const base64 = await pdfDoc.saveAsBase64({ dataUri: false });
                 return base64;
             };
             const pdfBase64 = await generateInvoicePdfBase64();
+            // Email-level values — pulled from businessConfig (they were local to the PDF function earlier)
+            const emailPrimaryHex = businessConfig?.invoice?.color_primary;
+            const emailAccentHex = businessConfig?.invoice?.color_accent;
+            const emailHeaderHex = businessConfig?.invoice?.header_text_color || emailPrimaryHex || '#000000';
+            const emailFooterHex = businessConfig?.invoice?.footer_text_color || emailAccentHex || '#333333';
+            const emailCompanyName = businessConfig?.profile?.name || 'Yogique';
+            const emailCompanyAddress = (businessConfig?.contact?.address_lines || []).join(', ');
+            const emailLLPIN = businessConfig?.legal?.llpin || '';
+            const emailGST = businessConfig?.legal?.gst_number || '';
+            const emailCIN = businessConfig?.legal?.cin_number || '';
             // AFTER finishing PDF generation and before building email HTML: compute tax values used in the email body
-            const primaryHex = businessConfig?.invoice?.color_primary;
-            const accentHex = businessConfig?.invoice?.color_accent;
-            const companyName = businessConfig?.profile?.name || 'Yogique';
-            const companyAddress = (businessConfig?.contact?.address_lines || []).join(', ');
-            const companyLLPIN = businessConfig?.legal?.llpin || '';
-            const companyGST = businessConfig?.legal?.gst_number || '';
-            const companyCIN = businessConfig?.legal?.cin_number || '';
-            // define values used in the email HTML (ensure they're available when template is built)
             const taxRateDisplay = Number(newTx.gst_rate || businessConfig?.invoice?.tax_rate || 0);
             const taxAmountDisplay = tx.amount * (taxRateDisplay / 100);
             const grandTotalDisplay = tx.amount + taxAmountDisplay;
@@ -962,26 +961,28 @@ const TransactionManagement = () => {
                 title: 'Payment Invoice',
                 headerTitle: 'Invoice',
                 content: `
-          <p>Hi ${tx.user_name || ''},</p>
-          <p>Thanks for your payment. Your invoice is attached as a PDF.</p>
-          <p>
-            <strong>Subtotal:</strong> ${formatCurrency(tx.amount, tx.currency)}<br/>
-            ${taxRateDisplay > 0 ? `<strong>GST (${taxRateDisplay.toFixed(2)}%):</strong> ${formatCurrency(taxAmountDisplay, tx.currency)}<br/>` : ''}
-            <strong>Total:</strong> ${formatCurrency(grandTotalDisplay, tx.currency)}<br/>
-            <strong>Invoice ID:</strong> ${generateProfessionalInvoiceNumber(String(tx.id))}<br/>
-            <strong>Date:</strong> ${formatDate(tx.created_at)}<br/>
-            <strong>Plan Type:</strong> ${humanPlanType(tx.billing_plan_type)}${tx.billing_plan_type === 'monthly' && tx.billing_period_month ? `<br/><strong>Billing Month:</strong> ${formatBillingMonth(tx.billing_period_month)}` : ''}
-          </p>
-        `,
-                primaryColor: primaryHex || '#2563eb',
-                secondaryColor: accentHex || primaryHex || '#1d4ed8',
+           <p>Hi ${tx.user_name || ''},</p>
+           <p>Thanks for your payment. Your invoice is attached as a PDF.</p>
+           <p>
+             <strong>Subtotal:</strong> ${formatCurrency(tx.amount, tx.currency)}<br/>
+             ${taxRateDisplay > 0 ? `<strong>GST (${taxRateDisplay.toFixed(2)}%):</strong> ${formatCurrency(taxAmountDisplay, tx.currency)}<br/>` : ''}
+             <strong>Total:</strong> ${formatCurrency(grandTotalDisplay, tx.currency)}<br/>
+             <strong>Invoice ID:</strong> ${generateProfessionalInvoiceNumber(String(tx.id))}<br/>
+             <strong>Date:</strong> ${formatDate(tx.created_at)}<br/>
+             <strong>Plan Type:</strong> ${humanPlanType(tx.billing_plan_type)}${tx.billing_plan_type === 'monthly' && tx.billing_period_month ? `<br/><strong>Billing Month:</strong> ${formatBillingMonth(tx.billing_period_month)}` : ''}
+           </p>
+         `,
+                primaryColor: emailPrimaryHex || '#2563eb',
+                secondaryColor: emailAccentHex || emailPrimaryHex || '#1d4ed8',
+                headerTextColor: emailHeaderHex,
+                footerTextColor: emailFooterHex,
                 backgroundColor: '#ffffff',
                 fontFamily: 'Arial, sans-serif',
-                companyName,
-                companyAddress,
-                llpin: companyLLPIN,
-                gstNumber: companyGST,
-                cinNumber: companyCIN,
+                companyName: emailCompanyName,
+                companyAddress: emailCompanyAddress,
+                llpin: emailLLPIN,
+                gstNumber: emailGST,
+                cinNumber: emailCIN,
                 unsubscribeUrl: `${window.location.origin}/unsubscribe`
             });
             const res = await EmailService.sendTransactionalEmail(newTx.userEmail, 'Your Yogique Invoice', html, [

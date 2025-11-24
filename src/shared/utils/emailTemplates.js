@@ -181,7 +181,6 @@ const minimalCleanTemplate = (vars) => `
                         </td>
                     </tr>
                     
-                    <!-- Footer -->
                     <tr>
                         <td style="border-top: 1px solid #e5e5e5; padding: 20px 0; text-align: center;">
                             ${vars.companyName ? `
