@@ -937,7 +937,7 @@ const TransactionManagement = () => {
 
         currentY -= (25 + paymentInfo.length * 15 + 40);
 
-        const footerHeight = 110; // increased to fit terms, contact, website, legal lines and copyright
+        const footerHeight = 90; // increased to fit terms, contact, website, legal lines and copyright
         page.drawRectangle({ x: 0, y: 0, width, height: footerHeight, color: lightGray });
 
         // Footer variables (declare here so they're available when drawing footer content)
@@ -962,7 +962,7 @@ const TransactionManagement = () => {
           const leftX = 40;
 
           // Line 1: Terms (no truncation per requirement) — use bold font
-          page.drawText(footerTerms, { x: leftX, y: footerHeight - 20, size: 9, font: boldFont, color: footerTextRgb });
+          page.drawText(footerTerms, { x: leftX, y: footerHeight - 25, size: 9, font: boldFont, color: footerTextRgb });
 
           // Line 2: Contact
           page.drawText(`Questions? Contact ${footerEmail} or ${footerPhone}`, {
