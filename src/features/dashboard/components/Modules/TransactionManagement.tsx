@@ -962,16 +962,28 @@ const TransactionManagement = () => {
           const leftX = 40;
           const rightX = width - 280;
 
-          // TOP ROW: Terms (left) and Contact (right) - reduced top margin
+          // TOP LEFT: Terms - reduced top margin
           page.drawText(footerTerms.length > 80 ? footerTerms.slice(0, 77) + '...' : footerTerms, {
             x: leftX,
-            y: footerHeight - 10, // closer to top (was 62)
+            y: footerHeight - 10,
             size: 9,
             font: boldFont,
             color: footerTextRgb
           });
 
-          page.drawText(`Contact: ${footerEmail} • ${footerPhone}`, {
+          // BELOW TERMS: Contact line with "Questions? Contact Yogique at email or phone"
+          page.drawText(`Questions? Contact ${footerEmail} at ${footerPhone}`, {
+            x: leftX,
+            y: footerHeight - 22,
+            size: 8,
+            font,
+            color: footerTextRgb
+          });
+
+          // TOP RIGHT: Website URL
+          const websiteUrl = businessConfig?.profile?.website_url || 'https://www.yogique.life';
+          const displayUrl = websiteUrl.replace(/^https?:\/\//, ''); // remove protocol for display
+          page.drawText(displayUrl, {
             x: rightX,
             y: footerHeight - 10,
             size: 9,
@@ -981,11 +993,11 @@ const TransactionManagement = () => {
 
           // MIDDLE SECTION: Legal/Company info (small text)
           const legalSentenceFull = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
-          
+
           const legalLine1 = legalSentenceFull.slice(0, legalSentenceFull.indexOf('.') + 1);
           const legalLine2 = legalSentenceFull.slice(legalSentenceFull.indexOf('.') + 1).trim();
 
-          let currentY = footerHeight - 22; // adjusted spacing
+          let currentY = footerHeight - 34; // adjusted spacing after contact line
           page.drawText(legalLine1, {
             x: leftX,
             y: currentY,
@@ -1005,17 +1017,17 @@ const TransactionManagement = () => {
 
           // SINGLE LINE: Registered Company • LLPIN/GST/CIN • Registered Office
           currentY -= 8;
-          
+
           const registeredCompany = businessConfig?.profile?.registered_company || 'Sampurnayogam LLP';
           const legalInfoParts: string[] = [registeredCompany];
-          
+
           // Add LLPIN/GST/CIN
           const idParts: string[] = [];
           if (legal.llpin) idParts.push(`LLPIN: ${legal.llpin}`);
           if (legal.gst_number) idParts.push(`GSTIN: ${legal.gst_number}`);
           if (legal.cin_number) idParts.push(`CIN: ${legal.cin_number}`);
           if (idParts.length) legalInfoParts.push(idParts.join(', '));
-          
+
           // Add Registered Office
           if (registeredOffice) {
             const shortOffice = registeredOffice.length > 60 ? registeredOffice.slice(0, 57) + '...' : registeredOffice;
