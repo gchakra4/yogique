@@ -937,17 +937,12 @@ const TransactionManagement = () => {
 
         currentY -= (25 + paymentInfo.length * 15 + 40);
 
-        // Footer band (reduced height, use light bg and footer text color)
-        const footerHeight = 60; // reduced from 80
-        page.drawRectangle({
-          x: 0,
-          y: 0,
-          width,
-          height: footerHeight,
-          color: lightGray
-        });
+        // Footer band (adjusted height to allow extra breathing room)
+        const footerHeight = 84; // increased to give more breathing room
+        page.drawRectangle({ x: 0, y: 0, width, height: footerHeight, color: lightGray });
 
         // Footer variables (declare here so they're available when drawing footer content)
+        const footerName = businessConfig?.profile?.name || 'Yogique';
         let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogique.life';
         hostDomainRaw = hostDomainRaw.replace(/Yogique\.com/gi, 'yogique.life');
         const hostDomain = hostDomainRaw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
@@ -955,97 +950,66 @@ const TransactionManagement = () => {
         const footerPhone = businessConfig?.contact?.phone || '+91 98765 43210';
         const footerTerms = businessConfig?.invoice?.terms || 'Thank you for supporting your holistic health journey with us.';
 
-        // Draw formatted footer: terms & contact at top, legal/company at bottom
+        // Draw formatted footer: terms & contact at top, legal/company immediately after two blank lines
         {
           const legal = businessConfig?.legal || {};
           const registeredOffice = (businessConfig?.contact?.address_lines || []).join(', ');
           const leftX = 40;
           const rightX = width - 280;
 
-          // TOP LEFT: Terms - reduced top margin
-          page.drawText(footerTerms.length > 80 ? footerTerms.slice(0, 77) + '...' : footerTerms, {
-            x: leftX,
-            y: footerHeight - 10,
-            size: 9,
-            font: boldFont,
-            color: footerTextRgb
-          });
+          // TOP LEFT: Terms (reduced top margin)
+          page.drawText(
+            footerTerms.length > 80 ? footerTerms.slice(0, 77) + '...' : footerTerms,
+            { x: leftX, y: footerHeight - 10, size: 9, font: boldFont, color: footerTextRgb }
+          );
 
-          // BELOW TERMS: Contact line with "Questions? Contact Yogique at email or phone"
-          page.drawText(`Questions? Contact ${footerEmail} at ${footerPhone}`, {
-            x: leftX,
-            y: footerHeight - 22,
-            size: 8,
-            font,
-            color: footerTextRgb
-          });
+          // BELOW TERMS: Contact line with "Questions? Contact <email> or <phone>"
+          page.drawText(
+            `Questions? Contact ${footerEmail} or ${footerPhone}`,
+            { x: leftX, y: footerHeight - 22, size: 8, font, color: footerTextRgb }
+          );
 
-          // TOP RIGHT: Website URL (right-aligned)
+          // TOP-RIGHT: Website URL (right-aligned)
           const websiteUrl = businessConfig?.profile?.website_url || 'https://www.yogique.life';
-          const displayUrl = websiteUrl.replace(/^https?:\/\//, ''); // remove protocol for display
-          // measure text width and align to right margin (40pt)
+          const displayUrl = websiteUrl.replace(/^https?:\/\//, '');
           const websiteTextWidth = font.widthOfTextAtSize(displayUrl, 9);
           const websiteX = Math.max(width - 40 - websiteTextWidth, rightX);
-          page.drawText(displayUrl, {
-            x: websiteX,
-            y: footerHeight - 10,
-            size: 9,
-            font,
-            color: footerTextRgb
-          });
+          page.drawText(displayUrl, { x: websiteX, y: footerHeight - 10, size: 9, font, color: footerTextRgb });
 
-          // MIDDLE SECTION: Legal/Company info (single line now)
-          const legalSentenceFull = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
+          // Add extra breathing room after contact (two blank lines + extra)
+          // Questions line at y = footerHeight - 22; move down by 32pt total
+          let currentY = footerHeight - 22 - 32; // more space before legal sentence
 
-          let currentY = footerHeight - 34;
-          page.drawText(legalSentenceFull.length > 140 ? legalSentenceFull.slice(0, 137) + '...' : legalSentenceFull, {
-            x: leftX,
-            y: currentY,
-            size: 7,
-            font,
-            color: footerTextRgb
-          });
+          // SINGLE-LINE LEGAL SENTENCE (combined)
+          const legalSentenceFull =
+            'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
+          page.drawText(
+            legalSentenceFull.length > 140 ? legalSentenceFull.slice(0, 137) + '...' : legalSentenceFull,
+            { x: leftX, y: currentY, size: 7, font, color: footerTextRgb }
+          );
 
-          // SINGLE LINE: Registered Company • LLPIN/GST/CIN • Registered Office
+          // IMMEDIATELY BELOW: Registered Company • LLPIN/GST/CIN • Registered Office (single line)
           currentY -= 8;
-
           const registeredCompany = businessConfig?.profile?.registered_company || 'Sampurnayogam LLP';
-          const legalInfoParts: string[] = [registeredCompany];
-
-          // Add LLPIN/GST/CIN
           const idParts: string[] = [];
           if (legal.llpin) idParts.push(`LLPIN: ${legal.llpin}`);
           if (legal.gst_number) idParts.push(`GSTIN: ${legal.gst_number}`);
           if (legal.cin_number) idParts.push(`CIN: ${legal.cin_number}`);
+          const legalInfoParts: string[] = [registeredCompany];
           if (idParts.length) legalInfoParts.push(idParts.join(', '));
-
-          // Add Registered Office
           if (registeredOffice) {
             const shortOffice = registeredOffice.length > 60 ? registeredOffice.slice(0, 57) + '...' : registeredOffice;
             legalInfoParts.push(`Registered Office: ${shortOffice}`);
           }
+          page.drawText(legalInfoParts.join(' • '), { x: leftX, y: currentY, size: 7, font, color: footerTextRgb });
 
-          page.drawText(legalInfoParts.join(' • '), {
-            x: leftX,
-            y: currentY,
-            size: 7,
-            font,
-            color: footerTextRgb
-          });
+          // Small gap before copyright
+          currentY -= 12;
 
-          // Add spacing before copyright
-          currentY -= 12; // extra space before copyright
-
-          // Copyright centered at bottom
+          // COPYRIGHT centered at very bottom
           const copyright = `© ${new Date().getFullYear()} ${registeredCompany}. All rights reserved.`;
-          const cpWidth = copyright.length * 3.5;
-          page.drawText(copyright, {
-            x: (width / 2) - (cpWidth / 2),
-            y: 4,
-            size: 7,
-            font,
-            color: footerTextRgb
-          });
+          const cpWidth = font.widthOfTextAtSize(copyright, 7);
+          page.drawText(copyright, { x: (width - cpWidth) / 2, y: 4, size: 7, font, color: footerTextRgb });
         }
 
         const base64 = await pdfDoc.saveAsBase64({ dataUri: false });
