@@ -980,34 +980,25 @@ const TransactionManagement = () => {
             color: footerTextRgb
           });
 
-          // TOP RIGHT: Website URL
+          // TOP RIGHT: Website URL (right-aligned)
           const websiteUrl = businessConfig?.profile?.website_url || 'https://www.yogique.life';
           const displayUrl = websiteUrl.replace(/^https?:\/\//, ''); // remove protocol for display
+          // measure text width and align to right margin (40pt)
+          const websiteTextWidth = font.widthOfTextAtSize(displayUrl, 9);
+          const websiteX = Math.max(width - 40 - websiteTextWidth, rightX);
           page.drawText(displayUrl, {
-            x: rightX,
+            x: websiteX,
             y: footerHeight - 10,
             size: 9,
             font,
             color: footerTextRgb
           });
 
-          // MIDDLE SECTION: Legal/Company info (small text)
+          // MIDDLE SECTION: Legal/Company info (single line now)
           const legalSentenceFull = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
 
-          const legalLine1 = legalSentenceFull.slice(0, legalSentenceFull.indexOf('.') + 1);
-          const legalLine2 = legalSentenceFull.slice(legalSentenceFull.indexOf('.') + 1).trim();
-
-          let currentY = footerHeight - 34; // adjusted spacing after contact line
-          page.drawText(legalLine1, {
-            x: leftX,
-            y: currentY,
-            size: 7,
-            font,
-            color: footerTextRgb
-          });
-
-          currentY -= 8;
-          page.drawText(legalLine2, {
+          let currentY = footerHeight - 34;
+          page.drawText(legalSentenceFull.length > 140 ? legalSentenceFull.slice(0, 137) + '...' : legalSentenceFull, {
             x: leftX,
             y: currentY,
             size: 7,
