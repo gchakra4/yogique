@@ -312,7 +312,7 @@ export default function BusinessSettings() {
 
         {/* Renamed for clarity (keys preserved for backwards compatibility) */}
         <ColorInput
-          label="Text Color"
+          label="Invoice Email Header and Title Color"
           value={settings.invoice_preferences?.color_primary || '#000000'}
           onChange={(e) => handleNestedChange('invoice_preferences', 'color_primary', e.target.value)}
         />
@@ -324,12 +324,12 @@ export default function BusinessSettings() {
 
         {/* New: header/footer text color overrides */}
         <ColorInput
-          label="Header Text Color"
+          label="Invoice and PDF Header Title Color"
           value={settings.invoice_preferences?.header_text_color || settings.invoice_preferences?.color_primary || '#000000'}
           onChange={(e) => handleNestedChange('invoice_preferences', 'header_text_color', e.target.value)}
         />
         <ColorInput
-          label="Footer Text Color"
+          label="Email and PDF footer Color"
           value={settings.invoice_preferences?.footer_text_color || settings.invoice_preferences?.color_primary || '#333333'}
           onChange={(e) => handleNestedChange('invoice_preferences', 'footer_text_color', e.target.value)}
         />
