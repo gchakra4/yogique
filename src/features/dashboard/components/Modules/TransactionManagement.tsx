@@ -955,55 +955,93 @@ const TransactionManagement = () => {
         const footerPhone = businessConfig?.contact?.phone || '+91 98765 43210';
         const footerTerms = businessConfig?.invoice?.terms || 'Thank you for supporting your holistic health journey with us.';
 
-        // Draw legal/company info inside footer
+        // Draw formatted legal/company/footer content (two-column layout)
         {
           const legal = businessConfig?.legal || {};
           const registeredOffice = (businessConfig?.contact?.address_lines || []).join(', ');
-          // Fixed-company wording as requested
-          const legalSentence = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
+          // Compose fixed/company wording split into two sentences for neat layout
+          const legalSentenceFull = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
+          const legalSentParts = legalSentenceFull.split('. ').map(s => s.trim()).filter(Boolean);
+          const leftX = 40;
+          const rightX = Math.max(width - 300, leftX + 220);
 
-          // Draw sentence in slightly smaller font so it fits nicely in footer
-          page.drawText(legalSentence, {
-            x: 40,
-            y: 58,
-            size: 9,
-            font,
-            color: footerTextRgb
-          });
-
-          // LLPIN (if present) on its own smaller line
-          if (legal.llpin) {
-            page.drawText(`LLPIN: ${legal.llpin}`, {
-              x: 40,
-              y: 46,
-              size: 8,
-              font,
-              color: footerTextRgb
-            });
-          }
-
-          // Optional registered office line (small)
-          if (registeredOffice) {
-            page.drawText(`Registered Office: ${registeredOffice}`, {
-              x: 40,
-              y: legal.llpin ? 34 : 46,
-              size: 8,
-              font,
-              color: footerTextRgb
-            });
-          }
-
-          // Terms and contact (lower in the footer)
-          page.drawText(footerTerms, {
-            x: width - 300,
-            y: 30,
+          // Company name (bold) - top-left of footer
+          page.drawText(businessConfig?.profile?.registered_company || footerName, {
+            x: leftX,
+            y: 56,
             size: 10,
             font: boldFont,
             color: footerTextRgb
           });
-          page.drawText(`Contact: ${footerName} • ${footerEmail} • ${footerPhone}`, {
-            x: width - 300,
-            y: 16,
+
+          // Legal sentence lines (smaller) drawn under company name
+          for (let i = 0; i < legalSentParts.length; i++) {
+            const line = legalSentParts[i] + (legalSentParts[i].endsWith('.') ? '' : '.');
+            page.drawText(line, {
+              x: leftX,
+              y: 42 - (i * 10),
+              size: 8,
+              font,
+              color: footerTextRgb
+            });
+          }
+
+          // LLPIN / GST / CIN line(s) (small)
+          const idParts: string[] = [];
+          if (legal.llpin) idParts.push(`LLPIN: ${legal.llpin}`);
+          if (legal.gst_number) idParts.push(`GSTIN: ${legal.gst_number}`);
+          if (legal.cin_number) idParts.push(`CIN: ${legal.cin_number}`);
+          if (idParts.length) {
+            page.drawText(idParts.join(' • '), {
+              x: leftX,
+              y: 18,
+              size: 8,
+              font,
+              color: footerTextRgb
+            });
+          }
+
+          // Registered Office (if present)
+          if (registeredOffice) {
+            // place above idParts if idParts absent, otherwise slightly left/below
+            page.drawText(`Registered Office: ${registeredOffice}`, {
+              x: leftX,
+              y: idParts.length ? 6 : 8,
+              size: 8,
+              font,
+              color: footerTextRgb
+            });
+          }
+
+          // Right column: Terms and contact
+          // Terms (short) - right side, top area
+          const termsLines = footerTerms.split(/\n/).map(s => s.trim()).filter(Boolean);
+          const termsYStart = 54;
+          termsLines.forEach((ln, idx) => {
+            page.drawText(ln, {
+              x: rightX,
+              y: termsYStart - (idx * 10),
+              size: 9,
+              font,
+              color: footerTextRgb
+            });
+          });
+
+          // Contact line(s) under terms
+          page.drawText(`Contact: ${footerEmail} • ${footerPhone}`, {
+            x: rightX,
+            y: 20,
+            size: 8,
+            font,
+            color: footerTextRgb
+          });
+
+          // Small centered copyright line at very bottom
+          const copyright = `© ${new Date().getFullYear()} ${businessConfig?.profile?.registered_company || footerName}. All rights reserved.`;
+          const cpWidthEstimate = (copyright.length / 2); // rough visual centering (pdf-lib needs manual measure for exact)
+          page.drawText(copyright, {
+            x: (width / 2) - cpWidthEstimate,
+            y: 6,
             size: 8,
             font,
             color: footerTextRgb
@@ -1626,8 +1664,8 @@ const TransactionManagement = () => {
                     {selectedTransaction.type === 'income' ? '+' : '-'}{formatCurrency(selectedTransaction.amount, selectedTransaction.currency)}
                   </p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedTransaction.status)}`}>
                     {selectedTransaction.status}
                   </span>
