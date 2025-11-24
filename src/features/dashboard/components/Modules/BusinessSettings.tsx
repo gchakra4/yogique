@@ -256,16 +256,31 @@ export default function BusinessSettings() {
           value={settings.invoice_preferences?.time_zone || ''}
           onChange={(e) => handleNestedChange('invoice_preferences', 'time_zone', e.target.value)}
         />
+
+        {/* Renamed for clarity (keys preserved for backwards compatibility) */}
         <ColorInput
-          label="Color Primary"
+          label="Text Color"
           value={settings.invoice_preferences?.color_primary || '#000000'}
           onChange={(e) => handleNestedChange('invoice_preferences', 'color_primary', e.target.value)}
         />
         <ColorInput
-          label="Color Accent"
-          value={settings.invoice_preferences?.color_accent || '#000000'}
+          label="Background Color"
+          value={settings.invoice_preferences?.color_accent || '#ffffff'}
           onChange={(e) => handleNestedChange('invoice_preferences', 'color_accent', e.target.value)}
         />
+
+        {/* New: header/footer text color overrides */}
+        <ColorInput
+          label="Header Text Color"
+          value={settings.invoice_preferences?.header_text_color || settings.invoice_preferences?.color_primary || '#000000'}
+          onChange={(e) => handleNestedChange('invoice_preferences', 'header_text_color', e.target.value)}
+        />
+        <ColorInput
+          label="Footer Text Color"
+          value={settings.invoice_preferences?.footer_text_color || settings.invoice_preferences?.color_primary || '#333333'}
+          onChange={(e) => handleNestedChange('invoice_preferences', 'footer_text_color', e.target.value)}
+        />
+
         <TextInput
           label="Invoice Prefix"
           value={settings.invoice_preferences?.invoice_number_prefix || ''}
