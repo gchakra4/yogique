@@ -865,50 +865,64 @@ const TransactionManagement = () => {
                 });
                 currentY -= (25 + paymentInfo.length * 15 + 40);
                 // Footer band (use light bg and footer text color)
+                // Increased footer band height for better spacing
                 page.drawRectangle({
                     x: 0,
                     y: 0,
                     width,
-                    height: 80,
+                    height: 120,
                     color: lightGray
                 });
                 // Footer variables (declare here so they're available when drawing footer content)
-                const footerName = businessConfig?.profile?.name || 'Yogique';
                 let hostDomainRaw = businessConfig?.profile?.website_url || 'https://www.yogique.life';
                 hostDomainRaw = hostDomainRaw.replace(/Yogique\.com/gi, 'yogique.life');
                 const hostDomain = hostDomainRaw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
                 const footerEmail = businessConfig?.contact?.email || `contact@${hostDomain}`;
                 const footerPhone = businessConfig?.contact?.phone || '+91 98765 43210';
                 const footerTerms = businessConfig?.invoice?.terms || 'Thank you for supporting your holistic health journey with us.';
-                // Draw formatted legal/company/footer content (two-column layout)
+                // Draw formatted footer: terms & contact at top, legal/company at bottom (two-column)
                 {
                     const legal = businessConfig?.legal || {};
                     const registeredOffice = (businessConfig?.contact?.address_lines || []).join(', ');
-                    // Compose fixed/company wording split into two sentences for neat layout
-                    const legalSentenceFull = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
-                    const legalSentParts = legalSentenceFull.split('. ').map(s => s.trim()).filter(Boolean);
                     const leftX = 40;
-                    const rightX = Math.max(width - 300, leftX + 220);
-                    // Company name (bold) - top-left of footer
-                    page.drawText(businessConfig?.profile?.registered_company || footerName, {
+                    const rightX = width - 280;
+                    // TOP ROW: Terms (left) and Contact (right)
+                    // Terms - bold, top-left
+                    page.drawText(footerTerms.length > 80 ? footerTerms.slice(0, 77) + '...' : footerTerms, {
                         x: leftX,
-                        y: 56,
+                        y: 100,
                         size: 10,
                         font: boldFont,
                         color: footerTextRgb
                     });
-                    // Legal sentence lines (smaller) drawn under company name
-                    for (let i = 0; i < legalSentParts.length; i++) {
-                        const line = legalSentParts[i] + (legalSentParts[i].endsWith('.') ? '' : '.');
-                        page.drawText(line, {
-                            x: leftX,
-                            y: 42 - (i * 10),
-                            size: 8,
-                            font,
-                            color: footerTextRgb
-                        });
-                    }
-                    // LLPIN / GST / CIN line(s) (small)
+                    // Contact - top-right
+                    page.drawText(`Contact: ${footerEmail} • ${footerPhone}`, {
+                        x: rightX,
+                        y: 100,
+                        size: 10,
+                        font,
+                        color: footerTextRgb
+                    });
+                    // BOTTOM SECTION: Legal/Company info (small text spanning width)
+                    const legalSentenceFull = 'Yogique is a brand operated by Sampurnayogam LLP. All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.';
+                    // Split into two lines for better fit
+                    const legalLine1 = legalSentenceFull.slice(0, legalSentenceFull.indexOf('.') + 1);
+                    const legalLine2 = legalSentenceFull.slice(legalSentenceFull.indexOf('.') + 1).trim();
+                    page.drawText(legalLine1, {
+                        x: leftX,
+                        y: 60,
+                        size: 8,
+                        font,
+                        color: footerTextRgb
+                    });
+                    page.drawText(legalLine2, {
+                        x: leftX,
+                        y: 50,
+                        size: 8,
+                        font,
+                        color: footerTextRgb
+                    });
+                    // LLPIN / GST / CIN / Registered Office (smallest, bottom)
                     const idParts = [];
                     if (legal.llpin)
                         idParts.push(`LLPIN: ${legal.llpin}`);
@@ -916,54 +930,33 @@ const TransactionManagement = () => {
                         idParts.push(`GSTIN: ${legal.gst_number}`);
                     if (legal.cin_number)
                         idParts.push(`CIN: ${legal.cin_number}`);
+                    let bottomY = 20;
                     if (idParts.length) {
                         page.drawText(idParts.join(' • '), {
                             x: leftX,
-                            y: 18,
-                            size: 8,
+                            y: bottomY,
+                            size: 7,
                             font,
                             color: footerTextRgb
                         });
+                        bottomY -= 12;
                     }
-                    // Registered Office (if present)
                     if (registeredOffice) {
-                        // place above idParts if idParts absent, otherwise slightly left/below
-                        page.drawText(`Registered Office: ${registeredOffice}`, {
+                        page.drawText(`Registered Office: ${registeredOffice.length > 90 ? registeredOffice.slice(0, 87) + '...' : registeredOffice}`, {
                             x: leftX,
-                            y: idParts.length ? 6 : 8,
-                            size: 8,
+                            y: bottomY,
+                            size: 7,
                             font,
                             color: footerTextRgb
                         });
                     }
-                    // Right column: Terms and contact
-                    // Terms (short) - right side, top area
-                    const termsLines = footerTerms.split(/\n/).map(s => s.trim()).filter(Boolean);
-                    const termsYStart = 54;
-                    termsLines.forEach((ln, idx) => {
-                        page.drawText(ln, {
-                            x: rightX,
-                            y: termsYStart - (idx * 10),
-                            size: 9,
-                            font,
-                            color: footerTextRgb
-                        });
-                    });
-                    // Contact line(s) under terms
-                    page.drawText(`Contact: ${footerEmail} • ${footerPhone}`, {
-                        x: rightX,
-                        y: 20,
-                        size: 8,
-                        font,
-                        color: footerTextRgb
-                    });
-                    // Small centered copyright line at very bottom
-                    const copyright = `© ${new Date().getFullYear()} ${businessConfig?.profile?.registered_company || footerName}. All rights reserved.`;
-                    const cpWidthEstimate = (copyright.length / 2); // rough visual centering (pdf-lib needs manual measure for exact)
+                    // Copyright centered at very bottom
+                    const copyright = `© ${new Date().getFullYear()} ${businessConfig?.profile?.registered_company || 'Sampurnayogam LLP'}`;
+                    const cpWidth = copyright.length * 3.5; // rough estimate for centering
                     page.drawText(copyright, {
-                        x: (width / 2) - cpWidthEstimate,
-                        y: 6,
-                        size: 8,
+                        x: (width / 2) - (cpWidth / 2),
+                        y: 14,
+                        size: 7,
                         font,
                         color: footerTextRgb
                     });
