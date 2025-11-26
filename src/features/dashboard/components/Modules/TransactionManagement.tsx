@@ -1688,6 +1688,3 @@ const TransactionManagement = () => {
 
 
 export default TransactionManagement;
-
-
-
