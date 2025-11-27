@@ -74,7 +74,7 @@ export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
   instructor: [
     { id: 'teaching_dashboard', title: 'Teaching Dashboard', component: 'TeachingDashboard', icon: 'graduation-cap', order: 1 },
     { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 2 },
-    { id: 'user_profile', title: 'User Profile', component: 'UserProfile', icon: 'user', order: 3 }
+    // User Profile removed from instructor modules
   ],
 
   yoga_acharya: [
@@ -98,7 +98,7 @@ export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
 
   user: [
     { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 5 },
-    { id: 'user_profile', title: 'User Profile', component: 'UserProfile', icon: 'user', order: 6 },
+    // User Profile removed for regular users
   ]
 };
 

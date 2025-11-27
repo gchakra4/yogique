@@ -1,7 +1,7 @@
 import { AlertCircle, Edit, Eye, MessageSquare, Plus, Send, Trash2, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
+import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { supabase } from '../../../../shared/lib/supabase'
 import NewArticlePage from '../../../articles/pages/NewArticlePage'
 import { useAuth } from '../../../auth/contexts/AuthContext'
@@ -530,7 +530,7 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
             </div>
 
             <div className="mt-6 flex justify-end space-x-3">
-                  {selectedArticleForFeedback.status === 'draft' &&
+              {selectedArticleForFeedback.status === 'draft' &&
                 selectedArticleForFeedback.moderation_status === 'rejected' && (
                   <ResponsiveActionButton
                     onClick={() => {

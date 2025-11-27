@@ -18,7 +18,6 @@ const FormSubmissions = React.lazy(() => import('./Modules/FormSubmissions'));
 const ContentReview = React.lazy(() => import('./Modules/ContentReview'));
 const ClassTypeManager = React.lazy(() => import('./Modules/ClassTypeManager'));
 const ArticleWorkflow = React.lazy(() => import('./Modules/ArticleWorkflow'));
-const UserProfile = React.lazy(() => import('./Modules/UserProfile'));
 const NewsletterManagement = React.lazy(() => import('./Modules/NewsletterManagement'));
 const TeachingDashboard = React.lazy(() => import('./Modules/TeachingDashboard'));
 const Overview = React.lazy(() => import('./Modules/OverView'));
@@ -59,7 +58,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
     ContentReview,
     ClassTypeManager,
     ArticleWorkflow,
-    UserProfile,
+    // UserProfile removed from dashboard module map
     NewsletterManagement,
     TeachingDashboard,
     Overview,
@@ -68,7 +67,8 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
   };
 
   // Get the first available module for default tab
-  const defaultModule = userModules[0]?.id || 'user_profile';
+  // Default to first available module or overview
+  const defaultModule = userModules[0]?.id || 'overview';
 
   // Extract current module from URL path
   const getCurrentModuleFromPath = () => {

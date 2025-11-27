@@ -1,8 +1,8 @@
 import { Edit, Eye, Mail, Plus, Send, Trash2, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import EmailService from '../../../../services/emailService'
-import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
+import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { supabase } from '../../../../shared/lib/supabase'
 import { createSampleNewsletters } from '../../../../utils/sampleNewsletterData'
 import NewsletterCreation from './NewsletterCreation'
@@ -293,7 +293,7 @@ export function NewsletterManagement() {
                   <Mail className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No newsletters yet</h3>
                   <p className="text-gray-600 mb-6">Create your first newsletter to get started.</p>
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <ResponsiveActionButton onClick={handleCreateNewsletter} className="bg-blue-600 hover:bg-blue-700">
                       <Plus className="w-4 h-4 mr-2" />
                       Create Newsletter

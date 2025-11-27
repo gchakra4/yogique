@@ -300,7 +300,7 @@ export function ArticleEditor({ article, onSave, onCancel, loading = false }: Ar
               </span>
             ))}
           </div>
-            <div className="flex gap-2">
+          <div className="flex gap-2">
             <input
               type="text"
               value={newTag}
@@ -338,7 +338,7 @@ export function ArticleEditor({ article, onSave, onCancel, loading = false }: Ar
         </div>
 
         {/* Action Buttons */}
-          <div className="flex justify-between pt-6 border-t border-gray-200">
+        <div className="flex justify-between pt-6 border-t border-gray-200">
           <ResponsiveActionButton
             type="button"
             variant="outline"

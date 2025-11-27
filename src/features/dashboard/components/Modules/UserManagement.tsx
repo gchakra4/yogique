@@ -1,7 +1,7 @@
 import { Filter, Search, Shield, User, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
+import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { supabase } from '../../../../shared/lib/supabase'
 import { useUserProfiles } from '../../../user-profile/hooks/useUserProfiles'
 import { UserRoleManagement } from './UserRoleManagement'
@@ -314,17 +314,17 @@ export function UserManagement() {
                     </td>
                     <td className="px-6 py-4">
                       <ResponsiveActionButton
-                          onClick={() => {
-                            setSelectedUser(user)
-                            setShowRoleManagement(true)
-                          }}
-                          size="sm"
-                          variant="outline"
-                          className="flex items-center"
-                        >
-                          <Shield className="w-4 h-4 mr-1" />
-                          Manage Roles
-                        </ResponsiveActionButton>
+                        onClick={() => {
+                          setSelectedUser(user)
+                          setShowRoleManagement(true)
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="flex items-center"
+                      >
+                        <Shield className="w-4 h-4 mr-1" />
+                        Manage Roles
+                      </ResponsiveActionButton>
                     </td>
                   </tr>
                 ))}

@@ -29,7 +29,7 @@ export const ROLE_MODULES = {
     instructor: [
         { id: 'teaching_dashboard', title: 'Teaching Dashboard', component: 'TeachingDashboard', icon: 'graduation-cap', order: 1 },
         { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 2 },
-        { id: 'user_profile', title: 'User Profile', component: 'UserProfile', icon: 'user', order: 3 }
+        // User Profile removed from instructor modules
     ],
     yoga_acharya: [
         { id: 'teaching_dashboard', title: 'Teaching Dashboard', component: 'TeachingDashboard', icon: 'graduation-cap', order: 1 },
@@ -49,7 +49,7 @@ export const ROLE_MODULES = {
     ],
     user: [
         { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 5 },
-        { id: 'user_profile', title: 'User Profile', component: 'UserProfile', icon: 'user', order: 6 },
+        // User Profile removed for regular users
     ]
 };
 // Helper function to get modules for a specific role
