@@ -1,6 +1,6 @@
 import { AlertCircle, Edit, Eye, MessageSquare, Plus, Send, Trash2, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Button } from '../../../../shared/components/ui/Button'
+import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../../shared/lib/supabase'
 import NewArticlePage from '../../../articles/pages/NewArticlePage'
@@ -301,10 +301,10 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Article Management</h2>
-        <Button onClick={handleCreateNew} className="flex items-center">
+        <ResponsiveActionButton onClick={handleCreateNew} className="flex items-center">
           <Plus className="w-4 h-4 mr-2" />
           Create New Article
-        </Button>
+        </ResponsiveActionButton>
       </div>
 
       {loading ? (
@@ -530,9 +530,9 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
             </div>
 
             <div className="mt-6 flex justify-end space-x-3">
-              {selectedArticleForFeedback.status === 'draft' &&
+                  {selectedArticleForFeedback.status === 'draft' &&
                 selectedArticleForFeedback.moderation_status === 'rejected' && (
-                  <Button
+                  <ResponsiveActionButton
                     onClick={() => {
                       setShowFeedbackModal(false)
                       setSelectedArticleForFeedback(null)
@@ -543,9 +543,9 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Edit & Resubmit
-                  </Button>
+                  </ResponsiveActionButton>
                 )}
-              <Button
+              <ResponsiveActionButton
                 variant="outline"
                 onClick={() => {
                   setShowFeedbackModal(false)
@@ -554,7 +554,7 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
                 }}
               >
                 Close
-              </Button>
+              </ResponsiveActionButton>
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { Image, Save, Send, Tag, Video, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
-import { Button } from '../../../../shared/components/ui/Button'
+import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { useAuth } from '../../../auth/contexts/AuthContext'
 import { Article } from '../../../learning/types/article'
 
@@ -300,7 +300,7 @@ export function ArticleEditor({ article, onSave, onCancel, loading = false }: Ar
               </span>
             ))}
           </div>
-          <div className="flex gap-2">
+            <div className="flex gap-2">
             <input
               type="text"
               value={newTag}
@@ -309,14 +309,14 @@ export function ArticleEditor({ article, onSave, onCancel, loading = false }: Ar
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Add a tag"
             />
-            <Button
+            <ResponsiveActionButton
               type="button"
               onClick={handleAddTag}
               variant="outline"
               size="sm"
             >
               Add Tag
-            </Button>
+            </ResponsiveActionButton>
           </div>
         </div>
 
@@ -338,18 +338,18 @@ export function ArticleEditor({ article, onSave, onCancel, loading = false }: Ar
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-between pt-6 border-t border-gray-200">
-          <Button
+          <div className="flex justify-between pt-6 border-t border-gray-200">
+          <ResponsiveActionButton
             type="button"
             variant="outline"
             onClick={onCancel}
           >
             Cancel
-          </Button>
+          </ResponsiveActionButton>
 
           <div className="flex space-x-3">
             {/* Save as Draft Button */}
-            <Button
+            <ResponsiveActionButton
               type="button"
               variant="outline"
               onClick={() => handleSubmit('draft')}
@@ -358,11 +358,11 @@ export function ArticleEditor({ article, onSave, onCancel, loading = false }: Ar
             >
               <Save className="w-4 h-4 mr-2" />
               {loading && submitAction === 'draft' ? 'Saving...' : 'Save Draft'}
-            </Button>
+            </ResponsiveActionButton>
 
             {/* Submit for Review Button (for regular users) */}
             {!isAdmin && !isSanghaGuide && (
-              <Button
+              <ResponsiveActionButton
                 type="button"
                 onClick={() => {
                   setSubmitAction('review')
@@ -373,12 +373,12 @@ export function ArticleEditor({ article, onSave, onCancel, loading = false }: Ar
               >
                 <Send className="w-4 h-4 mr-2" />
                 {loading && submitAction === 'review' ? 'Submitting...' : 'Submit for Review'}
-              </Button>
+              </ResponsiveActionButton>
             )}
 
             {/* Publish Button (for admins and sangha_guides) */}
             {(isAdmin || isSanghaGuide) && (
-              <Button
+              <ResponsiveActionButton
                 type="button"
                 onClick={() => {
                   setSubmitAction('publish')
@@ -389,7 +389,7 @@ export function ArticleEditor({ article, onSave, onCancel, loading = false }: Ar
               >
                 <Send className="w-4 h-4 mr-2" />
                 {loading && submitAction === 'publish' ? 'Publishing...' : 'Publish Now'}
-              </Button>
+              </ResponsiveActionButton>
             )}
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { CheckCircle, Clock, Eye, MessageSquare, User, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Button } from '../../../../shared/components/ui/Button'
+import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../../shared/lib/supabase'
 import { useAuth } from '../../../auth/contexts/AuthContext'
@@ -293,19 +293,19 @@ export function ArticleWorkflow() {
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-900">Article Workflow Management</h2>
                 <div className="flex space-x-2">
-                    <Button
+                    <ResponsiveActionButton
                         variant={activeTab === 'pending' ? 'primary' : 'outline'}
                         onClick={() => setActiveTab('pending')}
                     >
                         <Clock className="w-4 h-4 mr-2" />
                         Pending Review ({articles.filter(a => a.status === 'pending_review').length})
-                    </Button>
-                    <Button
+                    </ResponsiveActionButton>
+                    <ResponsiveActionButton
                         variant={activeTab === 'all' ? 'primary' : 'outline'}
                         onClick={() => setActiveTab('all')}
                     >
                         All Articles
-                    </Button>
+                    </ResponsiveActionButton>
                 </div>
             </div>
 
@@ -377,7 +377,7 @@ export function ArticleWorkflow() {
                                                 {new Date(article.created_at).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <Button
+                                                <ResponsiveActionButton
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => {
@@ -387,7 +387,7 @@ export function ArticleWorkflow() {
                                                 >
                                                     <Eye className="w-4 h-4 mr-1" />
                                                     Review
-                                                </Button>
+                                                </ResponsiveActionButton>
                                             </td>
                                         </tr>
                                     ))}
@@ -399,16 +399,16 @@ export function ArticleWorkflow() {
             ) : (
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                        <Button
+                        <ResponsiveActionButton
                             variant="outline"
                             onClick={() => setSelectedArticle(null)}
                         >
                             ← Back to List
-                        </Button>
+                        </ResponsiveActionButton>
                         <div className="flex space-x-2">
                             {selectedArticle.status === 'pending_review' && (
                                 <>
-                                    <Button
+                                    <ResponsiveActionButton
                                         variant="outline"
                                         className="border-red-300 text-red-600 hover:bg-red-50"
                                         onClick={() => setShowRejectionModal(true)}
@@ -416,15 +416,15 @@ export function ArticleWorkflow() {
                                     >
                                         <XCircle className="w-4 h-4 mr-2" />
                                         Reject
-                                    </Button>
-                                    <Button
+                                    </ResponsiveActionButton>
+                                    <ResponsiveActionButton
                                         className="bg-green-600 hover:bg-green-700"
                                         onClick={() => handleApprove(selectedArticle.id)}
                                         disabled={moderating}
                                     >
                                         <CheckCircle className="w-4 h-4 mr-2" />
                                         {moderating ? 'Approving...' : 'Approve & Publish'}
-                                    </Button>
+                                    </ResponsiveActionButton>
                                 </>
                             )}
                         </div>
@@ -538,7 +538,7 @@ export function ArticleWorkflow() {
                             placeholder="Enter feedback for the author..."
                         />
                         <div className="flex space-x-3 mt-4">
-                            <Button
+                            <ResponsiveActionButton
                                 variant="outline"
                                 onClick={() => {
                                     setShowRejectionModal(false)
@@ -546,14 +546,14 @@ export function ArticleWorkflow() {
                                 }}
                             >
                                 Cancel
-                            </Button>
-                            <Button
+                            </ResponsiveActionButton>
+                            <ResponsiveActionButton
                                 className="bg-red-600 hover:bg-red-700"
                                 onClick={() => handleReject(selectedArticle!.id, rejectionComment)}
                                 disabled={!rejectionComment.trim() || moderating}
                             >
                                 {moderating ? 'Rejecting...' : 'Reject Article'}
-                            </Button>
+                            </ResponsiveActionButton>
                         </div>
                     </div>
                 </div>

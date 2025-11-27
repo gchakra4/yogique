@@ -1,6 +1,6 @@
 import { CheckCircle, Clock, Eye, FileText, Filter, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Button } from '../../../../shared/components/ui/Button'
+import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../../shared/lib/supabase'
 
@@ -501,19 +501,19 @@ export function FormSubmissions() {
               )}
 
               <div className="flex space-x-3 pt-4">
-                <Button
+                <ResponsiveActionButton
                   onClick={() => handleStatusUpdate(selectedSubmission.id, 'in_progress')}
                   variant="outline"
                   size="sm"
                 >
                   Mark In Progress
-                </Button>
-                <Button
+                </ResponsiveActionButton>
+                <ResponsiveActionButton
                   onClick={() => handleStatusUpdate(selectedSubmission.id, 'completed')}
                   size="sm"
                 >
                   Mark Completed
-                </Button>
+                </ResponsiveActionButton>
               </div>
             </div>
           </div>
@@ -598,21 +598,21 @@ export function FormSubmissions() {
 
               <div className="flex space-x-3 pt-4">
                 {selectedContactMessage.status === 'new' && (
-                  <Button
+                  <ResponsiveActionButton
                     onClick={() => handleStatusUpdate(selectedContactMessage.id, 'in_progress')}
                     variant="outline"
                     size="sm"
                   >
                     Mark In Progress
-                  </Button>
+                  </ResponsiveActionButton>
                 )}
                 {selectedContactMessage.status !== 'completed' && (
-                  <Button
+                  <ResponsiveActionButton
                     onClick={() => handleStatusUpdate(selectedContactMessage.id, 'completed')}
                     size="sm"
                   >
                     Mark Completed
-                  </Button>
+                  </ResponsiveActionButton>
                 )}
               </div>
             </div>

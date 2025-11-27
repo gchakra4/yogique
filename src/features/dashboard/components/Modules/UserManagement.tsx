@@ -1,6 +1,6 @@
 import { Filter, Search, Shield, User, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Button } from '../../../../shared/components/ui/Button'
+import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../../shared/lib/supabase'
 import { useUserProfiles } from '../../../user-profile/hooks/useUserProfiles'
@@ -173,13 +173,13 @@ export function UserManagement() {
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
         <div className="text-red-600 font-semibold mb-2">Error Loading Users</div>
         <div className="text-red-500 text-sm mb-4">{error}</div>
-        <Button
+        <ResponsiveActionButton
           onClick={fetchUsers}
           variant="outline"
           className="border-red-300 text-red-600 hover:bg-red-50"
         >
           Try Again
-        </Button>
+        </ResponsiveActionButton>
       </div>
     )
   }
@@ -313,18 +313,18 @@ export function UserManagement() {
                       {formatDate(user.created_at)}
                     </td>
                     <td className="px-6 py-4">
-                      <Button
-                        onClick={() => {
-                          setSelectedUser(user)
-                          setShowRoleManagement(true)
-                        }}
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center"
-                      >
-                        <Shield className="w-4 h-4 mr-1" />
-                        Manage Roles
-                      </Button>
+                      <ResponsiveActionButton
+                          onClick={() => {
+                            setSelectedUser(user)
+                            setShowRoleManagement(true)
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center"
+                        >
+                          <Shield className="w-4 h-4 mr-1" />
+                          Manage Roles
+                        </ResponsiveActionButton>
                     </td>
                   </tr>
                 ))}
