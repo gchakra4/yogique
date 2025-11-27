@@ -1,5 +1,5 @@
 import { Filter, Search, Shield, User, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useLayoutEffect } from 'react'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
 import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { supabase } from '../../../../shared/lib/supabase'
@@ -26,6 +26,18 @@ export function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
   const [showRoleManagement, setShowRoleManagement] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState<boolean>(false)
+
+  // JS fallback for breakpoint detection to ensure mobile-only UI when CSS breakpoints aren't applied
+  useLayoutEffect(() => {
+    const check = () => {
+      const w = window?.innerWidth || document.documentElement.clientWidth || 0
+      setIsMobile(w < 640)
+    }
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     fetchUsers()
@@ -245,31 +257,71 @@ export function UserManagement() {
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Users Table: show compact card list on small screens, table on sm+ */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        {getFilteredUsers().length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
-            <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
+        {/* Mobile: stacked cards */}
+        <div className="p-2 sm:hidden divide-y divide-gray-200">
+          {getFilteredUsers().length === 0 ? (
+            <div className="text-center py-6">
+              <Users className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">No users found</h3>
+              <p className="text-gray-600 text-sm">Try adjusting your search or filter criteria.</p>
+            </div>
+          ) : (
+            getFilteredUsers().map((user) => (
+              <div key={user.user_id} className="py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                <div className="flex items-start gap-3 w-full">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">{user.full_name || 'No name'}</div>
+                    <div className="text-sm text-gray-500 truncate">{user.email}</div>
+                    {user.user_roles && user.user_roles.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {user.user_roles.map((role, idx) => (
+                          <span key={idx} className={`px-2 py-1 text-xs rounded-full ${getRoleColor(role)}`}>{role.replace('_', ' ')}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="w-full sm:w-auto mt-3 sm:mt-0 sm:ml-4 flex-shrink-0">
+                  <ResponsiveActionButton
+                    aria-label={`Manage roles for ${user.full_name || user.email}`}
+                    onClick={() => {
+                      setSelectedUser(user)
+                      setShowRoleManagement(true)
+                    }}
+                    size="sm"
+                    variant="outline"
+                    className={isMobile ? 'w-9 h-9 p-0 rounded-full flex items-center justify-center border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 text-emerald-600 dark:text-emerald-300' : 'sm:w-auto sm:h-auto sm:px-2 sm:py-1 sm:rounded-md text-emerald-600 dark:text-emerald-300'}
+                  >
+                    <Shield className="w-4 h-4" fill="currentColor" strokeWidth={0} />
+                    {!isMobile && <span className="ml-1 whitespace-nowrap">Manage</span>}
+                  </ResponsiveActionButton>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop / tablet: table view */}
+        <div className="hidden sm:block overflow-x-auto">
+          {getFilteredUsers().length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
+              <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
+            </div>
+          ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Roles
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Joined
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -281,13 +333,9 @@ export function UserManagement() {
                           <User className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.full_name || 'No name'}
-                          </div>
+                          <div className="text-sm font-medium text-gray-900">{user.full_name || 'No name'}</div>
                           <div className="text-sm text-gray-500">{user.email}</div>
-                          {user.phone && (
-                            <div className="text-xs text-gray-400">{user.phone}</div>
-                          )}
+                          {user.phone && <div className="text-xs text-gray-400">{user.phone}</div>}
                         </div>
                       </div>
                     </td>
@@ -295,34 +343,19 @@ export function UserManagement() {
                       <div className="flex flex-wrap gap-1">
                         {user.user_roles && user.user_roles.length > 0 ? (
                           user.user_roles.map((role, index) => (
-                            <span
-                              key={index}
-                              className={`px-2 py-1 text-xs rounded-full ${getRoleColor(role)}`}
-                            >
+                            <span key={index} className={`px-2 py-1 text-xs rounded-full ${getRoleColor(role)}`}>
                               {role.replace('_', ' ')}
                             </span>
                           ))
                         ) : (
-                          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
-                            user
-                          </span>
+                          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">user</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {formatDate(user.created_at)}
-                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(user.created_at)}</td>
                     <td className="px-6 py-4">
-                      <ResponsiveActionButton
-                        onClick={() => {
-                          setSelectedUser(user)
-                          setShowRoleManagement(true)
-                        }}
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center"
-                      >
-                        <Shield className="w-4 h-4 mr-1" />
+                      <ResponsiveActionButton onClick={() => { setSelectedUser(user); setShowRoleManagement(true); }} size="sm" variant="outline" className="flex items-center">
+                        <Shield className="w-4 h-4 mr-1 text-emerald-600 dark:text-emerald-300" fill="currentColor" strokeWidth={0} />
                         Manage Roles
                       </ResponsiveActionButton>
                     </td>
@@ -330,8 +363,8 @@ export function UserManagement() {
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Summary Stats */}
