@@ -1,5 +1,6 @@
 import { Calendar, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import ResponsiveActionButton from '../../../../../../shared/components/ui/ResponsiveActionButton'
 import { ManualClassSelection } from '../types'
 
 interface ManualCalendarSelectorProps {
@@ -8,10 +9,10 @@ interface ManualCalendarSelectorProps {
     totalClasses: number
 }
 
-export const ManualCalendarSelector = ({ 
-    selections, 
-    onSelectionsChange, 
-    totalClasses 
+export const ManualCalendarSelector = ({
+    selections,
+    onSelectionsChange,
+    totalClasses
 }: ManualCalendarSelectorProps) => {
     const [newSelection, setNewSelection] = useState<Partial<ManualClassSelection>>({
         date: '',
@@ -140,7 +141,7 @@ export const ManualCalendarSelector = ({
                                 />
                             </div>
                         </div>
-                        <button
+                        <ResponsiveActionButton
                             type="button"
                             onClick={addSelection}
                             disabled={!newSelection.date || !newSelection.start_time || !newSelection.end_time}
@@ -148,14 +149,14 @@ export const ManualCalendarSelector = ({
                         >
                             <Plus className="w-4 h-4 mr-1" />
                             Add
-                        </button>
+                        </ResponsiveActionButton>
                     </div>
                 </div>
             )}
 
             {/* Progress Indicator */}
             <div className="bg-gray-100 rounded-full h-2">
-                <div 
+                <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${Math.min((selections.length / totalClasses) * 100, 100)}%` }}
                 ></div>

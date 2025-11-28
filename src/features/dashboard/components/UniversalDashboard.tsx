@@ -127,7 +127,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
             <RoleBasedNavigation user={user} />
           </div>
           <div className="dashboard-content">
-            <div className="dashboard-tabs">
+            <div className="dashboard-tabs hidden sm:flex">
               {userModules.map(module => (
                 <button
                   key={module.id}

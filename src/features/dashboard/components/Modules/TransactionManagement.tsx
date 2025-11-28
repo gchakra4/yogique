@@ -14,6 +14,7 @@ import {
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { useEffect, useState } from 'react';
 import EmailService from '../../../../services/emailService';
+import { ResponsiveActionButton } from '../../../../shared/components/ui/ResponsiveActionButton';
 import { supabase } from '../../../../shared/lib/supabase';
 import { renderEmailTemplate } from '../../../../shared/utils/emailTemplates';
 import logoImage from '/images/Brand.png';
@@ -1135,18 +1136,15 @@ const TransactionManagement = () => {
               <p className="text-sm text-gray-600">Manage all financial transactions</p>
             </div>
             <div className="flex space-x-3">
-              <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center space-x-2">
+              <ResponsiveActionButton className="flex items-center space-x-2 bg-gray-100 text-gray-700 hover:bg-gray-200" onClick={() => { /* export handler */ }}>
                 <Download className="h-4 w-4" />
                 <span>Export</span>
-              </button>
+              </ResponsiveActionButton>
               {canEdit && (
-                <button
-                  onClick={() => setShowAddTransaction(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-                >
+                <ResponsiveActionButton onClick={() => setShowAddTransaction(true)} className="flex items-center space-x-2 bg-blue-600 text-white hover:bg-blue-700">
                   <Plus className="h-4 w-4" />
                   <span>Add Transaction</span>
-                </button>
+                </ResponsiveActionButton>
               )}
             </div>
           </div>

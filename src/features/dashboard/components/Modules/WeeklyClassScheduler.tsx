@@ -2,6 +2,7 @@ import { Calendar, Clock, Plus, Save, Trash2, Users, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '../../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
+import { ResponsiveActionButton } from '../../../../shared/components/ui/ResponsiveActionButton'
 import { supabase } from '../../../../shared/lib/supabase'
 
 interface ClassType {
@@ -521,13 +522,13 @@ export function WeeklyClassScheduler() {
           <Calendar className="w-6 h-6 mr-2" />
           Weekly Class Scheduler
         </h2>
-        <Button
+        <ResponsiveActionButton
           onClick={() => setShowAddForm(true)}
           className="flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add New Schedule
-        </Button>
+        </ResponsiveActionButton>
       </div>
 
       {/* Add/Edit Form Modal */}

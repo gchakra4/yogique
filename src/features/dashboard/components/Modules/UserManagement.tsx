@@ -1,5 +1,6 @@
 import { Filter, Search, Shield, User, Users } from 'lucide-react'
-import { useEffect, useState, useLayoutEffect } from 'react'
+import { useEffect, useState } from 'react'
+import IconCircleButton from '../../../../shared/components/ui/IconCircleButton'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
 import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
 import { supabase } from '../../../../shared/lib/supabase'
@@ -26,18 +27,11 @@ export function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
   const [showRoleManagement, setShowRoleManagement] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState<boolean>(false)
 
-  // JS fallback for breakpoint detection to ensure mobile-only UI when CSS breakpoints aren't applied
-  useLayoutEffect(() => {
-    const check = () => {
-      const w = window?.innerWidth || document.documentElement.clientWidth || 0
-      setIsMobile(w < 640)
-    }
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const [showAllUsers, setShowAllUsers] = useState<boolean>(false)
+  const VISIBLE_LIMIT = 6
+
+  // Note: layout & visibility are handled with Tailwind classes (sm:hidden / hidden sm:block)
 
   useEffect(() => {
     fetchUsers()
@@ -148,6 +142,10 @@ export function UserManagement() {
     })
   }
 
+  // derived lists for pagination/show-more
+  const filteredUsers = getFilteredUsers()
+  const visibleUsers = showAllUsers ? filteredUsers : filteredUsers.slice(0, VISIBLE_LIMIT)
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -220,6 +218,29 @@ export function UserManagement() {
         </h2>
       </div>
 
+      {/* Summary Stats placed near the top for quick visibility */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+          <div className="text-3xl font-bold text-blue-600 mb-2">{users.length}</div>
+          <div className="text-gray-600">Total Users</div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+          <div className="text-3xl font-bold text-green-600 mb-2">{users.filter(u => u.user_roles?.includes('instructor')).length}</div>
+          <div className="text-gray-600">Instructors</div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+          <div className="text-3xl font-bold text-purple-600 mb-2">{users.filter(u => u.user_roles?.includes('yoga_acharya')).length}</div>
+          <div className="text-gray-600">Yoga Acharyas</div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+          <div className="text-3xl font-bold text-red-600 mb-2">{users.filter(u => u.user_roles?.some(role => ['admin', 'super_admin'].includes(role))).length}</div>
+          <div className="text-gray-600">Admins</div>
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex flex-col md:flex-row gap-4">
@@ -261,14 +282,14 @@ export function UserManagement() {
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Mobile: stacked cards */}
         <div className="p-2 sm:hidden divide-y divide-gray-200">
-          {getFilteredUsers().length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <div className="text-center py-6">
               <Users className="w-12 h-12 text-gray-400 mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-gray-900 mb-1">No users found</h3>
               <p className="text-gray-600 text-sm">Try adjusting your search or filter criteria.</p>
             </div>
           ) : (
-            getFilteredUsers().map((user) => (
+            visibleUsers.map((user) => (
               <div key={user.user_id} className="py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between">
                 <div className="flex items-start gap-3 w-full">
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -287,116 +308,118 @@ export function UserManagement() {
                   </div>
                 </div>
                 <div className="w-full sm:w-auto mt-3 sm:mt-0 sm:ml-4 flex-shrink-0">
-                  <ResponsiveActionButton
-                    aria-label={`Manage roles for ${user.full_name || user.email}`}
-                    onClick={() => {
-                      setSelectedUser(user)
-                      setShowRoleManagement(true)
-                    }}
-                    size="sm"
-                    variant="outline"
-                    className={isMobile ? 'w-9 h-9 p-0 rounded-full flex items-center justify-center border border-gray-200 dark:border-gray-700 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 text-emerald-600 dark:text-emerald-300' : 'sm:w-auto sm:h-auto sm:px-2 sm:py-1 sm:rounded-md text-emerald-600 dark:text-emerald-300'}
-                  >
-                    <Shield className="w-4 h-4" fill="currentColor" strokeWidth={0} />
-                    {!isMobile && <span className="ml-1 whitespace-nowrap">Manage</span>}
-                  </ResponsiveActionButton>
+                  {/* Mobile: circle icon button; Desktop: keep the inline label via existing table actions */}
+                  <div className="sm:hidden">
+                    <IconCircleButton
+                      aria-label={`Manage roles for ${user.full_name || user.email}`}
+                      onClick={() => {
+                        setSelectedUser(user)
+                        setShowRoleManagement(true)
+                      }}
+                    >
+                      <Shield className="w-6 h-6" fill="currentColor" strokeWidth={0} />
+                    </IconCircleButton>
+                  </div>
+                  <div className="hidden sm:block">
+                    <ResponsiveActionButton onClick={() => { setSelectedUser(user); setShowRoleManagement(true); }} size="sm" variant="outline" className="flex items-center">
+                      <Shield className="w-4 h-4 mr-1 text-emerald-600 dark:text-emerald-300" fill="currentColor" strokeWidth={0} />
+                      Manage Roles
+                    </ResponsiveActionButton>
+                  </div>
                 </div>
               </div>
             ))
+          )}
+
+          {/* Show more / Show less for mobile */}
+          {filteredUsers.length > VISIBLE_LIMIT && (
+            <div className="py-3 text-center">
+              <button
+                className="text-sm text-emerald-600 hover:underline"
+                onClick={() => setShowAllUsers(prev => !prev)}
+              >
+                {showAllUsers ? 'Show less' : `Show more (${filteredUsers.length - VISIBLE_LIMIT} more)`}
+              </button>
+            </div>
           )}
         </div>
 
         {/* Desktop / tablet: table view */}
         <div className="hidden sm:block overflow-x-auto">
-          {getFilteredUsers().length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <div className="text-center py-12">
               <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
               <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {getFilteredUsers().map((user) => (
-                  <tr key={user.user_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                          <User className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{user.full_name || 'No name'}</div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
-                          {user.phone && <div className="text-xs text-gray-400">{user.phone}</div>}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {user.user_roles && user.user_roles.length > 0 ? (
-                          user.user_roles.map((role, index) => (
-                            <span key={index} className={`px-2 py-1 text-xs rounded-full ${getRoleColor(role)}`}>
-                              {role.replace('_', ' ')}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">user</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(user.created_at)}</td>
-                    <td className="px-6 py-4">
-                      <ResponsiveActionButton onClick={() => { setSelectedUser(user); setShowRoleManagement(true); }} size="sm" variant="outline" className="flex items-center">
-                        <Shield className="w-4 h-4 mr-1 text-emerald-600 dark:text-emerald-300" fill="currentColor" strokeWidth={0} />
-                        Manage Roles
-                      </ResponsiveActionButton>
-                    </td>
+            <>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {visibleUsers.map((user) => (
+                    <tr key={user.user_id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                            <User className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{user.full_name || 'No name'}</div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                            {user.phone && <div className="text-xs text-gray-400">{user.phone}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {user.user_roles && user.user_roles.length > 0 ? (
+                            user.user_roles.map((role, index) => (
+                              <span key={index} className={`px-2 py-1 text-xs rounded-full ${getRoleColor(role)}`}>
+                                {role.replace('_', ' ')}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">user</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{formatDate(user.created_at)}</td>
+                      <td className="px-6 py-4">
+                        <ResponsiveActionButton onClick={() => { setSelectedUser(user); setShowRoleManagement(true); }} size="sm" variant="outline" className="flex items-center">
+                          <Shield className="w-4 h-4 mr-1 text-emerald-600 dark:text-emerald-300" fill="currentColor" strokeWidth={0} />
+                          Manage Roles
+                        </ResponsiveActionButton>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Show more / Show less for desktop/tablet */}
+              {filteredUsers.length > VISIBLE_LIMIT && (
+                <div className="p-4 text-center">
+                  <button
+                    className="text-sm text-emerald-600 hover:underline"
+                    onClick={() => setShowAllUsers(prev => !prev)}
+                  >
+                    {showAllUsers ? 'Show less' : `Show more (${filteredUsers.length - VISIBLE_LIMIT} more)`}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-          <div className="text-3xl font-bold text-blue-600 mb-2">
-            {users.length}
-          </div>
-          <div className="text-gray-600">Total Users</div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-          <div className="text-3xl font-bold text-green-600 mb-2">
-            {users.filter(u => u.user_roles?.includes('instructor')).length}
-          </div>
-          <div className="text-gray-600">Instructors</div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-          <div className="text-3xl font-bold text-purple-600 mb-2">
-            {users.filter(u => u.user_roles?.includes('yoga_acharya')).length}
-          </div>
-          <div className="text-gray-600">Yoga Acharyas</div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-          <div className="text-3xl font-bold text-red-600 mb-2">
-            {users.filter(u => u.user_roles?.some(role => ['admin', 'super_admin'].includes(role))).length}
-          </div>
-          <div className="text-gray-600">Admins</div>
-        </div>
-      </div>
+      {/* Bottom summary removed to avoid duplication; top summary remains */}
     </div>
   )
 }

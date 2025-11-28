@@ -2,6 +2,7 @@ import { Archive, Award, Edit, Eye, Package, Plus, RotateCcw, Save, X } from 'lu
 import { useEffect, useState } from 'react'
 import { Button } from '../../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
+import { ResponsiveActionButton } from '../../../../shared/components/ui/ResponsiveActionButton'
 import { supabase } from '../../../../shared/lib/supabase'
 import { useAuth } from '../../../auth/contexts/AuthContext'; // Add this import
 
@@ -288,7 +289,7 @@ export function ClassTypeManager() {
 
   const parseDuration = (duration: string) => {
     if (!duration) return { number: 1, unit: 'weeks' }
-    
+
     const match = duration.match(/^(\d+)\s+(week|weeks|month|months|day|days)$/i)
     if (match) {
       return { number: parseInt(match[1]), unit: match[2].toLowerCase() }
@@ -306,7 +307,7 @@ export function ClassTypeManager() {
     if (!packageFormData.name.trim()) newErrors.name = 'Name is required'
     if (packageFormData.class_count < 1) newErrors.class_count = 'Class count must be at least 1'
     if (packageFormData.price < 0) newErrors.price = 'Price cannot be negative'
-    
+
     // Validation based on course type
     if (packageFormData.course_type === 'crash') {
       if (durationNumber < 1) {
@@ -559,7 +560,7 @@ export function ClassTypeManager() {
 
     setEditingPackage(pkg)
     setPackageFormData({ ...pkg })
-    
+
     // Parse duration if it exists
     if (pkg.duration) {
       const parsed = parseDuration(pkg.duration)
@@ -569,7 +570,7 @@ export function ClassTypeManager() {
       setDurationNumber(1)
       setDurationUnit('weeks')
     }
-    
+
     setShowForm(true)
   }
 
@@ -740,9 +741,9 @@ export function ClassTypeManager() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+    <div className="space-y-6 px-4 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h2 className="text-2xl font-bold text-gray-900 flex items-center min-w-0">
           <Award className="w-6 h-6 mr-2" />
           Class & Package Manager
           <span className="ml-2 text-sm bg-blue-100 text-blue-600 px-2 py-1 rounded">
@@ -751,11 +752,11 @@ export function ClassTypeManager() {
         </h2>
 
         {/* Main Tab Navigation */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 flex-wrap">
           <div className="flex bg-gray-200 rounded-lg p-1">
             <button
               onClick={() => setMainTab('classtypes')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mainTab === 'classtypes'
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-md text-sm font-medium transition-colors ${mainTab === 'classtypes'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
                 }`}
@@ -765,7 +766,7 @@ export function ClassTypeManager() {
             </button>
             <button
               onClick={() => setMainTab('packages')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mainTab === 'packages'
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-md text-sm font-medium transition-colors ${mainTab === 'packages'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
                 }`}
@@ -778,13 +779,13 @@ export function ClassTypeManager() {
       </div>
 
       {/* Secondary Tab Navigation */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div></div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 flex-wrap">
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setActiveTab('active')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'active'
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'active'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
                 }`}
@@ -793,7 +794,7 @@ export function ClassTypeManager() {
             </button>
             <button
               onClick={() => setActiveTab('archived')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'archived'
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'archived'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
                 }`}
@@ -804,13 +805,25 @@ export function ClassTypeManager() {
           </div>
 
           {activeTab === 'active' && (
-            <Button
-              onClick={() => setShowForm(true)}
-              className="flex items-center"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add {mainTab === 'classtypes' ? 'Class Type' : 'Package'}
-            </Button>
+            <>
+              <div className="flex items-center">
+                <ResponsiveActionButton
+                  onClick={() => setShowForm(true)}
+                  className="hidden sm:inline-flex items-center mt-0 ml-3"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add {mainTab === 'classtypes' ? 'Class Type' : 'Package'}
+                </ResponsiveActionButton>
+              </div>
+
+              {/* Mobile: centered Add button below tabs */}
+              <div className="sm:hidden w-full mt-3 flex justify-center">
+                <ResponsiveActionButton onClick={() => setShowForm(true)} className="inline-flex items-center px-3 py-2 text-sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add {mainTab === 'classtypes' ? 'Class Type' : 'Package'}
+                </ResponsiveActionButton>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -822,7 +835,7 @@ export function ClassTypeManager() {
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {mainTab === 'classtypes' 
+                  {mainTab === 'classtypes'
                     ? (editingClassType ? 'Edit Class Type' : 'Add New Class Type')
                     : (editingPackage ? 'Edit Package' : 'Add New Package')
                   }
@@ -846,282 +859,282 @@ export function ClassTypeManager() {
               {/* Class Type Form */}
               {mainTab === 'classtypes' && (
                 <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Class Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  placeholder="e.g., Hatha Yoga, Vinyasa Flow"
-                />
-                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description *
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  rows={3}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  placeholder="Describe the class style, benefits, and what students can expect"
-                />
-                {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Difficulty Level *
-                  </label>
-                  <select
-                    value={formData.difficulty_level}
-                    onChange={(e) => handleInputChange('difficulty_level', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {difficultyLevels.map(level => (
-                      <option key={level.value} value={level.value}>
-                        {level.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
-                    min="0"
-                    step="1"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.price ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    placeholder="800"
-                  />
-                  {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price}</p>}
-                  <p className="text-xs text-gray-500 mt-1">Weekly classes for ₹800/month</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Duration (minutes) *
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.duration_minutes}
-                    onChange={(e) => handleInputChange('duration_minutes', parseInt(e.target.value) || 0)}
-                    min="15"
-                    max="180"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.duration_minutes ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                  />
-                  {errors.duration_minutes && <p className="text-red-500 text-sm mt-1">{errors.duration_minutes}</p>}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Participants *
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.max_participants}
-                    onChange={(e) => handleInputChange('max_participants', parseInt(e.target.value) || 0)}
-                    min="1"
-                    max="50"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.max_participants ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                  />
-                  {errors.max_participants && <p className="text-red-500 text-sm mt-1">{errors.max_participants}</p>}
-                </div>
-
-                <div className="flex items-center pt-6">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={formData.is_active}
-                    onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
-                    Active Class Type
-                  </label>
-                </div>
-              </div>
-                </>
-              )}
-
-              {/* Package Form */}
-              {mainTab === 'packages' && (
-                <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Package Name *
+                      Class Name *
                     </label>
                     <input
                       type="text"
-                      value={packageFormData.name}
-                      onChange={(e) => handlePackageInputChange('name', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
-                      placeholder="e.g., Monthly Unlimited, 8-Class Package"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      placeholder="e.g., Hatha Yoga, Vinyasa Flow"
                     />
                     {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Package Type *
+                      Description *
                     </label>
-                    <select
-                      value={packageFormData.type}
-                      onChange={(e) => handlePackageInputChange('type', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {packageTypes.map(type => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={packageFormData.description || ''}
-                    onChange={(e) => handlePackageInputChange('description', e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Describe the package benefits and features"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Course Type *
-                    </label>
-                    <select
-                      value={packageFormData.course_type}
-                      onChange={(e) => handlePackageInputChange('course_type', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {courseTypes.map(type => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Class Count *
-                    </label>
-                    <input
-                      type="number"
-                      value={packageFormData.class_count}
-                      onChange={(e) => handlePackageInputChange('class_count', parseInt(e.target.value) || 0)}
-                      min="1"
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.class_count ? 'border-red-500' : 'border-gray-300'}`}
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      rows={3}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      placeholder="Describe the class style, benefits, and what students can expect"
                     />
-                    {errors.class_count && <p className="text-red-500 text-sm mt-1">{errors.class_count}</p>}
+                    {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price (₹) *
-                    </label>
-                    <input
-                      type="number"
-                      value={packageFormData.price}
-                      onChange={(e) => handlePackageInputChange('price', parseFloat(e.target.value) || 0)}
-                      min="0"
-                      step="1"
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.price ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                    {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price}</p>}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {packageFormData.course_type === 'regular' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Validity Days *
+                        Difficulty Level *
+                      </label>
+                      <select
+                        value={formData.difficulty_level}
+                        onChange={(e) => handleInputChange('difficulty_level', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {difficultyLevels.map(level => (
+                          <option key={level.value} value={level.value}>
+                            {level.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Price (₹) *
                       </label>
                       <input
                         type="number"
-                        value={packageFormData.validity_days}
-                        onChange={(e) => handlePackageInputChange('validity_days', parseInt(e.target.value) || 0)}
-                        min="1"
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.validity_days ? 'border-red-500' : 'border-gray-300'}`}
-                        placeholder="90"
+                        value={formData.price}
+                        onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+                        min="0"
+                        step="1"
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.price ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        placeholder="800"
                       />
-                      {errors.validity_days && <p className="text-red-500 text-sm mt-1">{errors.validity_days}</p>}
-                      <p className="text-xs text-gray-500 mt-1">Number of days package remains valid</p>
+                      {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price}</p>}
+                      <p className="text-xs text-gray-500 mt-1">Weekly classes for ₹800/month</p>
                     </div>
-                  )}
 
-                  {packageFormData.course_type === 'crash' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Duration *
+                        Duration (minutes) *
                       </label>
-                      <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={formData.duration_minutes}
+                        onChange={(e) => handleInputChange('duration_minutes', parseInt(e.target.value) || 0)}
+                        min="15"
+                        max="180"
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.duration_minutes ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                      />
+                      {errors.duration_minutes && <p className="text-red-500 text-sm mt-1">{errors.duration_minutes}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Max Participants *
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.max_participants}
+                        onChange={(e) => handleInputChange('max_participants', parseInt(e.target.value) || 0)}
+                        min="1"
+                        max="50"
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.max_participants ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                      />
+                      {errors.max_participants && <p className="text-red-500 text-sm mt-1">{errors.max_participants}</p>}
+                    </div>
+
+                    <div className="flex items-center pt-6">
+                      <input
+                        type="checkbox"
+                        id="is_active"
+                        checked={formData.is_active}
+                        onChange={(e) => handleInputChange('is_active', e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+                        Active Class Type
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Package Form */}
+              {mainTab === 'packages' && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Package Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={packageFormData.name}
+                        onChange={(e) => handlePackageInputChange('name', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                        placeholder="e.g., Monthly Unlimited, 8-Class Package"
+                      />
+                      {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Package Type *
+                      </label>
+                      <select
+                        value={packageFormData.type}
+                        onChange={(e) => handlePackageInputChange('type', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {packageTypes.map(type => (
+                          <option key={type.value} value={type.value}>
+                            {type.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={packageFormData.description || ''}
+                      onChange={(e) => handlePackageInputChange('description', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Describe the package benefits and features"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Course Type *
+                      </label>
+                      <select
+                        value={packageFormData.course_type}
+                        onChange={(e) => handlePackageInputChange('course_type', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {courseTypes.map(type => (
+                          <option key={type.value} value={type.value}>
+                            {type.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Class Count *
+                      </label>
+                      <input
+                        type="number"
+                        value={packageFormData.class_count}
+                        onChange={(e) => handlePackageInputChange('class_count', parseInt(e.target.value) || 0)}
+                        min="1"
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.class_count ? 'border-red-500' : 'border-gray-300'}`}
+                      />
+                      {errors.class_count && <p className="text-red-500 text-sm mt-1">{errors.class_count}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Price (₹) *
+                      </label>
+                      <input
+                        type="number"
+                        value={packageFormData.price}
+                        onChange={(e) => handlePackageInputChange('price', parseFloat(e.target.value) || 0)}
+                        min="0"
+                        step="1"
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.price ? 'border-red-500' : 'border-gray-300'}`}
+                      />
+                      {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {packageFormData.course_type === 'regular' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Validity Days *
+                        </label>
                         <input
                           type="number"
-                          value={durationNumber}
-                          onChange={(e) => setDurationNumber(parseInt(e.target.value) || 1)}
+                          value={packageFormData.validity_days}
+                          onChange={(e) => handlePackageInputChange('validity_days', parseInt(e.target.value) || 0)}
                           min="1"
-                          className={`w-1/2 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.duration ? 'border-red-500' : 'border-gray-300'}`}
-                          placeholder="1"
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.validity_days ? 'border-red-500' : 'border-gray-300'}`}
+                          placeholder="90"
                         />
-                        <select
-                          value={durationUnit}
-                          onChange={(e) => setDurationUnit(e.target.value)}
-                          className={`w-1/2 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.duration ? 'border-red-500' : 'border-gray-300'}`}
-                        >
-                          {durationUnits.map(unit => (
-                            <option key={unit.value} value={unit.value}>
-                              {unit.label}
-                            </option>
-                          ))}
-                        </select>
+                        {errors.validity_days && <p className="text-red-500 text-sm mt-1">{errors.validity_days}</p>}
+                        <p className="text-xs text-gray-500 mt-1">Number of days package remains valid</p>
                       </div>
-                      {errors.duration && <p className="text-red-500 text-sm mt-1">{errors.duration}</p>}
-                      <p className="text-xs text-gray-500 mt-1">Select duration number and time unit</p>
-                    </div>
-                  )}
+                    )}
 
-                  <div className="flex items-center pt-6">
-                    <input
-                      type="checkbox"
-                      id="package_is_active"
-                      checked={packageFormData.is_active}
-                      onChange={(e) => handlePackageInputChange('is_active', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="package_is_active" className="ml-2 block text-sm text-gray-900">
-                      Active Package
-                    </label>
+                    {packageFormData.course_type === 'crash' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Duration *
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={durationNumber}
+                            onChange={(e) => setDurationNumber(parseInt(e.target.value) || 1)}
+                            min="1"
+                            className={`w-1/2 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.duration ? 'border-red-500' : 'border-gray-300'}`}
+                            placeholder="1"
+                          />
+                          <select
+                            value={durationUnit}
+                            onChange={(e) => setDurationUnit(e.target.value)}
+                            className={`w-1/2 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.duration ? 'border-red-500' : 'border-gray-300'}`}
+                          >
+                            {durationUnits.map(unit => (
+                              <option key={unit.value} value={unit.value}>
+                                {unit.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {errors.duration && <p className="text-red-500 text-sm mt-1">{errors.duration}</p>}
+                        <p className="text-xs text-gray-500 mt-1">Select duration number and time unit</p>
+                      </div>
+                    )}
+
+                    <div className="flex items-center pt-6">
+                      <input
+                        type="checkbox"
+                        id="package_is_active"
+                        checked={packageFormData.is_active}
+                        onChange={(e) => handlePackageInputChange('is_active', e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="package_is_active" className="ml-2 block text-sm text-gray-900">
+                        Active Package
+                      </label>
+                    </div>
                   </div>
-                </div>
                 </>
               )}
 
@@ -1139,8 +1152,8 @@ export function ClassTypeManager() {
                   className="flex items-center"
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  {saving ? 'Saving...' : 
-                    mainTab === 'classtypes' 
+                  {saving ? 'Saving...' :
+                    mainTab === 'classtypes'
                       ? (editingClassType ? 'Update' : 'Create')
                       : (editingPackage ? 'Update' : 'Create')
                   }
@@ -1163,18 +1176,25 @@ export function ClassTypeManager() {
               <p className="text-gray-600 mb-4">
                 Create your first {mainTab === 'classtypes' ? 'class type' : 'package'} to get started.
               </p>
-              <Button onClick={() => setShowForm(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add {mainTab === 'classtypes' ? 'Class Type' : 'Package'}
-              </Button>
+              <div className="flex items-center justify-center">
+                <ResponsiveActionButton onClick={() => setShowForm(true)} className="hidden sm:inline-flex mt-4">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add {mainTab === 'classtypes' ? 'Class Type' : 'Package'}
+                </ResponsiveActionButton>
+
+                <ResponsiveActionButton onClick={() => setShowForm(true)} className="sm:hidden mt-4 inline-flex items-center px-3 py-2 text-sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add
+                </ResponsiveActionButton>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 sm:p-6">
               {/* Class Types Grid */}
               {mainTab === 'classtypes' && classTypes.map((classType) => (
                 <div
                   key={classType.id}
-                  className={`border rounded-lg p-6 hover:shadow-md transition-shadow ${classType.is_active ? 'border-gray-200' : 'border-gray-300 bg-gray-50'
+                  className={`border rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow ${classType.is_active ? 'border-gray-200' : 'border-gray-300 bg-gray-50'
                     }`}
                 >
                   <div className="flex justify-between items-start mb-4">
@@ -1245,7 +1265,7 @@ export function ClassTypeManager() {
               {mainTab === 'packages' && packages.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className={`border rounded-lg p-6 hover:shadow-md transition-shadow ${pkg.is_active ? 'border-gray-200' : 'border-gray-300 bg-gray-50'}`}
+                  className={`border rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow ${pkg.is_active ? 'border-gray-200' : 'border-gray-300 bg-gray-50'}`}
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -1343,12 +1363,12 @@ export function ClassTypeManager() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 sm:p-6">
               {/* Archived Class Types Grid */}
               {mainTab === 'classtypes' && archivedClassTypes.map((classType) => (
                 <div
                   key={classType.id}
-                  className="border border-orange-200 bg-orange-50 rounded-lg p-6 hover:shadow-md transition-shadow"
+                  className="border border-orange-200 bg-orange-50 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -1418,7 +1438,7 @@ export function ClassTypeManager() {
               {mainTab === 'packages' && archivedPackages.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className="border border-orange-200 bg-orange-50 rounded-lg p-6 hover:shadow-md transition-shadow"
+                  className="border border-orange-200 bg-orange-50 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
