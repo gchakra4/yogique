@@ -1,6 +1,7 @@
 import { BarChart3, Calendar, CheckSquare, Filter, List, Plus, RefreshCw, Search, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { ResponsiveActionButton } from '../../../../../shared/components/ui/ResponsiveActionButton'
 import { supabase } from '../../../../../shared/lib/supabase'
 import {
     AdvancedFilters,
@@ -76,6 +77,77 @@ export function ClassAssignmentManager() {
     // Selection state for multi-delete
     const [selectedAssignments, setSelectedAssignments] = useState<Set<string>>(new Set())
     const [isSelectMode, setIsSelectMode] = useState(false)
+
+    // Tabs scroll handler (for small screens)
+    const tabsScrollRef = useRef<HTMLDivElement | null>(null)
+
+    const updateTabsIndicator = () => {
+        // keep a no-op updater so we can attach it to scroll/resize events
+        // in the future we may show a visual indicator again
+        const el = tabsScrollRef.current
+        if (!el) return
+        // noop for now
+        void el.scrollLeft
+    }
+
+    useEffect(() => {
+        updateTabsIndicator()
+        const el = tabsScrollRef.current
+        if (!el) return
+        const onScroll = () => updateTabsIndicator()
+        el.addEventListener('scroll', onScroll)
+        window.addEventListener('resize', updateTabsIndicator)
+        return () => {
+            el.removeEventListener('scroll', onScroll)
+            window.removeEventListener('resize', updateTabsIndicator)
+        }
+    }, [])
+
+    // For touch devices: hide native scrollbar and emulate horizontal dragging so
+    // the scroll thumb never appears while keeping touch-scrolling functional.
+    useEffect(() => {
+        const el = tabsScrollRef.current
+        if (!el) return
+
+        const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+        if (!isTouch) return
+
+        const prevOverflow = el.style.overflow
+        // Hide native scrollbar visually
+        el.style.overflow = 'hidden'
+
+        let startX = 0
+        let startScroll = 0
+        let dragging = false
+
+        const onTouchStart = (ev: TouchEvent) => {
+            if (!ev.touches || ev.touches.length === 0) return
+            startX = ev.touches[0].clientX
+            startScroll = el.scrollLeft
+            dragging = true
+        }
+
+        const onTouchMove = (ev: TouchEvent) => {
+            if (!dragging || !ev.touches || ev.touches.length === 0) return
+            const dx = ev.touches[0].clientX - startX
+            el.scrollLeft = Math.max(0, startScroll - dx)
+        }
+
+        const onTouchEnd = () => {
+            dragging = false
+        }
+
+        el.addEventListener('touchstart', onTouchStart, { passive: true })
+        el.addEventListener('touchmove', onTouchMove, { passive: true })
+        el.addEventListener('touchend', onTouchEnd)
+
+        return () => {
+            el.style.overflow = prevOverflow
+            el.removeEventListener('touchstart', onTouchStart)
+            el.removeEventListener('touchmove', onTouchMove)
+            el.removeEventListener('touchend', onTouchEnd)
+        }
+    }, [])
 
     // Class details popup state
     const [selectedClassDetails, setSelectedClassDetails] = useState<ClassAssignment | null>(null)
@@ -613,22 +685,22 @@ export function ClassAssignmentManager() {
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto overflow-x-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
+                <div className="flex-1 min-w-0">
                     <h1 className="text-2xl font-bold text-gray-900">Class Assignment Manager</h1>
                     <p className="text-gray-600">Manage class assignments, schedules, and payments</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                    <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={loadingStates.fetchingData}>
+                <div className="w-full sm:w-auto flex items-center justify-center sm:justify-end space-x-3 mt-2 sm:mt-0">
+                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-blue-600 text-white hover:bg-blue-700 shadow-none transform-none" onClick={() => fetchData()} disabled={loadingStates.fetchingData}>
                         <RefreshCw className={`w-4 h-4 mr-2 ${loadingStates.fetchingData ? 'animate-spin' : ''}`} />
                         Refresh
-                    </Button>
-                    <Button onClick={() => setShowAssignForm(true)}>
+                    </ResponsiveActionButton>
+                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-emerald-500 text-white hover:bg-emerald-600 shadow-none transform-none" onClick={() => setShowAssignForm(true)}>
                         <Plus className="w-4 h-4 mr-2" />
                         New Assignment
-                    </Button>
+                    </ResponsiveActionButton>
                 </div>
             </div>
 
@@ -662,63 +734,77 @@ export function ClassAssignmentManager() {
             </div>
 
             {/* Main Content */}
-            <div className="bg-white rounded-lg shadow">
+            <div className="sm:bg-white sm:rounded-lg sm:shadow">
                 {/* View Toggle */}
-                <div className="border-b border-gray-200 px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex space-x-1">
-                            <button
-                                onClick={() => setActiveView('list')}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${activeView === 'list'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                <List className="w-4 h-4 mr-1" />
-                                List
-                            </button>
-                            <button
-                                onClick={() => setActiveView('calendar')}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${activeView === 'calendar'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                <Calendar className="w-4 h-4 mr-1" />
-                                Calendar
-                            </button>
-                            <button
-                                onClick={() => setActiveView('analytics')}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${activeView === 'analytics'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                <BarChart3 className="w-4 h-4 mr-1" />
-                                Analytics
-                            </button>
+                <div className="relative border-b border-gray-200 px-4 sm:px-6 py-4">
+                    {/* Inject small component-scoped CSS to hide webkit scrollbars for this row */}
+                    <style>{`.class-assignment-hide-scrollbar::-webkit-scrollbar{display:none}`}</style>
+                    <div className="flex items-center justify-between gap-3">
+                        <div
+                            className="overflow-x-auto class-assignment-hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0"
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                            ref={tabsScrollRef}
+                            onScroll={updateTabsIndicator}
+                        >
+                            <div className="flex items-center space-x-2 whitespace-nowrap">
+                                <button
+                                    onClick={() => setActiveView('list')}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center whitespace-nowrap ${activeView === 'list'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <List className="w-4 h-4 mr-1" />
+                                    List
+                                </button>
+                                <button
+                                    onClick={() => setActiveView('calendar')}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center whitespace-nowrap ${activeView === 'calendar'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <Calendar className="w-4 h-4 mr-1" />
+                                    Calendar
+                                </button>
+                                <button
+                                    onClick={() => setActiveView('analytics')}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center whitespace-nowrap ${activeView === 'analytics'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <BarChart3 className="w-4 h-4 mr-1" />
+                                    Analytics
+                                </button>
+                            </div>
                         </div>
 
+                        {/* No custom scroll indicator on small screens; native scrolling remains functional but scrollbar hidden */}
+
                         {activeView === 'list' && (
-                            <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0 flex items-center space-x-2">
                                 {filteredAssignments.length > 0 && (
-                                    <span className="text-sm text-gray-500">
+                                    <span className="hidden sm:inline text-sm text-gray-500">
                                         {filteredAssignments.length} assignment{filteredAssignments.length !== 1 ? 's' : ''}
                                     </span>
                                 )}
-                                <Button variant="outline" size="sm" onClick={toggleSelectMode}>
+                                <button
+                                    onClick={toggleSelectMode}
+                                    className={`px-2 py-0.5 text-xs sm:px-3 sm:py-1 sm:text-sm font-medium rounded-full flex items-center whitespace-nowrap border ${isSelectMode ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                                >
                                     {isSelectMode ? (
                                         <>
-                                            <X className="w-4 h-4 mr-1" />
-                                            Cancel Select
+                                            <X className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
+                                            <span className="hidden sm:inline">Cancel</span>
                                         </>
                                     ) : (
                                         <>
-                                            <CheckSquare className="w-4 h-4 mr-1" />
-                                            Select Multiple
+                                            <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" />
+                                            <span className="hidden sm:inline">Select</span>
                                         </>
                                     )}
-                                </Button>
+                                </button>
                             </div>
                         )}
                     </div>
@@ -752,7 +838,7 @@ export function ClassAssignmentManager() {
                 </div>
 
                 {/* Content Area */}
-                <div className={activeView === 'analytics' ? '' : 'p-6'}>
+                <div className={activeView === 'analytics' ? '' : 'px-0 sm:px-6 py-6'}>
                     {activeView === 'list' && (
                         <AssignmentListView
                             loading={loading}

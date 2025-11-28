@@ -1,6 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { BarChart3, Calendar, CheckSquare, Filter, List, Plus, RefreshCw, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ResponsiveActionButton } from '../../../../../shared/components/ui/ResponsiveActionButton';
 import { supabase } from '../../../../../shared/lib/supabase';
 import { AdvancedFilters, AnalyticsView, AssignmentForm, AssignmentListView, Button, CalendarView, ClassDetailsPopup, EditAssignmentModal } from './components';
 import { useClassAssignmentData, useFormHandler } from './hooks';
@@ -32,6 +33,71 @@ export function ClassAssignmentManager() {
     // Selection state for multi-delete
     const [selectedAssignments, setSelectedAssignments] = useState(new Set());
     const [isSelectMode, setIsSelectMode] = useState(false);
+    // Tabs scroll handler (for small screens)
+    const tabsScrollRef = useRef(null);
+    const updateTabsIndicator = () => {
+        // keep a no-op updater so we can attach it to scroll/resize events
+        // in the future we may show a visual indicator again
+        const el = tabsScrollRef.current;
+        if (!el)
+            return;
+        // noop for now
+        void el.scrollLeft;
+    };
+    useEffect(() => {
+        updateTabsIndicator();
+        const el = tabsScrollRef.current;
+        if (!el)
+            return;
+        const onScroll = () => updateTabsIndicator();
+        el.addEventListener('scroll', onScroll);
+        window.addEventListener('resize', updateTabsIndicator);
+        return () => {
+            el.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', updateTabsIndicator);
+        };
+    }, []);
+    // For touch devices: hide native scrollbar and emulate horizontal dragging so
+    // the scroll thumb never appears while keeping touch-scrolling functional.
+    useEffect(() => {
+        const el = tabsScrollRef.current;
+        if (!el)
+            return;
+        const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+        if (!isTouch)
+            return;
+        const prevOverflow = el.style.overflow;
+        // Hide native scrollbar visually
+        el.style.overflow = 'hidden';
+        let startX = 0;
+        let startScroll = 0;
+        let dragging = false;
+        const onTouchStart = (ev) => {
+            if (!ev.touches || ev.touches.length === 0)
+                return;
+            startX = ev.touches[0].clientX;
+            startScroll = el.scrollLeft;
+            dragging = true;
+        };
+        const onTouchMove = (ev) => {
+            if (!dragging || !ev.touches || ev.touches.length === 0)
+                return;
+            const dx = ev.touches[0].clientX - startX;
+            el.scrollLeft = Math.max(0, startScroll - dx);
+        };
+        const onTouchEnd = () => {
+            dragging = false;
+        };
+        el.addEventListener('touchstart', onTouchStart, { passive: true });
+        el.addEventListener('touchmove', onTouchMove, { passive: true });
+        el.addEventListener('touchend', onTouchEnd);
+        return () => {
+            el.style.overflow = prevOverflow;
+            el.removeEventListener('touchstart', onTouchStart);
+            el.removeEventListener('touchmove', onTouchMove);
+            el.removeEventListener('touchend', onTouchEnd);
+        };
+    }, []);
     // Class details popup state
     const [selectedClassDetails, setSelectedClassDetails] = useState(null);
     const [showClassDetailsPopup, setShowClassDetailsPopup] = useState(false);
@@ -511,14 +577,14 @@ export function ClassAssignmentManager() {
         });
         setSearchTerm('');
     };
-    return (_jsxs("div", { className: "p-6 max-w-7xl mx-auto", children: [_jsxs("div", { className: "flex items-center justify-between mb-6", children: [_jsxs("div", { children: [_jsx("h1", { className: "text-2xl font-bold text-gray-900", children: "Class Assignment Manager" }), _jsx("p", { className: "text-gray-600", children: "Manage class assignments, schedules, and payments" })] }), _jsxs("div", { className: "flex items-center space-x-3", children: [_jsxs(Button, { variant: "outline", size: "sm", onClick: () => fetchData(), disabled: loadingStates.fetchingData, children: [_jsx(RefreshCw, { className: `w-4 h-4 mr-2 ${loadingStates.fetchingData ? 'animate-spin' : ''}` }), "Refresh"] }), _jsxs(Button, { onClick: () => setShowAssignForm(true), children: [_jsx(Plus, { className: "w-4 h-4 mr-2" }), "New Assignment"] })] })] }), _jsx("div", { className: "mb-6 space-y-4", children: _jsxs("div", { className: "flex items-center space-x-4", children: [_jsxs("div", { className: "flex-1 relative", children: [_jsx(Search, { className: "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" }), _jsx("input", { type: "text", placeholder: "Search assignments...", value: searchTerm, onChange: (e) => setSearchTerm(e.target.value), className: "w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" })] }), _jsxs(Button, { variant: "outline", onClick: () => setShowFilters(true), children: [_jsx(Filter, { className: "w-4 h-4 mr-2" }), "Filters", Object.values(filters).some(filter => Array.isArray(filter) ? filter.length > 0 :
+    return (_jsxs("div", { className: "px-4 sm:px-6 py-6 max-w-7xl mx-auto overflow-x-hidden", children: [_jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3", children: [_jsxs("div", { className: "flex-1 min-w-0", children: [_jsx("h1", { className: "text-2xl font-bold text-gray-900", children: "Class Assignment Manager" }), _jsx("p", { className: "text-gray-600", children: "Manage class assignments, schedules, and payments" })] }), _jsxs("div", { className: "w-full sm:w-auto flex items-center justify-center sm:justify-end space-x-3 mt-2 sm:mt-0", children: [_jsxs(ResponsiveActionButton, { className: "inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-blue-600 text-white hover:bg-blue-700 shadow-none transform-none", onClick: () => fetchData(), disabled: loadingStates.fetchingData, children: [_jsx(RefreshCw, { className: `w-4 h-4 mr-2 ${loadingStates.fetchingData ? 'animate-spin' : ''}` }), "Refresh"] }), _jsxs(ResponsiveActionButton, { className: "inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-emerald-500 text-white hover:bg-emerald-600 shadow-none transform-none", onClick: () => setShowAssignForm(true), children: [_jsx(Plus, { className: "w-4 h-4 mr-2" }), "New Assignment"] })] })] }), _jsx("div", { className: "mb-6 space-y-4", children: _jsxs("div", { className: "flex items-center space-x-4", children: [_jsxs("div", { className: "flex-1 relative", children: [_jsx(Search, { className: "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" }), _jsx("input", { type: "text", placeholder: "Search assignments...", value: searchTerm, onChange: (e) => setSearchTerm(e.target.value), className: "w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" })] }), _jsxs(Button, { variant: "outline", onClick: () => setShowFilters(true), children: [_jsx(Filter, { className: "w-4 h-4 mr-2" }), "Filters", Object.values(filters).some(filter => Array.isArray(filter) ? filter.length > 0 :
                                     typeof filter === 'object' ? Object.values(filter).some(v => v) :
-                                        filter) && (_jsx("span", { className: "ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full", children: "Active" }))] })] }) }), _jsxs("div", { className: "bg-white rounded-lg shadow", children: [_jsxs("div", { className: "border-b border-gray-200 px-6 py-4", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { className: "flex space-x-1", children: [_jsxs("button", { onClick: () => setActiveView('list'), className: `px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${activeView === 'list'
-                                                    ? 'bg-blue-100 text-blue-700'
-                                                    : 'text-gray-500 hover:text-gray-700'}`, children: [_jsx(List, { className: "w-4 h-4 mr-1" }), "List"] }), _jsxs("button", { onClick: () => setActiveView('calendar'), className: `px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${activeView === 'calendar'
-                                                    ? 'bg-blue-100 text-blue-700'
-                                                    : 'text-gray-500 hover:text-gray-700'}`, children: [_jsx(Calendar, { className: "w-4 h-4 mr-1" }), "Calendar"] }), _jsxs("button", { onClick: () => setActiveView('analytics'), className: `px-3 py-1.5 text-sm font-medium rounded-md flex items-center ${activeView === 'analytics'
-                                                    ? 'bg-blue-100 text-blue-700'
-                                                    : 'text-gray-500 hover:text-gray-700'}`, children: [_jsx(BarChart3, { className: "w-4 h-4 mr-1" }), "Analytics"] })] }), activeView === 'list' && (_jsxs("div", { className: "flex items-center space-x-3", children: [filteredAssignments.length > 0 && (_jsxs("span", { className: "text-sm text-gray-500", children: [filteredAssignments.length, " assignment", filteredAssignments.length !== 1 ? 's' : ''] })), _jsx(Button, { variant: "outline", size: "sm", onClick: toggleSelectMode, children: isSelectMode ? (_jsxs(_Fragment, { children: [_jsx(X, { className: "w-4 h-4 mr-1" }), "Cancel Select"] })) : (_jsxs(_Fragment, { children: [_jsx(CheckSquare, { className: "w-4 h-4 mr-1" }), "Select Multiple"] })) })] }))] }), isSelectMode && selectedAssignments.size > 0 && (_jsx("div", { className: "mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("span", { className: "text-sm font-medium text-blue-900", children: [selectedAssignments.size, " assignment", selectedAssignments.size !== 1 ? 's' : '', " selected"] }), _jsxs("div", { className: "flex items-center space-x-2", children: [_jsx(Button, { variant: "outline", size: "sm", onClick: clearAllSelections, children: "Clear" }), _jsx(Button, { variant: "outline", size: "sm", onClick: selectAllFilteredAssignments, children: "Select All" }), _jsx(Button, { variant: "outline", size: "sm", onClick: deleteBulkAssignments, className: "text-red-600 hover:text-red-800", children: "Delete Selected" })] })] }) }))] }), _jsxs("div", { className: activeView === 'analytics' ? '' : 'p-6', children: [activeView === 'list' && (_jsx(AssignmentListView, { loading: loading, groupedAssignments: groupedAssignments, isSelectMode: isSelectMode, selectedAssignments: selectedAssignments, onToggleSelection: toggleAssignmentSelection, onDeleteAssignment: deleteAssignment, onOpenClassDetails: openClassDetails })), activeView === 'calendar' && (_jsx(CalendarView, { assignments: filteredAssignments, isSelectMode: isSelectMode, selectedAssignments: selectedAssignments, onToggleSelection: toggleAssignmentSelection, onDeleteAssignment: deleteAssignment, onOpenClassDetails: openClassDetails })), activeView === 'analytics' && (_jsx(AnalyticsView, { assignments: assignments, instructors: instructors }))] })] }), _jsx(AssignmentForm, { isVisible: showAssignForm, formData: formData, errors: errors, conflictWarning: conflictWarning, classTypes: classTypes, packages: packages, instructors: instructors, scheduleTemplates: scheduleTemplates, bookings: bookings, saving: saving, onClose: () => setShowAssignForm(false), onSubmit: createAssignment, onInputChange: handleInputChange, onTimeChange: handleTimeChange, onDurationChange: handleDurationChange }), _jsx(AdvancedFilters, { isVisible: showFilters, filters: filters, classTypes: classTypes, instructors: instructors, packages: packages, onFiltersChange: setFilters, onClose: () => setShowFilters(false), onClearAll: clearAllFilters }), _jsx(ClassDetailsPopup, { assignment: selectedClassDetails, isVisible: showClassDetailsPopup, onClose: closeClassDetails, onEdit: openEditAssignment }), _jsx(EditAssignmentModal, { assignment: selectedEditAssignment, isVisible: showEditAssignmentModal, bookings: bookings, userProfiles: userProfiles, onClose: closeEditAssignment, onSave: saveAssignment, onRefresh: fetchData })] }));
+                                        filter) && (_jsx("span", { className: "ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full", children: "Active" }))] })] }) }), _jsxs("div", { className: "sm:bg-white sm:rounded-lg sm:shadow", children: [_jsxs("div", { className: "relative border-b border-gray-200 px-4 sm:px-6 py-4", children: [_jsx("style", { children: `.class-assignment-hide-scrollbar::-webkit-scrollbar{display:none}` }), _jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsx("div", { className: "overflow-x-auto class-assignment-hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0", style: { scrollbarWidth: 'none', msOverflowStyle: 'none' }, ref: tabsScrollRef, onScroll: updateTabsIndicator, children: _jsxs("div", { className: "flex items-center space-x-2 whitespace-nowrap", children: [_jsxs("button", { onClick: () => setActiveView('list'), className: `px-3 py-1.5 text-sm font-medium rounded-md flex items-center whitespace-nowrap ${activeView === 'list'
+                                                        ? 'bg-blue-100 text-blue-700'
+                                                        : 'text-gray-500 hover:text-gray-700'}`, children: [_jsx(List, { className: "w-4 h-4 mr-1" }), "List"] }), _jsxs("button", { onClick: () => setActiveView('calendar'), className: `px-3 py-1.5 text-sm font-medium rounded-md flex items-center whitespace-nowrap ${activeView === 'calendar'
+                                                        ? 'bg-blue-100 text-blue-700'
+                                                        : 'text-gray-500 hover:text-gray-700'}`, children: [_jsx(Calendar, { className: "w-4 h-4 mr-1" }), "Calendar"] }), _jsxs("button", { onClick: () => setActiveView('analytics'), className: `px-3 py-1.5 text-sm font-medium rounded-md flex items-center whitespace-nowrap ${activeView === 'analytics'
+                                                        ? 'bg-blue-100 text-blue-700'
+                                                        : 'text-gray-500 hover:text-gray-700'}`, children: [_jsx(BarChart3, { className: "w-4 h-4 mr-1" }), "Analytics"] })] }) }), activeView === 'list' && (_jsxs("div", { className: "flex-shrink-0 flex items-center space-x-2", children: [filteredAssignments.length > 0 && (_jsxs("span", { className: "hidden sm:inline text-sm text-gray-500", children: [filteredAssignments.length, " assignment", filteredAssignments.length !== 1 ? 's' : ''] })), _jsx("button", { onClick: toggleSelectMode, className: `px-2 py-0.5 text-xs sm:px-3 sm:py-1 sm:text-sm font-medium rounded-full flex items-center whitespace-nowrap border ${isSelectMode ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`, children: isSelectMode ? (_jsxs(_Fragment, { children: [_jsx(X, { className: "w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" }), _jsx("span", { className: "hidden sm:inline", children: "Cancel" })] })) : (_jsxs(_Fragment, { children: [_jsx(CheckSquare, { className: "w-3 h-3 sm:w-4 sm:h-4 mr-0 sm:mr-1" }), _jsx("span", { className: "hidden sm:inline", children: "Select" })] })) })] }))] }), isSelectMode && selectedAssignments.size > 0 && (_jsx("div", { className: "mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("span", { className: "text-sm font-medium text-blue-900", children: [selectedAssignments.size, " assignment", selectedAssignments.size !== 1 ? 's' : '', " selected"] }), _jsxs("div", { className: "flex items-center space-x-2", children: [_jsx(Button, { variant: "outline", size: "sm", onClick: clearAllSelections, children: "Clear" }), _jsx(Button, { variant: "outline", size: "sm", onClick: selectAllFilteredAssignments, children: "Select All" }), _jsx(Button, { variant: "outline", size: "sm", onClick: deleteBulkAssignments, className: "text-red-600 hover:text-red-800", children: "Delete Selected" })] })] }) }))] }), _jsxs("div", { className: activeView === 'analytics' ? '' : 'px-0 sm:px-6 py-6', children: [activeView === 'list' && (_jsx(AssignmentListView, { loading: loading, groupedAssignments: groupedAssignments, isSelectMode: isSelectMode, selectedAssignments: selectedAssignments, onToggleSelection: toggleAssignmentSelection, onDeleteAssignment: deleteAssignment, onOpenClassDetails: openClassDetails })), activeView === 'calendar' && (_jsx(CalendarView, { assignments: filteredAssignments, isSelectMode: isSelectMode, selectedAssignments: selectedAssignments, onToggleSelection: toggleAssignmentSelection, onDeleteAssignment: deleteAssignment, onOpenClassDetails: openClassDetails })), activeView === 'analytics' && (_jsx(AnalyticsView, { assignments: assignments, instructors: instructors }))] })] }), _jsx(AssignmentForm, { isVisible: showAssignForm, formData: formData, errors: errors, conflictWarning: conflictWarning, classTypes: classTypes, packages: packages, instructors: instructors, scheduleTemplates: scheduleTemplates, bookings: bookings, saving: saving, onClose: () => setShowAssignForm(false), onSubmit: createAssignment, onInputChange: handleInputChange, onTimeChange: handleTimeChange, onDurationChange: handleDurationChange }), _jsx(AdvancedFilters, { isVisible: showFilters, filters: filters, classTypes: classTypes, instructors: instructors, packages: packages, onFiltersChange: setFilters, onClose: () => setShowFilters(false), onClearAll: clearAllFilters }), _jsx(ClassDetailsPopup, { assignment: selectedClassDetails, isVisible: showClassDetailsPopup, onClose: closeClassDetails, onEdit: openEditAssignment }), _jsx(EditAssignmentModal, { assignment: selectedEditAssignment, isVisible: showEditAssignmentModal, bookings: bookings, userProfiles: userProfiles, onClose: closeEditAssignment, onSave: saveAssignment, onRefresh: fetchData })] }));
 }
 export default ClassAssignmentManager;

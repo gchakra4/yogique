@@ -71,18 +71,18 @@ export const CalendarView = ({
         return weekAssignments.filter(assignment => {
             if (assignment.date !== dateStr) return false
             if (!assignment.start_time) return false
-            
+
             const startHour = parseInt(assignment.start_time.split(':')[0])
             const startMinute = parseInt(assignment.start_time.split(':')[1])
             const endHour = assignment.end_time ? parseInt(assignment.end_time.split(':')[0]) : startHour + 1
             const endMinute = assignment.end_time ? parseInt(assignment.end_time.split(':')[1]) : 0
-            
+
             // Check if the time slot overlaps with the assignment time
             const slotStart = hour * 60
             const slotEnd = (hour + 1) * 60
             const assignmentStart = startHour * 60 + startMinute
             const assignmentEnd = endHour * 60 + endMinute
-            
+
             return slotStart < assignmentEnd && slotEnd > assignmentStart
         })
     }
@@ -90,26 +90,26 @@ export const CalendarView = ({
     // Calculate assignment height based on duration
     const getAssignmentHeight = (assignment: ClassAssignment) => {
         if (!assignment.start_time || !assignment.end_time) return 60 // Default 1 hour
-        
+
         const startTime = assignment.start_time.split(':').map(Number)
         const endTime = assignment.end_time.split(':').map(Number)
         const startMinutes = startTime[0] * 60 + startTime[1]
         const endMinutes = endTime[0] * 60 + endTime[1]
         const durationMinutes = endMinutes - startMinutes
-        
+
         return Math.max(30, durationMinutes) // Minimum 30px height
     }
 
     // Calculate assignment position within the hour
     const getAssignmentPosition = (assignment: ClassAssignment, hour: number) => {
         if (!assignment.start_time) return 0
-        
+
         const startTime = assignment.start_time.split(':').map(Number)
         const startMinutes = startTime[0] * 60 + startTime[1]
         const hourStartMinutes = hour * 60
-        
+
         if (startMinutes < hourStartMinutes) return 0
-        
+
         const minutesIntoHour = startMinutes - hourStartMinutes
         return (minutesIntoHour / 60) * 60 // Convert to pixels (60px per hour)
     }
@@ -122,27 +122,32 @@ export const CalendarView = ({
     return (
         <div className="h-full flex flex-col">
             {/* Calendar Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <div className="flex items-center space-x-4">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                        <Calendar className="w-5 h-5 mr-2" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-3 py-2 sm:p-4 border-b border-gray-200">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center">
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                         Weekly Calendar
                     </h3>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-xs sm:text-sm text-gray-600">
                         {weekDates[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - {' '}
                         {weekDates[6].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </div>
                 </div>
-                
-                <div className="flex items-center space-x-2">
+
+                <div className="flex items-center space-x-1 sm:space-x-2">
                     <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
-                        <ChevronLeft className="w-4 h-4" />
+                        <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={goToToday}>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="px-2 py-1 text-xs sm:text-sm"
+                        onClick={goToToday}
+                    >
                         Today
                     </Button>
                     <Button variant="outline" size="sm" onClick={goToNextWeek}>
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                 </div>
             </div>
@@ -151,16 +156,15 @@ export const CalendarView = ({
             <div className="flex-1 overflow-auto">
                 <div className="min-w-full">
                     {/* Day Headers */}
-                    <div className="grid grid-cols-8 border-b border-gray-200 bg-gray-50">
-                        <div className="p-3 text-sm font-medium text-gray-500">Time</div>
+                    <div className="grid grid-cols-8 border-b border-gray-200 bg-gray-50 text-xs sm:text-sm">
+                        <div className="p-2 sm:p-3 font-medium text-gray-500">Time</div>
                         {weekDates.map((date, index) => (
-                            <div key={index} className={`p-3 text-center ${isToday(date) ? 'bg-blue-50' : ''}`}>
-                                <div className="text-sm font-medium text-gray-900">
+                            <div key={index} className={`p-2 sm:p-3 text-center ${isToday(date) ? 'bg-blue-50' : ''}`}>
+                                <div className="font-medium text-gray-900">
                                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][index]}
                                 </div>
-                                <div className={`text-lg font-semibold mt-1 ${
-                                    isToday(date) ? 'text-blue-600' : 'text-gray-900'
-                                }`}>
+                                <div className={`text-sm sm:text-lg font-semibold mt-0.5 sm:mt-1 ${isToday(date) ? 'text-blue-600' : 'text-gray-900'
+                                    }`}>
                                     {date.getDate()}
                                 </div>
                             </div>
@@ -170,34 +174,33 @@ export const CalendarView = ({
                     {/* Calendar Body - Full 24-hour view */}
                     <div className="relative">
                         {hours.map(hour => (
-                            <div key={hour} className="grid grid-cols-8 border-b border-gray-100 min-h-[60px]">
+                            <div key={hour} className="grid grid-cols-8 border-b border-gray-100 min-h-[40px] sm:min-h-[60px]">
                                 {/* Time column */}
-                                <div className="p-2 text-sm text-gray-500 border-r border-gray-100 bg-gray-50">
+                                <div className="p-1.5 sm:p-2 text-xs sm:text-sm text-gray-500 border-r border-gray-100 bg-gray-50">
                                     {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
                                 </div>
-                                
+
                                 {/* Day columns */}
                                 {weekDates.map((date, dayIndex) => {
                                     const timeSlotAssignments = getAssignmentsForTimeSlot(date, hour)
-                                    
+
                                     return (
-                                        <div key={dayIndex} className={`relative border-r border-gray-100 min-h-[60px] p-1 ${
-                                            isToday(date) ? 'bg-blue-25' : ''
-                                        }`}>
+                                        <div key={dayIndex} className={`relative border-r border-gray-100 min-h-[40px] sm:min-h-[60px] p-0.5 sm:p-1 ${isToday(date) ? 'bg-blue-25' : ''
+                                            }`}>
                                             {/* Find assignments for this day and time slot */}
                                             {timeSlotAssignments.map(assignment => {
                                                 const statusStyle = getStatusStyle(assignment)
                                                 const height = getAssignmentHeight(assignment)
                                                 const position = getAssignmentPosition(assignment, hour)
-                                                
+
                                                 return (
                                                     <div
                                                         key={assignment.id}
-                                                        className={`absolute left-1 right-1 rounded p-1 text-xs cursor-pointer transition-all hover:shadow-md group ${statusStyle.bgColor} ${statusStyle.borderColor} border-l-2`}
+                                                        className={`absolute left-1 right-1 rounded p-1 text-[10px] sm:text-xs cursor-pointer transition-all hover:shadow-md group ${statusStyle.bgColor} ${statusStyle.borderColor} border-l-2`}
                                                         style={{
                                                             top: `${position}px`,
                                                             height: `${Math.min(height, 60 - position)}px`,
-                                                            minHeight: '24px'
+                                                            minHeight: '20px'
                                                         }}
                                                         onClick={(e) => {
                                                             e.stopPropagation()
@@ -210,7 +213,7 @@ export const CalendarView = ({
                                                             <div className="flex-1 min-w-0">
                                                                 {/* Checkbox for multi-select */}
                                                                 {isSelectMode && (
-                                                                    <div 
+                                                                    <div
                                                                         className="float-left mr-1"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation()
@@ -244,31 +247,31 @@ export const CalendarView = ({
                                                                 )}
 
                                                                 {/* Class Type - Prominent */}
-                                                                <div className={`font-medium truncate ${statusStyle.textColor}`}>
+                                                                <div className={`font-medium truncate text-xs sm:text-sm ${statusStyle.textColor}`}>
                                                                     {assignment.class_type?.name || 'Class'}
                                                                 </div>
 
                                                                 {/* Time */}
-                                                                <div className="text-xs opacity-75 truncate">
+                                                                <div className="text-[10px] sm:text-xs opacity-75 truncate">
                                                                     {formatTime(assignment.start_time)} - {formatTime(assignment.end_time)}
                                                                 </div>
 
                                                                 {/* Instructor Name */}
-                                                                <div className="text-xs opacity-75 truncate flex items-center">
+                                                                <div className="text-[10px] sm:text-xs opacity-75 truncate flex items-center">
                                                                     <User className="w-3 h-3 mr-1" />
                                                                     {assignment.instructor_profile?.full_name || 'Instructor'}
                                                                 </div>
 
                                                                 {/* Payment Amount */}
-                                                                <div className="text-xs opacity-75 truncate flex items-center">
+                                                                <div className="text-[10px] sm:text-xs opacity-75 truncate flex items-center">
                                                                     <IndianRupee className="w-3 h-3 mr-1" />
                                                                     ₹{assignment.payment_amount.toFixed(0)}
                                                                 </div>
 
                                                                 {/* Client Name if available */}
                                                                 {getPrimaryClientDisplay(assignment) && (
-                                                                    <div className="text-xs opacity-75 truncate">
-                                                                        <ClientDisplay 
+                                                                    <div className="text-[10px] sm:text-xs opacity-75 truncate">
+                                                                        <ClientDisplay
                                                                             assignment={assignment}
                                                                             compact={true}
                                                                         />
@@ -276,7 +279,7 @@ export const CalendarView = ({
                                                                 )}
 
                                                                 {/* Instructor Status Badge */}
-                                                                <div className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${statusStyle.bgColor} ${statusStyle.textColor} border ${statusStyle.borderColor}`}>
+                                                                <div className={`inline-block px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium ${statusStyle.bgColor} ${statusStyle.textColor} border ${statusStyle.borderColor}`}>
                                                                     {statusStyle.label}
                                                                 </div>
                                                             </div>
@@ -294,9 +297,9 @@ export const CalendarView = ({
             </div>
 
             {/* Calendar Legend */}
-            <div className="border-t border-gray-200 p-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-6">
+            <div className="border-t border-gray-200 px-3 py-2 sm:p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm">
                         <div className="flex items-center space-x-2">
                             <div className="w-3 h-3 bg-green-100 border-l-2 border-green-500 rounded"></div>
                             <span className="text-sm text-gray-600">Accepted</span>
@@ -314,7 +317,7 @@ export const CalendarView = ({
                             <span className="text-sm text-gray-600">Completed</span>
                         </div>
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">
                         {weekAssignments.length} assignment{weekAssignments.length !== 1 ? 's' : ''} this week
                     </div>
                 </div>

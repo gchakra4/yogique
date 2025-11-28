@@ -299,12 +299,16 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Article Management</h2>
-        <ResponsiveActionButton onClick={handleCreateNew} className="flex items-center">
-          <Plus className="w-4 h-4 mr-2" />
-          Create New Article
-        </ResponsiveActionButton>
+      <div className="flex items-start sm:items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-2xl font-bold text-gray-900">Article Management</h2>
+        </div>
+        <div className="flex-shrink-0 ml-3">
+          <ResponsiveActionButton onClick={handleCreateNew} className="flex items-center">
+            <Plus className="w-4 h-4 mr-2" />
+            Create New Article
+          </ResponsiveActionButton>
+        </div>
       </div>
 
       {loading ? (

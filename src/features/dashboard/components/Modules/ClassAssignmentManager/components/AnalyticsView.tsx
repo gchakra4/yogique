@@ -15,7 +15,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
         const completedAssignments = assignments.filter(a => a.class_status === 'completed')
         const pendingAssignments = assignments.filter(a => a.instructor_status === 'pending')
         const acceptedAssignments = assignments.filter(a => a.instructor_status === 'accepted')
-        
+
         // Assignment type distribution
         const typeDistribution = assignments.reduce((acc, assignment) => {
             const type = getAssignmentType(assignment)
@@ -37,7 +37,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
             const completed = instructorAssignments.filter(a => a.class_status === 'completed').length
             const pending = instructorAssignments.filter(a => a.instructor_status === 'pending').length
             const accepted = instructorAssignments.filter(a => a.instructor_status === 'accepted').length
-            
+
             return {
                 instructor,
                 totalAssignments: instructorAssignments.length,
@@ -48,7 +48,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
                 completionRate: instructorAssignments.length > 0 ? (completed / instructorAssignments.length) * 100 : 0
             }
         }).filter(stat => stat.totalAssignments > 0)
-        .sort((a, b) => b.totalAssignments - a.totalAssignments)
+            .sort((a, b) => b.totalAssignments - a.totalAssignments)
 
         // Payment status breakdown
         const paymentStats = {
@@ -62,7 +62,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
             const date = new Date()
             date.setMonth(date.getMonth() - i)
             const monthKey = date.toISOString().slice(0, 7) // YYYY-MM
-            
+
             const monthAssignments = assignments.filter(a => a.date.startsWith(monthKey))
             return {
                 month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
@@ -105,12 +105,12 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
         }
 
         return (
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="w-full p-2 sm:p-6 sm:bg-white sm:rounded-lg sm:shadow">
                 <div className="flex items-center">
                     <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
                         <Icon className="w-6 h-6" />
                     </div>
-                    <div className="ml-4 flex-1">
+                    <div className="ml-0 sm:ml-4 flex-1">
                         <p className="text-sm font-medium text-gray-600">{title}</p>
                         <p className="text-2xl font-semibold text-gray-900">{value}</p>
                         {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
@@ -132,7 +132,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
 
         return (
             <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                     className={`h-2 rounded-full ${colorClasses[color as keyof typeof colorClasses] || colorClasses.blue}`}
                     style={{ width: `${Math.min(percentage, 100)}%` }}
                 />
@@ -141,7 +141,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="w-full max-w-none -mx-4 sm:-mx-6 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center">
                     <BarChart3 className="w-6 h-6 mr-2" />
@@ -153,7 +153,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
             </div>
 
             {/* Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <StatCard
                     title="Total Revenue"
                     value={`₹${analytics.totalRevenue.toFixed(2)}`}
@@ -185,7 +185,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Assignment Type Distribution */}
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="w-full p-4 sm:p-6 sm:bg-white sm:rounded-lg sm:shadow">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Assignment Type Distribution</h3>
                     <div className="space-y-4">
                         {Object.entries(analytics.typeDistribution).map(([type, count]) => (
@@ -194,9 +194,9 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
                                     {type.replace('_', ' ')}
                                 </span>
                                 <div className="flex items-center space-x-3 flex-1 ml-4">
-                                    <ProgressBar 
-                                        value={count} 
-                                        max={Math.max(...Object.values(analytics.typeDistribution))} 
+                                    <ProgressBar
+                                        value={count}
+                                        max={Math.max(...Object.values(analytics.typeDistribution))}
                                     />
                                     <span className="text-sm text-gray-600 min-w-[3rem] text-right">
                                         {count} ({((count / analytics.totalAssignments) * 100).toFixed(1)}%)
@@ -208,7 +208,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
                 </div>
 
                 {/* Revenue Breakdown */}
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="w-full p-4 sm:p-6 sm:bg-white sm:rounded-lg sm:shadow">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Assignment Type</h3>
                     <div className="space-y-4">
                         {Object.entries(analytics.revenueByType).map(([type, revenue]) => (
@@ -217,9 +217,9 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
                                     {type.replace('_', ' ')}
                                 </span>
                                 <div className="flex items-center space-x-3 flex-1 ml-4">
-                                    <ProgressBar 
-                                        value={revenue} 
-                                        max={Math.max(...Object.values(analytics.revenueByType))} 
+                                    <ProgressBar
+                                        value={revenue}
+                                        max={Math.max(...Object.values(analytics.revenueByType))}
                                         color="green"
                                     />
                                     <span className="text-sm text-gray-600 min-w-[5rem] text-right">
@@ -233,7 +233,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
             </div>
 
             {/* Instructor Performance */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="w-full p-4 sm:p-6 sm:bg-white sm:rounded-lg sm:shadow">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <Users className="w-5 h-5 mr-2" />
                     Instructor Performance
@@ -284,9 +284,9 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="w-16 mr-2">
-                                                <ProgressBar 
-                                                    value={stat.completionRate} 
-                                                    max={100} 
+                                                <ProgressBar
+                                                    value={stat.completionRate}
+                                                    max={100}
                                                     color="green"
                                                 />
                                             </div>
@@ -343,33 +343,35 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
             </div>
 
             {/* Monthly Trends */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="w-full p-4 sm:p-6 sm:bg-white sm:rounded-lg sm:shadow">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <TrendingUp className="w-5 h-5 mr-2" />
                     Monthly Trends (Last 6 Months)
                 </h3>
                 <div className="space-y-4">
                     {analytics.monthlyTrends.map((month, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div className="flex-1">
-                                <div className="text-sm font-medium text-gray-900">{month.month}</div>
-                                <div className="text-xs text-gray-500">
+                        <div key={index} className="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">{month.month}</div>
+                                <div className="text-xs text-gray-500 truncate">
                                     {month.assignments} assignments • {month.completed} completed
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-4">
+
+                            <div className="flex items-center space-x-4 ml-4 w-40 sm:w-48 lg:w-56 flex-shrink-0">
                                 <div className="text-right">
                                     <div className="text-lg font-semibold text-green-600">
                                         ₹${month.revenue.toFixed(2)}
                                     </div>
                                     <div className="text-xs text-gray-500">Revenue</div>
                                 </div>
-                                <div className="w-24">
-                                    <ProgressBar 
-                                        value={month.assignments} 
-                                        max={Math.max(...analytics.monthlyTrends.map(m => m.assignments))} 
-                                    />
-                                </div>
+                            </div>
+
+                            <div className="flex-1 ml-3 min-w-0">
+                                <ProgressBar
+                                    value={month.assignments}
+                                    max={Math.max(...analytics.monthlyTrends.map(m => m.assignments))}
+                                />
                             </div>
                         </div>
                     ))}

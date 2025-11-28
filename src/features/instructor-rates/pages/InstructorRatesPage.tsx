@@ -1,11 +1,11 @@
+import { Edit, Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { ResponsiveActionButton } from '../../../shared/components/ui/ResponsiveActionButton';
 import IconCircleButton from '../../../shared/components/ui/IconCircleButton';
+import { ResponsiveActionButton } from '../../../shared/components/ui/ResponsiveActionButton';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { InstructorRateForm } from '../components/InstructorRateForm';
 import { RateWithInstructor, useInstructorRates } from '../hooks/useInstructorRates';
 import { InstructorRate } from '../types/rate';
-import { Edit, Trash2, Plus } from 'lucide-react';
 
 const InstructorRatesPage: React.FC = () => {
   const { user } = useAuth();
@@ -31,7 +31,7 @@ const InstructorRatesPage: React.FC = () => {
   if (error) return <div>Error: {error.message}</div>;
 
   return (
-    <div className="p-6 bg-gradient-to-b from-blue-50 to-white rounded-lg shadow-lg">
+    <div className="px-4 sm:p-6 bg-white rounded-lg">
       <h1 className="text-2xl sm:text-3xl font-extrabold text-blue-800 mb-3">Manage Standard Rates</h1>
       <p className="text-gray-700 mb-4">Set generic rates by schedule type and category that can be applied to any instructor during class assignment.</p>
 
@@ -46,26 +46,30 @@ const InstructorRatesPage: React.FC = () => {
       )}
 
       {/* Form: desktop always visible, mobile visible when `showForm` is true */}
-      <div className="mb-8 bg-white p-4 rounded-lg shadow-md hidden sm:block">
-        <h2 className="text-2xl font-semibold text-indigo-700 mb-4">{editingRate ? 'Edit Rate' : 'Add New Rate'}</h2>
-        <InstructorRateForm onSubmit={handleSubmit} existingRate={editingRate} />
+      <div className="mb-8 hidden sm:block">
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          <h2 className="text-2xl font-semibold text-indigo-700 mb-4">{editingRate ? 'Edit Rate' : 'Add New Rate'}</h2>
+          <InstructorRateForm onSubmit={handleSubmit} existingRate={editingRate} />
+        </div>
       </div>
 
       {showForm && (
-        <div className="mb-6 bg-white p-4 rounded-lg shadow-md sm:hidden">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold text-indigo-700">{editingRate ? 'Edit Rate' : 'Add New Rate'}</h2>
-            <button className="text-gray-500" onClick={() => { setShowForm(false); setEditingRate(undefined); }}>Close</button>
+        <div className="mb-6 sm:hidden">
+          <div className="bg-white p-4 rounded-lg shadow-md">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-semibold text-indigo-700">{editingRate ? 'Edit Rate' : 'Add New Rate'}</h2>
+              <button className="text-gray-500" onClick={() => { setShowForm(false); setEditingRate(undefined); }}>Close</button>
+            </div>
+            <InstructorRateForm onSubmit={async (data) => { await handleSubmit(data); setShowForm(false); }} existingRate={editingRate} />
           </div>
-          <InstructorRateForm onSubmit={async (data) => { await handleSubmit(data); setShowForm(false); }} existingRate={editingRate} />
         </div>
       )}
 
-      <div className="bg-white p-4 rounded-lg shadow-md">
+      <div className="sm:bg-white sm:p-4 sm:rounded-lg">
         <h2 className="text-2xl font-semibold text-indigo-700 mb-4">Current Standard Rates</h2>
-        <div className="grid gap-6">
+        <div className="divide-y divide-gray-100">
           {rates.map((rate: RateWithInstructor) => (
-            <div key={rate.id} className="p-4 sm:p-6 border border-gray-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 hover:shadow-lg transition-shadow">
+            <div key={rate.id} className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center w-full">
               <div>
                 <p className="font-bold text-lg text-gray-800">
                   {(rate as any).class_types ? `${(rate as any).class_types.name} (${(rate as any).class_types.difficulty_level})` :

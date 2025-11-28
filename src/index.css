@@ -516,9 +516,84 @@
     border-bottom: 1px solid #e9ecef;
   }
 
+  /* Make dashboard tabs horizontally scrollable but hide native scrollbars for a cleaner mobile look */
   .dashboard-tabs {
     overflow-x: auto;
-    scrollbar-width: thin;
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .dashboard-tabs::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Opera */
+  }
+
+  /* Additional rule to hide any remaining visible scroll indicators for
+     our component-scoped scroll container used in class assignment manager. */
+  .class-assignment-hide-scrollbar {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+    overflow: auto;
+  }
+
+  .class-assignment-hide-scrollbar::-webkit-scrollbar,
+  .dashboard-tabs::-webkit-scrollbar {
+    height: 0 !important;
+    display: none !important;
+    background: transparent !important;
+  }
+
+  .class-assignment-hide-scrollbar::-webkit-scrollbar-thumb,
+  .dashboard-tabs::-webkit-scrollbar-thumb {
+    background: transparent !important;
+  }
+
+  /* Add subtle edge fades to visually mask native scroll indicators on mobile
+     (keeps touch scrolling intact). Uses the background color variable so it
+     adapts to light/dark themes. */
+  .dashboard-tabs,
+  .class-assignment-hide-scrollbar {
+    position: relative;
+  }
+
+  .dashboard-tabs::before,
+  .class-assignment-hide-scrollbar::before,
+  .dashboard-tabs::after,
+  .class-assignment-hide-scrollbar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: -8px;
+    /* extend slightly below to cover OS scroll thumb */
+    width: 48px;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .dashboard-tabs::before,
+  .class-assignment-hide-scrollbar::before {
+    left: 0;
+    /* make inner edge opaque so it fully masks the scroll thumb */
+    background: linear-gradient(to right, var(--bg-primary) 0%, var(--bg-primary) 65%, transparent 100%);
+  }
+
+  .dashboard-tabs::after,
+  .class-assignment-hide-scrollbar::after {
+    right: 0;
+    background: linear-gradient(to left, var(--bg-primary) 0%, var(--bg-primary) 65%, transparent 100%);
+  }
+
+  /* Ensure fades are subtle on very small screens */
+  @media (max-width: 420px) {
+
+    .dashboard-tabs::before,
+    .class-assignment-hide-scrollbar::before,
+    .dashboard-tabs::after,
+    .class-assignment-hide-scrollbar::after {
+      width: 28px;
+    }
   }
 
   .tab-button {
