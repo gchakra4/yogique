@@ -1,6 +1,6 @@
+import { PhoneNumberFormat, PhoneNumberUtil } from 'google-libphonenumber'
 import { AlertCircle, Award, Calendar, Camera, CheckCircle, Clock, Edit2, Facebook, FileText, Globe, Instagram, Mail, Phone, Save, User, X, XCircle, Youtube } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { PhoneNumberUtil, PhoneNumberFormat } from 'google-libphonenumber'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
@@ -69,6 +69,8 @@ export function Profile() {
   const [countries, setCountries] = useState<Array<{ name: string; iso: string; code: string }>>([])
   const [selectedCountry, setSelectedCountry] = useState<{ name: string; iso: string; code: string } | null>(null)
   const [phoneNumberInput, setPhoneNumberInput] = useState('')
+
+  // Country picker open state and helper component will be declared below
 
   const [errors, setErrors] = useState<any>({})
   const [activeTab, setActiveTab] = useState('overview')
@@ -456,7 +458,7 @@ export function Profile() {
       }
 
       // If phone changed and OTP verification is enabled, start OTP flow instead of saving directly
-      if (ENABLE_PHONE_OTP && (selectedCountry && phoneNumberInput && ( (newPhoneE164 || '').replace(/\D/g,'') !== (initialPhone || '').replace(/\D/g,'') ) )) {
+      if (ENABLE_PHONE_OTP && (selectedCountry && phoneNumberInput && ((newPhoneE164 || '').replace(/\D/g, '') !== (initialPhone || '').replace(/\D/g, '')))) {
         setPendingPhone(newPhoneE164)
         setOtpModalOpen(true)
         try {
@@ -843,29 +845,14 @@ export function Profile() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Phone Number</label>
                       {editing ? (
-                      <div className="flex space-x-2">
-                        <select
-                          value={selectedCountry?.code || ''}
-                          onChange={(e) => {
-                            const code = e.target.value
-                            const found = countries.find(c => c.code === code)
-                            if (found) setSelectedCountry(found)
-                          }}
-                          className="px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-                        >
-                          {countries.map(c => (
-                            <option key={c.iso} value={c.code}>{c.name} ({c.code})</option>
-                          ))}
-                        </select>
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={phoneNumberInput}
-                          onChange={(e) => setPhoneNumberInput(e.target.value)}
-                          className={`flex-1 px-4 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors ${errors.phone ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'}`}
-                          placeholder="Enter your mobile number"
-                        />
-                      </div>
+                      <CountryPicker
+                        countries={countries}
+                        selected={selectedCountry}
+                        onSelect={(c) => setSelectedCountry(c)}
+                        phoneValue={phoneNumberInput}
+                        onPhoneChange={(v) => setPhoneNumberInput(v)}
+                        error={errors.phone}
+                      />
                     ) : (
                       <p className="text-gray-900 dark:text-white py-2">{profileData.phone || 'Not provided'}</p>
                     )}
@@ -1421,6 +1408,64 @@ export function Profile() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Small custom country picker component
+function CountryPicker({ countries, selected, onSelect, phoneValue, onPhoneChange, error }: {
+  countries: Array<{ name: string; iso: string; code: string }>
+  selected: { name: string; iso: string; code: string } | null
+  onSelect: (c: { name: string; iso: string; code: string }) => void
+  phoneValue: string
+  onPhoneChange: (v: string) => void
+  error?: any
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (!ref.current) return
+      if (!ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('click', onDoc)
+    return () => document.removeEventListener('click', onDoc)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative flex items-center w-full">
+      <button type="button" onClick={() => setOpen(s => !s)} className="w-28 flex-shrink-0 px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-left flex items-center justify-between">
+        <span className="font-medium">{selected?.code || 'Country'}</span>
+        <svg className="w-4 h-4 text-gray-500 ml-2" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      <input
+        type="tel"
+        name="phone"
+        value={phoneValue}
+        onChange={(e) => onPhoneChange(e.target.value)}
+        className={`flex-1 min-w-0 ml-2 px-4 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors ${error ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'}`}
+        placeholder="Enter your mobile number"
+      />
+
+      {open && (
+        <div className="absolute z-50 mt-2 w-72 max-h-64 overflow-y-auto bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg">
+          <ul>
+            {countries.map(c => (
+              <li key={c.iso}>
+                <button
+                  type="button"
+                  onClick={() => { onSelect(c); setOpen(false) }}
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  <span className="mr-2">{c.name}</span>
+                  <span className="text-sm text-gray-500">{c.code}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
