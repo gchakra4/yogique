@@ -1418,6 +1418,13 @@ export function Profile() {
           </div>
         </div>
       )}
+      {!editing && (
+        <div className="fixed bottom-4 right-4 sm:hidden z-50">
+          <Button onClick={() => { setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
+            <Edit2 className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
     </>
   )
 }
