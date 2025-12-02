@@ -53,6 +53,11 @@ serve(async (req) => {
     // basic normalization
     phone = phone.replace(/[\s()\-]/g, '');
 
+    // enforce E.164 format
+    if (!/^\+\d{8,15}$/.test(phone)) {
+      return new Response(JSON.stringify({ ok: false, error: 'invalid_phone_format' }), { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+    }
+
     // look up most recent non-expired, not-verified OTP for this phone
     const now = new Date().toISOString();
     const otpUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/phone_otps?select=id,code_hash,attempts,verified,expires_at,user_id&phone=eq.${encodeURIComponent(phone)}&verified=eq.false&expires_at=gt.${encodeURIComponent(now)}&order=created_at.desc&limit=1`;

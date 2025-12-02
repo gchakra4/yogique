@@ -76,7 +76,12 @@ serve(async (req) => {
     if (!phone) return new Response(JSON.stringify({ ok: false, error: 'missing phone' }), { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 
     // minimal phone normalization: remove spaces/paren/dashes
-    phone = phone.replace(/[\s()-]/g, '');
+    phone = phone.replace(/[\s()\-]/g, '');
+
+    // enforce E.164 format: +countrycode followed by 8-15 digits
+    if (!/^\+\d{8,15}$/.test(phone)) {
+      return new Response(JSON.stringify({ ok: false, error: 'invalid_phone_format' }), { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+    }
 
     // Rate limit: max 3 codes in last 15 minutes for this phone
     const window15 = isoMinusMinutes(15);

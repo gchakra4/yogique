@@ -1,6 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { ChevronLeft, ChevronRight, Clock, Search, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { getCountryList } from '../../../shared/lib/phone';
 import { Button } from '../../../shared/components/ui/Button';
 import { supabase } from '../../../shared/lib/supabase';
 import { COMMON_TIMEZONES, getUserTimezone } from '../../../shared/utils/timezoneUtils';
@@ -33,11 +34,17 @@ export function BookClass() {
         '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM',
         '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'
     ];
-    const countries = [
-        'United States', 'Canada', 'United Kingdom', 'Australia', 'Germany',
-        'France', 'India', 'Singapore', 'Japan', 'Brazil', 'Mexico',
-        'South Africa', 'Nigeria', 'Other'
-    ];
+    const [countries, setCountries] = useState([]);
+    useEffect(() => {
+        try {
+            const list = getCountryList().map(c => c.name);
+            setCountries(list);
+        }
+        catch (e) {
+            console.warn('failed to build country list for booking form', e);
+            setCountries(['United States', 'Canada', 'United Kingdom', 'Australia', 'Other']);
+        }
+    }, []);
     // Fetch class packages from database
     useEffect(() => {
         fetchClassPackages();

@@ -1,5 +1,6 @@
 import { AlertCircle, Award, Calendar, Camera, CheckCircle, Clock, Edit2, Facebook, FileText, Globe, Instagram, Mail, Phone, Save, User, X, XCircle, Youtube } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { PhoneNumberUtil, PhoneNumberFormat } from 'google-libphonenumber'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
@@ -60,6 +61,14 @@ export function Profile() {
     ,
     whatsapp_opt_in: false
   })
+
+  // phone number helper from google-libphonenumber
+  const phoneUtil = PhoneNumberUtil.getInstance()
+
+  // runtime countries list derived from libphonenumber's supported regions
+  const [countries, setCountries] = useState<Array<{ name: string; iso: string; code: string }>>([])
+  const [selectedCountry, setSelectedCountry] = useState<{ name: string; iso: string; code: string } | null>(null)
+  const [phoneNumberInput, setPhoneNumberInput] = useState('')
 
   const [errors, setErrors] = useState<any>({})
   const [activeTab, setActiveTab] = useState('overview')
@@ -139,6 +148,42 @@ export function Profile() {
     }
   }, [user])
 
+  // build full countries list from libphonenumber once on mount
+  useEffect(() => {
+    try {
+      const regions = Array.from(phoneUtil.getSupportedRegions()) as string[]
+      const dn = new Intl.DisplayNames(['en'], { type: 'region' })
+      const arr = regions.map(r => ({ name: String(dn.of(r) || r), iso: String(r), code: `+${phoneUtil.getCountryCodeForRegion(r)}` }))
+      arr.sort((a, b) => a.name.localeCompare(b.name))
+      setCountries(arr)
+      if (arr.length && !selectedCountry) {
+        // default to user's region if available, else first
+        const defaultCountry = arr.find(c => c.iso === 'US') || arr[0]
+        setSelectedCountry(defaultCountry)
+      }
+    } catch (e) {
+      console.warn('failed to build countries list', e)
+    }
+  }, [])
+
+  // when countries and profile phone are ready, parse existing phone into local input + selected country
+  useEffect(() => {
+    if (!countries.length) return
+    if (!profileData.phone) return
+    const phoneFull = (profileData.phone || '').trim()
+    if (!phoneFull.startsWith('+')) {
+      setPhoneNumberInput(phoneFull.replace(/\D/g, ''))
+      return
+    }
+    const matched = countries.find(c => phoneFull.startsWith(c.code))
+    if (matched) {
+      setSelectedCountry(matched)
+      setPhoneNumberInput(phoneFull.replace(new RegExp('^\\' + matched.code), '').replace(/\D/g, ''))
+    } else {
+      setPhoneNumberInput(phoneFull.replace(/\D/g, '').replace(/^\+?\d{1,4}/, ''))
+    }
+  }, [countries, profileData.phone])
+
   const fetchProfileData = async () => {
     try {
       const { data, error } = await supabase
@@ -201,6 +246,7 @@ export function Profile() {
         })
         setInitialPhone(data.phone || '')
         setInitialWhatsappOptIn(!!data.whatsapp_opt_in)
+        setInitialPhone(data.phone || '')
       } else {
         setProfileData(prev => ({
           ...prev,
@@ -315,8 +361,19 @@ export function Profile() {
     if (!profileData.full_name.trim()) newErrors.full_name = 'Full name is required'
     if (!profileData.email.trim()) newErrors.email = 'Email is required'
     else if (!/\S+@\S+\.\S+/.test(profileData.email)) newErrors.email = 'Email is invalid'
-    if (profileData.phone && !/^\+?[\d\s\-\(\)]+$/.test(profileData.phone)) {
-      newErrors.phone = 'Please enter a valid phone number'
+    // Validate phone according to selected country local pattern
+    if (editing) {
+      const local = phoneNumberInput.replace(/\D/g, '')
+      if (local && selectedCountry) {
+        try {
+          const parsed = phoneUtil.parse(local, selectedCountry.iso)
+          if (!phoneUtil.isValidNumberForRegion(parsed, selectedCountry.iso)) {
+            newErrors.phone = `Please enter a valid phone number for ${selectedCountry.name}`
+          }
+        } catch (e) {
+          newErrors.phone = `Please enter a valid phone number for ${selectedCountry.name}`
+        }
+      }
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -345,11 +402,23 @@ export function Profile() {
 
       const whatsappOptInTs = (profileData.whatsapp_opt_in && !initialWhatsappOptIn) ? new Date().toISOString() : null
 
+      // Normalize phone to E.164 when possible
+      let newPhoneE164 = profileData.phone
+      if (editing && selectedCountry && phoneNumberInput) {
+        try {
+          const parsed = phoneUtil.parse(phoneNumberInput, selectedCountry.iso)
+          newPhoneE164 = phoneUtil.format(parsed, PhoneNumberFormat.E164)
+        } catch (e) {
+          // fallback: naive concat
+          newPhoneE164 = `${selectedCountry.code}${phoneNumberInput.replace(/\D/g, '')}`
+        }
+      }
+
       const profilePayload = {
         user_id: user!.id,
         full_name: profileData.full_name,
         email: profileData.email,
-        phone: profileData.phone,
+        phone: newPhoneE164,
         bio: profileData.bio,
         avatar_url: avatarUrl,
         date_of_birth: profileData.date_of_birth || null,
@@ -387,12 +456,12 @@ export function Profile() {
       }
 
       // If phone changed and OTP verification is enabled, start OTP flow instead of saving directly
-      if (ENABLE_PHONE_OTP && profileData.phone !== initialPhone) {
-        setPendingPhone(profileData.phone)
+      if (ENABLE_PHONE_OTP && (selectedCountry && phoneNumberInput && ( (newPhoneE164 || '').replace(/\D/g,'') !== (initialPhone || '').replace(/\D/g,'') ) )) {
+        setPendingPhone(newPhoneE164)
         setOtpModalOpen(true)
         try {
           // Send OTP and start cooldown timer (allow server to enforce ownership at verify time)
-          await sendOtpRequest(user!.id, profileData.phone)
+          await sendOtpRequest(user!.id, newPhoneE164)
         } catch (err) {
           console.warn('send-phone-otp function not available or failed:', err)
         }
@@ -773,16 +842,30 @@ export function Profile() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Phone Number</label>
-                    {editing ? (
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={profileData.phone}
-                        onChange={handleInputChange}
-                        className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors ${errors.phone ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'
-                          }`}
-                        placeholder="Enter your phone number"
-                      />
+                      {editing ? (
+                      <div className="flex space-x-2">
+                        <select
+                          value={selectedCountry?.code || ''}
+                          onChange={(e) => {
+                            const code = e.target.value
+                            const found = countries.find(c => c.code === code)
+                            if (found) setSelectedCountry(found)
+                          }}
+                          className="px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                        >
+                          {countries.map(c => (
+                            <option key={c.iso} value={c.code}>{c.name} ({c.code})</option>
+                          ))}
+                        </select>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={phoneNumberInput}
+                          onChange={(e) => setPhoneNumberInput(e.target.value)}
+                          className={`flex-1 px-4 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors ${errors.phone ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-slate-600'}`}
+                          placeholder="Enter your mobile number"
+                        />
+                      </div>
                     ) : (
                       <p className="text-gray-900 dark:text-white py-2">{profileData.phone || 'Not provided'}</p>
                     )}

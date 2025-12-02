@@ -27,7 +27,8 @@
     "react-dom": "^18.3.1",
     "react-quill": "^2.0.0",
     "react-router-dom": "^6.20.1",
-    "stream-browserify": "^3.0.0"
+    "stream-browserify": "^3.0.0",
+    "google-libphonenumber": "^3.2.29"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.0",
