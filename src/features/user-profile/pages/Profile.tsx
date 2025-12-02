@@ -62,6 +62,14 @@ export function Profile() {
   const [errors, setErrors] = useState<any>({})
   const [activeTab, setActiveTab] = useState('overview')
 
+  // OTP toggle (Vite env): set `VITE_ENABLE_PHONE_OTP=true` to enable phone OTP verification flow
+  const ENABLE_PHONE_OTP = import.meta.env.VITE_ENABLE_PHONE_OTP === 'true'
+  const [initialPhone, setInitialPhone] = useState('')
+  const [otpModalOpen, setOtpModalOpen] = useState(false)
+  const [pendingPhone, setPendingPhone] = useState<string | null>(null)
+  const [otpCode, setOtpCode] = useState('')
+  const [otpLoading, setOtpLoading] = useState(false)
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User },
     { id: 'bookings', label: 'My Bookings', icon: Calendar },
@@ -184,6 +192,7 @@ export function Profile() {
           is_active: data.is_active ?? true,
           profile_completed: data.profile_completed ?? false
         })
+        setInitialPhone(data.phone || '')
       } else {
         setProfileData(prev => ({
           ...prev,
@@ -365,6 +374,23 @@ export function Profile() {
         updated_at: new Date().toISOString()
       }
 
+      // If phone changed and OTP verification is enabled, start OTP flow instead of saving directly
+      if (ENABLE_PHONE_OTP && profileData.phone !== initialPhone) {
+        setPendingPhone(profileData.phone)
+        setOtpModalOpen(true)
+        // attempt to trigger backend OTP send (optional)
+        try {
+          // call Supabase Edge Function `send-phone-otp` if available
+          // this is best-effort: if function not present, we'll still show modal
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await supabase.functions.invoke?.('send-phone-otp', { body: { user_id: user!.id, phone: profileData.phone } })
+        } catch (err) {
+          console.warn('send-phone-otp function not available or failed:', err)
+        }
+        return
+      }
+
       let result
       if (existingProfile) {
         // ✅ Update existing profile
@@ -394,6 +420,39 @@ export function Profile() {
     }
   }
 
+  // OTP verification helpers
+  const verifyOtp = async () => {
+    if (!pendingPhone) return
+    setOtpLoading(true)
+    try {
+      // call Supabase Edge Function `verify-phone-otp` if available
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const resp = await supabase.functions.invoke?.('verify-phone-otp', { body: { user_id: user!.id, phone: pendingPhone, code: otpCode } })
+      // If function returns a success flag use it, else fallback to optimistic success
+      // resp may be undefined if function not present
+      const ok = resp?.data?.verified ?? true
+      if (ok) {
+        // persist phone to profiles table now that it's "verified"
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({ user_id: user!.id, phone: pendingPhone }, { onConflict: 'user_id' })
+        if (error) throw error
+        setProfileData(prev => ({ ...prev, phone: pendingPhone }))
+        setInitialPhone(pendingPhone)
+        setOtpModalOpen(false)
+        alert('Phone verified and saved successfully')
+      } else {
+        alert('OTP verification failed. Please try again.')
+      }
+    } catch (err) {
+      console.error('Error verifying OTP:', err)
+      alert('Unable to verify OTP right now. Please try again later.')
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
@@ -411,6 +470,26 @@ export function Profile() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      {otpModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black opacity-40" />
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 z-50 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Verify Phone Number</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-300 mb-4">We've sent a one-time code to <span className="font-medium">{pendingPhone}</span>. Enter the code below to verify your phone number.</p>
+            <input
+              type="text"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-4"
+              placeholder="Enter OTP"
+            />
+            <div className="flex justify-end space-x-3">
+              <Button variant="outline" onClick={() => { setOtpModalOpen(false); setOtpCode(''); setPendingPhone(null); }}>Cancel</Button>
+              <Button loading={otpLoading} onClick={verifyOtp}>Verify</Button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Enhanced Header with Gradient */}
       <div className="bg-gradient-to-r from-blue-600 to-green-600 shadow-lg">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

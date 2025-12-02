@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/contexts/AuthContext';
 import { NotificationDropdown } from '../../../features/notifications/components/NotificationDropdown';
 // ...existing imports...
+import { supabase } from '../../../shared/lib/supabase';
 import { Button } from '../ui/Button';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import logoOrange from '/images/Brand-orange.png';
@@ -14,6 +15,7 @@ export function Header() {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [phoneMissing, setPhoneMissing] = useState(false);
   // removed isDark usage - header now uses a single orange logo for both themes
 
 
@@ -42,6 +44,33 @@ export function Header() {
     };
   }, []);
 
+  // Fetch minimal profile info to determine whether to show phone-missing banner
+  useEffect(() => {
+    let mounted = true
+    const checkProfile = async () => {
+      if (!user) {
+        if (mounted) setPhoneMissing(false)
+        return
+      }
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('phone')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (error) throw error
+        if (mounted) setPhoneMissing(!(data && data.phone))
+      } catch (err) {
+        console.error('Error checking profile phone:', err)
+        if (mounted) setPhoneMissing(false)
+      }
+    }
+
+    checkProfile()
+    return () => { mounted = false }
+  }, [user])
+
 
   const handleSignOut = () => {
     signOut();
@@ -50,6 +79,19 @@ export function Header() {
 
   return (
     <header className="w-full bg-white dark:bg-slate-900 shadow-sm sticky top-0 z-50 border-b border-gray-100 dark:border-slate-700 backdrop-blur-sm py-2">
+      {phoneMissing && (
+        <div className="w-full bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-200 text-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between">
+            <div>
+              <strong className="mr-2">As per our records, your phone number is missing.</strong>
+              <span className="opacity-90">We do not spam — to receive class details and important reminders, please update your phone number with us.</span>
+            </div>
+            <div>
+              <Link to="/profile" className="underline text-yellow-900 dark:text-yellow-100 font-medium">Update Profile</Link>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           {/* Logo */}

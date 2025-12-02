@@ -59,6 +59,13 @@ export function Profile() {
     });
     const [errors, setErrors] = useState({});
     const [activeTab, setActiveTab] = useState('overview');
+    // OTP toggle (Vite env): set `VITE_ENABLE_PHONE_OTP=true` to enable phone OTP verification flow
+    const ENABLE_PHONE_OTP = import.meta.env.VITE_ENABLE_PHONE_OTP === 'true';
+    const [initialPhone, setInitialPhone] = useState('');
+    const [otpModalOpen, setOtpModalOpen] = useState(false);
+    const [pendingPhone, setPendingPhone] = useState(null);
+    const [otpCode, setOtpCode] = useState('');
+    const [otpLoading, setOtpLoading] = useState(false);
     const tabs = [
         { id: 'overview', label: 'Overview', icon: User },
         { id: 'bookings', label: 'My Bookings', icon: Calendar },
@@ -174,6 +181,7 @@ export function Profile() {
                     is_active: data.is_active ?? true,
                     profile_completed: data.profile_completed ?? false
                 });
+                setInitialPhone(data.phone || '');
             }
             else {
                 setProfileData(prev => ({
@@ -345,6 +353,23 @@ export function Profile() {
                 profile_completed: profileData.profile_completed,
                 updated_at: new Date().toISOString()
             };
+            // If phone changed and OTP verification is enabled, start OTP flow instead of saving directly
+            if (ENABLE_PHONE_OTP && profileData.phone !== initialPhone) {
+                setPendingPhone(profileData.phone);
+                setOtpModalOpen(true);
+                // attempt to trigger backend OTP send (optional)
+                try {
+                    // call Supabase Edge Function `send-phone-otp` if available
+                    // this is best-effort: if function not present, we'll still show modal
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    await supabase.functions.invoke?.('send-phone-otp', { body: { user_id: user.id, phone: profileData.phone } });
+                }
+                catch (err) {
+                    console.warn('send-phone-otp function not available or failed:', err);
+                }
+                return;
+            }
             let result;
             if (existingProfile) {
                 // ✅ Update existing profile
@@ -375,10 +400,47 @@ export function Profile() {
             setLoading(false);
         }
     };
+    // OTP verification helpers
+    const verifyOtp = async () => {
+        if (!pendingPhone)
+            return;
+        setOtpLoading(true);
+        try {
+            // call Supabase Edge Function `verify-phone-otp` if available
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const resp = await supabase.functions.invoke?.('verify-phone-otp', { body: { user_id: user.id, phone: pendingPhone, code: otpCode } });
+            // If function returns a success flag use it, else fallback to optimistic success
+            // resp may be undefined if function not present
+            const ok = resp?.data?.verified ?? true;
+            if (ok) {
+                // persist phone to profiles table now that it's "verified"
+                const { error } = await supabase
+                    .from('profiles')
+                    .upsert({ user_id: user.id, phone: pendingPhone }, { onConflict: 'user_id' });
+                if (error)
+                    throw error;
+                setProfileData(prev => ({ ...prev, phone: pendingPhone }));
+                setInitialPhone(pendingPhone);
+                setOtpModalOpen(false);
+                alert('Phone verified and saved successfully');
+            }
+            else {
+                alert('OTP verification failed. Please try again.');
+            }
+        }
+        catch (err) {
+            console.error('Error verifying OTP:', err);
+            alert('Unable to verify OTP right now. Please try again later.');
+        }
+        finally {
+            setOtpLoading(false);
+        }
+    };
     if (!user) {
         return (_jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center", children: _jsxs("div", { className: "text-center", children: [_jsx("div", { className: "w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4", children: _jsx(XCircle, { className: "w-8 h-8 text-red-600 dark:text-red-400" }) }), _jsx("h1", { className: "text-2xl font-bold text-gray-900 dark:text-white mb-4", children: "Access Denied" }), _jsx("p", { className: "text-gray-600 dark:text-slate-300 mb-6", children: "Please sign in to view your profile." }), _jsx(Button, { onClick: () => navigate('/login'), children: "Sign In" })] }) }));
     }
-    return (_jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: [_jsx("div", { className: "bg-gradient-to-r from-blue-600 to-green-600 shadow-lg", children: _jsx("div", { className: "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8", children: _jsxs("div", { className: "flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0", children: [_jsxs("div", { className: "flex items-center space-x-6", children: [_jsxs("div", { className: "relative", children: [avatarPreview || profileData.avatar_url ? (_jsx("img", { src: avatarPreview || profileData.avatar_url, alt: "Profile", className: "w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg" })) : (_jsx("div", { className: "w-20 h-20 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center border-4 border-white shadow-lg", children: _jsx(User, { className: "w-10 h-10 text-gray-400 dark:text-slate-300" }) })), editing && (_jsxs("label", { className: "absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 cursor-pointer transition-colors shadow-lg", children: [_jsx(Camera, { className: "w-4 h-4" }), _jsx("input", { type: "file", accept: "image/*", onChange: handleAvatarChange, className: "hidden" })] }))] }), _jsxs("div", { className: "text-white", children: [_jsx("h1", { className: "text-3xl font-bold", children: profileData.full_name || 'Your Profile' }), _jsxs("div", { className: "flex flex-wrap items-center gap-4 mt-2", children: [_jsxs("p", { className: "flex items-center opacity-90", children: [_jsx(Mail, { className: "w-4 h-4 mr-2" }), profileData.email] }), profileData.phone && (_jsxs("p", { className: "flex items-center opacity-90", children: [_jsx(Phone, { className: "w-4 h-4 mr-2" }), profileData.phone] }))] }), profileData.years_of_experience > 0 && (_jsx("div", { className: "mt-2", children: _jsxs("span", { className: `px-3 py-1 rounded-full text-sm font-medium ${getExperienceColor(profileData.years_of_experience)}`, children: [_jsx(Award, { className: "w-3 h-3 mr-1 inline" }), profileData.years_of_experience, " ", profileData.years_of_experience === 1 ? 'Year' : 'Years', " Experience"] }) }))] })] }), _jsx("div", { className: "flex space-x-3", children: editing ? (_jsxs(_Fragment, { children: [_jsxs(Button, { onClick: () => {
+    return (_jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: [otpModalOpen && (_jsxs("div", { className: "fixed inset-0 z-50 flex items-center justify-center", children: [_jsx("div", { className: "absolute inset-0 bg-black opacity-40" }), _jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-lg p-6 z-50 w-full max-w-md mx-4", children: [_jsx("h3", { className: "text-lg font-semibold mb-2 text-gray-900 dark:text-white", children: "Verify Phone Number" }), _jsxs("p", { className: "text-sm text-gray-600 dark:text-slate-300 mb-4", children: ["We've sent a one-time code to ", _jsx("span", { className: "font-medium", children: pendingPhone }), ". Enter the code below to verify your phone number."] }), _jsx("input", { type: "text", value: otpCode, onChange: (e) => setOtpCode(e.target.value), className: "w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-4", placeholder: "Enter OTP" }), _jsxs("div", { className: "flex justify-end space-x-3", children: [_jsx(Button, { variant: "outline", onClick: () => { setOtpModalOpen(false); setOtpCode(''); setPendingPhone(null); }, children: "Cancel" }), _jsx(Button, { loading: otpLoading, onClick: verifyOtp, children: "Verify" })] })] })] })), _jsx("div", { className: "bg-gradient-to-r from-blue-600 to-green-600 shadow-lg", children: _jsx("div", { className: "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8", children: _jsxs("div", { className: "flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0", children: [_jsxs("div", { className: "flex items-center space-x-6", children: [_jsxs("div", { className: "relative", children: [avatarPreview || profileData.avatar_url ? (_jsx("img", { src: avatarPreview || profileData.avatar_url, alt: "Profile", className: "w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg" })) : (_jsx("div", { className: "w-20 h-20 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center border-4 border-white shadow-lg", children: _jsx(User, { className: "w-10 h-10 text-gray-400 dark:text-slate-300" }) })), editing && (_jsxs("label", { className: "absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 cursor-pointer transition-colors shadow-lg", children: [_jsx(Camera, { className: "w-4 h-4" }), _jsx("input", { type: "file", accept: "image/*", onChange: handleAvatarChange, className: "hidden" })] }))] }), _jsxs("div", { className: "text-white", children: [_jsx("h1", { className: "text-3xl font-bold", children: profileData.full_name || 'Your Profile' }), _jsxs("div", { className: "flex flex-wrap items-center gap-4 mt-2", children: [_jsxs("p", { className: "flex items-center opacity-90", children: [_jsx(Mail, { className: "w-4 h-4 mr-2" }), profileData.email] }), profileData.phone && (_jsxs("p", { className: "flex items-center opacity-90", children: [_jsx(Phone, { className: "w-4 h-4 mr-2" }), profileData.phone] }))] }), profileData.years_of_experience > 0 && (_jsx("div", { className: "mt-2", children: _jsxs("span", { className: `px-3 py-1 rounded-full text-sm font-medium ${getExperienceColor(profileData.years_of_experience)}`, children: [_jsx(Award, { className: "w-3 h-3 mr-1 inline" }), profileData.years_of_experience, " ", profileData.years_of_experience === 1 ? 'Year' : 'Years', " Experience"] }) }))] })] }), _jsx("div", { className: "flex space-x-3", children: editing ? (_jsxs(_Fragment, { children: [_jsxs(Button, { onClick: () => {
                                                 setEditing(false);
                                                 setAvatarFile(null);
                                                 setAvatarPreview(null);

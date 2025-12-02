@@ -148,7 +148,7 @@ serve(async (req) => {
         // 1) fetch class assignment (include zoom_meeting for idempotency)
         const { data: cls, error: clsErr } = await supabase
             .from("class_assignments")
-            .select("id, assignment_code, date, start_time, end_time, timezone, class_type_id, instructor_id, zoom_meeting")
+            .select("id, assignment_code, date, start_time, end_time, timezone, class_type_id, instructor_id, zoom_meeting, email_notified, whatsapp_notified")
             .eq("id", classId)
             .single();
         if (clsErr || !cls) return new Response(JSON.stringify({ error: clsErr?.message || "class_assignment not found" }), { status: 404 });
@@ -380,6 +380,11 @@ serve(async (req) => {
         // 9) send notifications: single email per attendee (To includes attendee + instructor), BCC admins
         const sendResults: Array<{ to: string[]; bcc?: string[]; result: any }> = [];
 
+        // If email_notified is already true, skip sending emails
+        if (cls.email_notified) {
+            console.log(`Skipping email sends for class ${classId}: email_notified=true`);
+        } else {
+
         if (attendees.length) {
             for (const a of attendees) {
                 if (!a.email) continue; // skip malformed attendee rows
@@ -432,6 +437,30 @@ serve(async (req) => {
                 });
                 const res = await sendResendEmail(toList, `${ct?.name || 'Class'} — Join details`, bodyHtml, bccList);
                 sendResults.push({ to: toList, bcc: bccList, result: res });
+                // Insert audit rows per recipient for tracking delivery
+                try {
+                    let providerId: string | null = null;
+                    try {
+                        // Resend often returns JSON with an id; attempt parse
+                        const parsed = typeof res.body === 'string' ? JSON.parse(res.body || '{}') : res.body;
+                        providerId = parsed?.id || parsed?.message?.id || null;
+                    } catch (e) { providerId = null; }
+                    for (const rec of toList) {
+                        await supabase.from('message_audit').insert({
+                            class_id: classId,
+                            user_id: a.user_id || a.id || null,
+                            channel: 'email',
+                            recipient: rec,
+                            provider: 'resend',
+                            provider_message_id: providerId,
+                            status: (res && res.ok) ? 'sent' : 'failed',
+                            attempts: 1,
+                            metadata: { status: res?.status, body: res?.body },
+                        });
+                    }
+                } catch (e) {
+                    console.error('Failed to insert message_audit rows for email', e);
+                }
             }
         } else if (instructor?.email) {
             // no attendees — send single host email and CC admins
@@ -459,6 +488,23 @@ serve(async (req) => {
             });
             const res = await sendResendEmail(toList, `${ct?.name || 'Class'} — Host join details`, hostHtml, bccList);
             sendResults.push({ to: toList, bcc: bccList, result: res });
+            try {
+                let providerId: string | null = null;
+                try { const parsed = typeof res.body === 'string' ? JSON.parse(res.body || '{}') : res.body; providerId = parsed?.id || parsed?.message?.id || null; } catch (e) { providerId = null; }
+                for (const rec of toList) {
+                    await supabase.from('message_audit').insert({
+                        class_id: classId,
+                        user_id: instructor?.user_id || instructor?.id || null,
+                        channel: 'email',
+                        recipient: rec,
+                        provider: 'resend',
+                        provider_message_id: providerId,
+                        status: (res && res.ok) ? 'sent' : 'failed',
+                        attempts: 1,
+                        metadata: { status: res?.status, body: res?.body },
+                    });
+                }
+            } catch (e) { console.error('Failed to insert message_audit rows for host email', e); }
         } else {
             // no instructor email found — notify admins only (existing behavior)
             const adminDetails = `
@@ -483,12 +529,75 @@ serve(async (req) => {
                 });
                 const ar = await sendResendEmail([FROM_EMAIL], `Admin: class created (no instructor) — ${ct?.name || 'Class'}`, adminHtml, ADMIN_EMAILS);
                 sendResults.push({ to: [FROM_EMAIL], bcc: ADMIN_EMAILS, result: ar });
+                try {
+                    let providerId: string | null = null;
+                    try { const parsed = typeof ar.body === 'string' ? JSON.parse(ar.body || '{}') : ar.body; providerId = parsed?.id || parsed?.message?.id || null; } catch (e) { providerId = null; }
+                    for (const rec of [FROM_EMAIL]) {
+                        await supabase.from('message_audit').insert({
+                            class_id: classId,
+                            user_id: null,
+                            channel: 'email',
+                            recipient: rec,
+                            provider: 'resend',
+                            provider_message_id: providerId,
+                            status: (ar && ar.ok) ? 'sent' : 'failed',
+                            attempts: 1,
+                            metadata: { status: ar?.status, body: ar?.body },
+                        });
+                    }
+                } catch (e) { console.error('Failed to insert message_audit rows for admin email', e); }
             }
         }
 
 
-        // log aggregated results for easier debugging in Dashboard
-        try { console.log('Resend aggregated results:', JSON.stringify(sendResults)); } catch (e) { }
+            // log aggregated results for easier debugging in Dashboard
+            try { console.log('Resend aggregated results:', JSON.stringify(sendResults)); } catch (e) { }
+
+            // If at least one send succeeded, mark class_assignments.email_notified = true
+            try {
+                const anyEmailOk = sendResults.some(s => s.result && s.result.ok === true);
+                if (anyEmailOk) {
+                    const patchUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/class_assignments?id=eq.${encodeURIComponent(classId)}`;
+                    const patchResp = await fetch(patchUrl, {
+                        method: 'PATCH',
+                        headers: {
+                            apikey: SUPABASE_SERVICE_ROLE_KEY,
+                            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                            'Content-Type': 'application/json',
+                            Prefer: 'return=representation',
+                        },
+                        body: JSON.stringify({ email_notified: true }),
+                    });
+                    if (!patchResp.ok) console.error('Failed to patch class_assignments email_notified', patchResp.status);
+                    else console.log('Marked class_assignments.email_notified = true for', classId);
+                }
+            } catch (e) {
+                console.error('Error patching email_notified flag', e);
+            }
+        }
+
+        // fire-and-forget WhatsApp reminders via separate edge function
+        try {
+            const projectUrl = SUPABASE_URL.replace(/\/$/, "");
+            const whatsappUrl = `${projectUrl}/functions/v1/send-whatsapp-reminder`;
+            const waResp = await fetch(whatsappUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    ...(SCHEDULER_SECRET_HEADER && SCHEDULER_SECRET_TOKEN
+                        ? { [SCHEDULER_SECRET_HEADER]: SCHEDULER_SECRET_TOKEN }
+                        : {}),
+                },
+                body: JSON.stringify({ classId }),
+            });
+            const waText = await waResp.text().catch(() => "");
+            try {
+                console.log("WhatsApp reminder response:", waResp.status, waText);
+            } catch (e) { /* ignore log errors */ }
+        } catch (waErr) {
+            console.error("WhatsApp reminder call failed:", String(waErr));
+        }
 
         return new Response(JSON.stringify({ success: true, zoom: { id: zoomData.id, join_url: zoomData.join_url }, resend: sendResults }), { status: 200 });
     } catch (e) {
