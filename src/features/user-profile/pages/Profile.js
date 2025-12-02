@@ -70,6 +70,7 @@ export function Profile() {
     const [otpLoading, setOtpLoading] = useState(false);
     const [resendSecondsLeft, setResendSecondsLeft] = useState(0);
     const resendIntervalRef = useRef(null);
+    const [phoneConflictMessage, setPhoneConflictMessage] = useState(null);
     const tabs = [
         { id: 'overview', label: 'Overview', icon: User },
         { id: 'bookings', label: 'My Bookings', icon: Calendar },
@@ -366,21 +367,8 @@ export function Profile() {
             if (ENABLE_PHONE_OTP && profileData.phone !== initialPhone) {
                 setPendingPhone(profileData.phone);
                 setOtpModalOpen(true);
-                // Before sending OTP, check if the phone already belongs to another profile
                 try {
-                    const { data: phoneOwner, error: phoneLookupErr } = await supabase
-                        .from('profiles')
-                        .select('user_id,email')
-                        .eq('phone', profileData.phone)
-                        .maybeSingle();
-                    if (phoneLookupErr) {
-                        console.warn('Failed to lookup phone ownership:', phoneLookupErr);
-                    }
-                    if (phoneOwner && phoneOwner.user_id && String(phoneOwner.user_id) !== String(user.id)) {
-                        alert('This phone number is already in use by another account. If this is your phone, sign in with that account or contact support.');
-                        return;
-                    }
-                    // allowed: send OTP and start cooldown timer
+                    // Send OTP and start cooldown timer (allow server to enforce ownership at verify time)
                     await sendOtpRequest(user.id, profileData.phone);
                 }
                 catch (err) {
@@ -445,7 +433,8 @@ export function Profile() {
             if (data && data.verified === false) {
                 const reason = data.reason || data.error || 'verification_failed';
                 if (reason === 'phone_in_use_by_other_account') {
-                    alert('This phone number is already in use by another account. If this is your phone, please sign in with that account or contact support.');
+                    // Show a non-blocking banner on the page indicating the phone is registered elsewhere
+                    setPhoneConflictMessage('This mobile number is already registered with another account. If this is your number, please sign in with that account or contact support.');
                     setOtpModalOpen(false);
                     return;
                 }
@@ -534,7 +523,7 @@ export function Profile() {
                                                 setAvatarFile(null);
                                                 setAvatarPreview(null);
                                                 fetchProfileData(); // Reset form
-                                            }, variant: "outline", size: "sm", className: "bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-white dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600", children: [_jsx(X, { className: "w-4 h-4 mr-2" }), " Cancel"] }), _jsxs(Button, { onClick: handleSaveProfile, loading: loading, size: "sm", className: "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-slate-600", children: [_jsx(Save, { className: "w-4 h-4 mr-2" }), " Save Changes"] })] })) : (_jsxs(Button, { onClick: () => setEditing(true), variant: "outline", size: "sm", className: "bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-white dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600", children: [_jsx(Edit2, { className: "w-4 h-4 mr-2" }), " Edit Profile"] })) })] }) }) }), _jsx("div", { className: "bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700", children: _jsx("div", { className: "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8", children: _jsx("nav", { className: "flex space-x-8", children: tabs.map((tab) => {
+                                            }, variant: "outline", size: "sm", className: "bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-white dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600", children: [_jsx(X, { className: "w-4 h-4 mr-2" }), " Cancel"] }), _jsxs(Button, { onClick: handleSaveProfile, loading: loading, size: "sm", className: "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-slate-600", children: [_jsx(Save, { className: "w-4 h-4 mr-2" }), " Save Changes"] })] })) : (_jsxs(Button, { onClick: () => setEditing(true), variant: "outline", size: "sm", className: "bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-white dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600", children: [_jsx(Edit2, { className: "w-4 h-4 mr-2" }), " Edit Profile"] })) })] }) }) }), phoneConflictMessage && (_jsx("div", { className: "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-4", children: _jsx("div", { className: "rounded-md bg-yellow-50 p-4 border border-yellow-200", children: _jsxs("div", { className: "flex items-start", children: [_jsx("div", { className: "flex-1 text-sm text-yellow-800", children: phoneConflictMessage }), _jsx("div", { className: "ml-4 flex-shrink-0", children: _jsx("button", { onClick: () => setPhoneConflictMessage(null), className: "text-sm text-yellow-700 underline", children: "Dismiss" }) })] }) }) })), _jsx("div", { className: "bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700", children: _jsx("div", { className: "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8", children: _jsx("nav", { className: "flex space-x-8", children: tabs.map((tab) => {
                             const Icon = tab.icon;
                             return (_jsxs("button", { onClick: () => setActiveTab(tab.id), className: `flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
                                     ? 'border-blue-600 text-blue-600 dark:text-blue-400'
