@@ -545,6 +545,19 @@ export function Profile() {
                       {profileData.phone}
                     </p>
                   )}
+                  {/* Quick WhatsApp opt-in visible in header while editing for convenience */}
+                  {editing && (
+                    <label className="flex items-center space-x-2 text-sm text-white opacity-95">
+                      <input
+                        type="checkbox"
+                        name="whatsapp_opt_in"
+                        checked={!!profileData.whatsapp_opt_in}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 rounded border-white bg-white text-blue-600"
+                      />
+                      <span className="leading-tight">Receive WhatsApp updates (class details & reminders)</span>
+                    </label>
+                  )}
                 </div>
                 {profileData.years_of_experience > 0 && (
                   <div className="mt-2">
