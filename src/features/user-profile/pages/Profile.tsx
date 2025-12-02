@@ -57,6 +57,8 @@ export function Profile() {
     // Booleans
     is_active: true,
     profile_completed: false
+    ,
+    whatsapp_opt_in: false
   })
 
   const [errors, setErrors] = useState<any>({})
@@ -65,6 +67,7 @@ export function Profile() {
   // OTP toggle (Vite env): set `VITE_ENABLE_PHONE_OTP=true` to enable phone OTP verification flow
   const ENABLE_PHONE_OTP = import.meta.env.VITE_ENABLE_PHONE_OTP === 'true'
   const [initialPhone, setInitialPhone] = useState('')
+  const [initialWhatsappOptIn, setInitialWhatsappOptIn] = useState(false)
   const [otpModalOpen, setOtpModalOpen] = useState(false)
   const [pendingPhone, setPendingPhone] = useState<string | null>(null)
   const [otpCode, setOtpCode] = useState('')
@@ -190,9 +193,11 @@ export function Profile() {
           availability_schedule: data.availability_schedule || {},
           // Booleans
           is_active: data.is_active ?? true,
-          profile_completed: data.profile_completed ?? false
+          profile_completed: data.profile_completed ?? false,
+          whatsapp_opt_in: data.whatsapp_opt_in ?? false
         })
         setInitialPhone(data.phone || '')
+        setInitialWhatsappOptIn(!!data.whatsapp_opt_in)
       } else {
         setProfileData(prev => ({
           ...prev,
@@ -335,6 +340,8 @@ export function Profile() {
         .eq('user_id', user!.id)
         .maybeSingle()
 
+      const whatsappOptInTs = (profileData.whatsapp_opt_in && !initialWhatsappOptIn) ? new Date().toISOString() : null
+
       const profilePayload = {
         user_id: user!.id,
         full_name: profileData.full_name,
@@ -371,6 +378,8 @@ export function Profile() {
         availability_schedule: profileData.availability_schedule,
         is_active: profileData.is_active,
         profile_completed: profileData.profile_completed,
+        whatsapp_opt_in: profileData.whatsapp_opt_in,
+        whatsapp_opt_in_at: whatsappOptInTs,
         updated_at: new Date().toISOString()
       }
 
@@ -1168,6 +1177,30 @@ export function Profile() {
                           <option value="phone">Phone</option>
                           <option value="sms">SMS</option>
                         </select>
+                      </div>
+
+                      {/* WhatsApp opt-in checkbox */}
+                      <div className="md:col-span-2">
+                        {editing ? (
+                          <label className="flex items-start space-x-3">
+                            <input
+                              type="checkbox"
+                              name="whatsapp_opt_in"
+                              checked={!!profileData.whatsapp_opt_in}
+                              onChange={handleInputChange}
+                              className="mt-2 h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-blue-600"
+                            />
+                            <div>
+                              <div className="text-sm font-medium text-gray-700 dark:text-slate-300">WhatsApp updates</div>
+                              <p className="text-sm text-gray-600 dark:text-slate-300">Only for class details/updates, important reminders, and notifications about new events & promotions. We do not spam.</p>
+                            </div>
+                          </label>
+                        ) : (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">WhatsApp updates</label>
+                            <p className="text-gray-900 dark:text-white py-2">{profileData.whatsapp_opt_in ? 'Subscribed — will receive class details, important reminders, and notifications about events & promotions.' : 'Not subscribed to WhatsApp updates.'}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

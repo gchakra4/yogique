@@ -5,10 +5,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/contexts/AuthContext';
 import { NotificationDropdown } from '../../../features/notifications/components/NotificationDropdown';
 // ...existing imports...
+import { supabase } from '../../../shared/lib/supabase';
 import { Button } from '../ui/Button';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import logoOrange from '/images/Brand-orange.png';
-import { supabase } from '../../../shared/lib/supabase';
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);

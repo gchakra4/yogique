@@ -55,13 +55,15 @@ export function Profile() {
         availability_schedule: {},
         // Booleans
         is_active: true,
-        profile_completed: false
+        profile_completed: false,
+        whatsapp_opt_in: false
     });
     const [errors, setErrors] = useState({});
     const [activeTab, setActiveTab] = useState('overview');
     // OTP toggle (Vite env): set `VITE_ENABLE_PHONE_OTP=true` to enable phone OTP verification flow
     const ENABLE_PHONE_OTP = import.meta.env.VITE_ENABLE_PHONE_OTP === 'true';
     const [initialPhone, setInitialPhone] = useState('');
+    const [initialWhatsappOptIn, setInitialWhatsappOptIn] = useState(false);
     const [otpModalOpen, setOtpModalOpen] = useState(false);
     const [pendingPhone, setPendingPhone] = useState(null);
     const [otpCode, setOtpCode] = useState('');
@@ -179,9 +181,11 @@ export function Profile() {
                     availability_schedule: data.availability_schedule || {},
                     // Booleans
                     is_active: data.is_active ?? true,
-                    profile_completed: data.profile_completed ?? false
+                    profile_completed: data.profile_completed ?? false,
+                    whatsapp_opt_in: data.whatsapp_opt_in ?? false
                 });
                 setInitialPhone(data.phone || '');
+                setInitialWhatsappOptIn(!!data.whatsapp_opt_in);
             }
             else {
                 setProfileData(prev => ({
@@ -315,6 +319,7 @@ export function Profile() {
                 .select('id')
                 .eq('user_id', user.id)
                 .maybeSingle();
+            const whatsappOptInTs = (profileData.whatsapp_opt_in && !initialWhatsappOptIn) ? new Date().toISOString() : null;
             const profilePayload = {
                 user_id: user.id,
                 full_name: profileData.full_name,
@@ -351,6 +356,8 @@ export function Profile() {
                 availability_schedule: profileData.availability_schedule,
                 is_active: profileData.is_active,
                 profile_completed: profileData.profile_completed,
+                whatsapp_opt_in: profileData.whatsapp_opt_in,
+                whatsapp_opt_in_at: whatsappOptInTs,
                 updated_at: new Date().toISOString()
             };
             // If phone changed and OTP verification is enabled, start OTP flow instead of saving directly
@@ -474,5 +481,5 @@ export function Profile() {
                                                                                     specialties: currentSpecialties.filter(s => s !== specialty)
                                                                                 }));
                                                                             }
-                                                                        }, className: "rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400" }), _jsx("span", { className: "text-sm text-gray-700 dark:text-slate-300", children: specialty })] }, specialty))) })] })) : (_jsx("div", { children: _jsx("div", { className: "text-gray-900 dark:text-white py-2", children: renderArray(profileData.specialties, 'No specialties selected') }) }))] }), _jsxs("div", { className: "border-b border-gray-200 dark:border-slate-600 pb-6", children: [_jsx("h3", { className: "text-lg font-medium text-gray-900 dark:text-white mb-4", children: "Privacy Settings" }), editing && (_jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2", children: "Profile Visibility" }), _jsxs("select", { name: "profile_visibility", value: profileData.profile_visibility, onChange: handleInputChange, className: "w-full px-4 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors", children: [_jsx("option", { value: "public", children: "Public" }), _jsx("option", { value: "private", children: "Private" }), _jsx("option", { value: "friends", children: "Friends Only" })] })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2", children: "Preferred Contact Method" }), _jsxs("select", { name: "preferred_contact_method", value: profileData.preferred_contact_method, onChange: handleInputChange, className: "w-full px-4 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors", children: [_jsx("option", { value: "email", children: "Email" }), _jsx("option", { value: "phone", children: "Phone" }), _jsx("option", { value: "sms", children: "SMS" })] })] })] }))] }), _jsxs("div", { children: [_jsx("h3", { className: "text-lg font-medium text-gray-900 dark:text-white mb-4", children: "Danger Zone" }), _jsx("div", { className: "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4", children: _jsxs("div", { className: "flex items-center", children: [_jsx(AlertCircle, { className: "w-5 h-5 text-red-600 dark:text-red-400 mr-3" }), _jsxs("div", { className: "flex-1", children: [_jsx("h4", { className: "text-red-900 dark:text-red-400 font-medium", children: "Delete Account" }), _jsx("p", { className: "text-red-700 dark:text-red-400 text-sm", children: "Once you delete your account, there is no going back. Please be certain." })] }), _jsx(Button, { variant: "outline", className: "border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30", children: "Delete Account" })] }) })] })] })] }) }))] })] }));
+                                                                        }, className: "rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400" }), _jsx("span", { className: "text-sm text-gray-700 dark:text-slate-300", children: specialty })] }, specialty))) })] })) : (_jsx("div", { children: _jsx("div", { className: "text-gray-900 dark:text-white py-2", children: renderArray(profileData.specialties, 'No specialties selected') }) }))] }), _jsxs("div", { className: "border-b border-gray-200 dark:border-slate-600 pb-6", children: [_jsx("h3", { className: "text-lg font-medium text-gray-900 dark:text-white mb-4", children: "Privacy Settings" }), editing && (_jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2", children: "Profile Visibility" }), _jsxs("select", { name: "profile_visibility", value: profileData.profile_visibility, onChange: handleInputChange, className: "w-full px-4 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors", children: [_jsx("option", { value: "public", children: "Public" }), _jsx("option", { value: "private", children: "Private" }), _jsx("option", { value: "friends", children: "Friends Only" })] })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2", children: "Preferred Contact Method" }), _jsxs("select", { name: "preferred_contact_method", value: profileData.preferred_contact_method, onChange: handleInputChange, className: "w-full px-4 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors", children: [_jsx("option", { value: "email", children: "Email" }), _jsx("option", { value: "phone", children: "Phone" }), _jsx("option", { value: "sms", children: "SMS" })] })] }), _jsx("div", { className: "md:col-span-2", children: editing ? (_jsxs("label", { className: "flex items-start space-x-3", children: [_jsx("input", { type: "checkbox", name: "whatsapp_opt_in", checked: !!profileData.whatsapp_opt_in, onChange: handleInputChange, className: "mt-2 h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-blue-600" }), _jsxs("div", { children: [_jsx("div", { className: "text-sm font-medium text-gray-700 dark:text-slate-300", children: "WhatsApp updates" }), _jsx("p", { className: "text-sm text-gray-600 dark:text-slate-300", children: "Only for class details/updates, important reminders, and notifications about new events & promotions. We do not spam." })] })] })) : (_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1", children: "WhatsApp updates" }), _jsx("p", { className: "text-gray-900 dark:text-white py-2", children: profileData.whatsapp_opt_in ? 'Subscribed — will receive class details, important reminders, and notifications about events & promotions.' : 'Not subscribed to WhatsApp updates.' })] })) })] }))] }), _jsxs("div", { children: [_jsx("h3", { className: "text-lg font-medium text-gray-900 dark:text-white mb-4", children: "Danger Zone" }), _jsx("div", { className: "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4", children: _jsxs("div", { className: "flex items-center", children: [_jsx(AlertCircle, { className: "w-5 h-5 text-red-600 dark:text-red-400 mr-3" }), _jsxs("div", { className: "flex-1", children: [_jsx("h4", { className: "text-red-900 dark:text-red-400 font-medium", children: "Delete Account" }), _jsx("p", { className: "text-red-700 dark:text-red-400 text-sm", children: "Once you delete your account, there is no going back. Please be certain." })] }), _jsx(Button, { variant: "outline", className: "border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30", children: "Delete Account" })] }) })] })] })] }) }))] })] }));
 }
