@@ -72,7 +72,6 @@ export function Profile() {
   const [pendingPhone, setPendingPhone] = useState<string | null>(null)
   const [otpCode, setOtpCode] = useState('')
   const [otpLoading, setOtpLoading] = useState(false)
-  const [lastOtpSentAt, setLastOtpSentAt] = useState<string | null>(null)
   const [resendSecondsLeft, setResendSecondsLeft] = useState(0)
   const resendIntervalRef = useRef<number | null>(null)
 
@@ -514,8 +513,6 @@ export function Profile() {
       const data = resp?.data ?? resp
       // if function returned ok true, set last sent time and start cooldown
       if (data && data.ok) {
-        const now = new Date().toISOString()
-        setLastOtpSentAt(now)
         setResendSecondsLeft(60)
         // clear any existing interval
         if (resendIntervalRef.current) {
