@@ -434,26 +434,54 @@ export function Profile() {
     if (!pendingPhone) return
     setOtpLoading(true)
     try {
-      // call Supabase Edge Function `verify-phone-otp` if available
+      // call Supabase Edge Function `verify-phone-otp`
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       const resp = await supabase.functions.invoke?.('verify-phone-otp', { body: { user_id: user!.id, phone: pendingPhone, code: otpCode } })
-      // If function returns a success flag use it, else fallback to optimistic success
-      // resp may be undefined if function not present
-      const ok = resp?.data?.verified ?? true
-      if (ok) {
-        // persist phone to profiles table now that it's "verified"
-        const { error } = await supabase
-          .from('profiles')
-          .upsert({ user_id: user!.id, phone: pendingPhone }, { onConflict: 'user_id' })
-        if (error) throw error
-        setProfileData(prev => ({ ...prev, phone: pendingPhone }))
+
+      // Prefer structured function response when available
+      const data = resp?.data ?? resp
+
+      // Handle responses explicitly
+      if (data && data.verified === true) {
+        // Server verified and (server-side) updated the profile.phone; refresh profile data
+        await fetchProfileData()
         setInitialPhone(pendingPhone)
         setOtpModalOpen(false)
+        setOtpCode('')
+        setPendingPhone(null)
         alert('Phone verified and saved successfully')
-      } else {
-        alert('OTP verification failed. Please try again.')
+        return
       }
+
+      // If function returned a structured reason, surface it to the user
+      if (data && data.verified === false) {
+        const reason = data.reason || data.error || 'verification_failed'
+        if (reason === 'phone_in_use_by_other_account') {
+          alert('This phone number is already in use by another account. If this is your phone, please sign in with that account or contact support.')
+          setOtpModalOpen(false)
+          return
+        }
+        if (reason === 'invalid_code') {
+          alert('The code you entered is incorrect. Please try again.')
+          return
+        }
+        if (reason === 'no_valid_otp') {
+          alert('No valid verification code was found or it expired. Please request a new code.')
+          setOtpModalOpen(false)
+          return
+        }
+        if (reason === 'max_attempts_exceeded') {
+          alert('Maximum verification attempts exceeded. Please request a new code.')
+          setOtpModalOpen(false)
+          return
+        }
+        alert('Verification failed: ' + String(reason))
+        return
+      }
+
+      // Fallback: if no structured response, optimistic success is not safe — show generic error
+      alert('Unable to verify OTP at this time. Please try again later.')
     } catch (err) {
       console.error('Error verifying OTP:', err)
       alert('Unable to verify OTP right now. Please try again later.')
