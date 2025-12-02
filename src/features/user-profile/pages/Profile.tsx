@@ -1,5 +1,5 @@
 import { AlertCircle, Award, Calendar, Camera, CheckCircle, Clock, Edit2, Facebook, FileText, Globe, Instagram, Mail, Phone, Save, User, X, XCircle, Youtube } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
@@ -72,6 +72,9 @@ export function Profile() {
   const [pendingPhone, setPendingPhone] = useState<string | null>(null)
   const [otpCode, setOtpCode] = useState('')
   const [otpLoading, setOtpLoading] = useState(false)
+  const [lastOtpSentAt, setLastOtpSentAt] = useState<string | null>(null)
+  const [resendSecondsLeft, setResendSecondsLeft] = useState(0)
+  const resendIntervalRef = useRef<number | null>(null)
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User },
@@ -387,13 +390,25 @@ export function Profile() {
       if (ENABLE_PHONE_OTP && profileData.phone !== initialPhone) {
         setPendingPhone(profileData.phone)
         setOtpModalOpen(true)
-        // attempt to trigger backend OTP send (optional)
+        // Before sending OTP, check if the phone already belongs to another profile
         try {
-          // call Supabase Edge Function `send-phone-otp` if available
-          // this is best-effort: if function not present, we'll still show modal
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          await supabase.functions.invoke?.('send-phone-otp', { body: { user_id: user!.id, phone: profileData.phone } })
+          const { data: phoneOwner, error: phoneLookupErr } = await supabase
+            .from('profiles')
+            .select('user_id,email')
+            .eq('phone', profileData.phone)
+            .maybeSingle()
+
+          if (phoneLookupErr) {
+            console.warn('Failed to lookup phone ownership:', phoneLookupErr)
+          }
+
+          if (phoneOwner && phoneOwner.user_id && String(phoneOwner.user_id) !== String(user!.id)) {
+            alert('This phone number is already in use by another account. If this is your phone, sign in with that account or contact support.')
+            return
+          }
+
+          // allowed: send OTP and start cooldown timer
+          await sendOtpRequest(user!.id, profileData.phone)
         } catch (err) {
           console.warn('send-phone-otp function not available or failed:', err)
         }
@@ -490,6 +505,42 @@ export function Profile() {
     }
   }
 
+  // Helper to send OTP and start 60s cooldown
+  const sendOtpRequest = async (userId: string, phone: string) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const resp = await supabase.functions.invoke?.('send-phone-otp', { body: { user_id: userId, phone } })
+      const data = resp?.data ?? resp
+      // if function returned ok true, set last sent time and start cooldown
+      if (data && data.ok) {
+        const now = new Date().toISOString()
+        setLastOtpSentAt(now)
+        setResendSecondsLeft(60)
+        // clear any existing interval
+        if (resendIntervalRef.current) {
+          clearInterval(resendIntervalRef.current)
+        }
+        resendIntervalRef.current = setInterval(() => {
+          setResendSecondsLeft(prev => {
+            if (prev <= 1) {
+              if (resendIntervalRef.current) {
+                clearInterval(resendIntervalRef.current)
+                resendIntervalRef.current = null
+              }
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000) as unknown as number
+      }
+      return data
+    } catch (err) {
+      console.error('sendOtpRequest error', err)
+      throw err
+    }
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
@@ -520,6 +571,28 @@ export function Profile() {
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-4"
               placeholder="Enter OTP"
             />
+            <div className="mb-3 text-sm text-gray-600 dark:text-slate-300">
+              {resendSecondsLeft > 0 ? (
+                <div>Didn't receive the code? You can resend in <span className="font-medium">{resendSecondsLeft}s</span>.</div>
+              ) : (
+                <div>Didn't receive the code? <button
+                  className="underline text-blue-600 dark:text-blue-400"
+                  onClick={async () => {
+                    if (!pendingPhone || !user) return
+                    try {
+                      setOtpLoading(true)
+                      await sendOtpRequest(user.id, pendingPhone)
+                      alert('A new code was sent')
+                    } catch (e) {
+                      console.error('Resend failed', e)
+                      alert('Unable to resend code right now')
+                    } finally {
+                      setOtpLoading(false)
+                    }
+                  }}
+                >Resend code</button></div>
+              )}
+            </div>
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={() => { setOtpModalOpen(false); setOtpCode(''); setPendingPhone(null); }}>Cancel</Button>
               <Button loading={otpLoading} onClick={verifyOtp}>Verify</Button>

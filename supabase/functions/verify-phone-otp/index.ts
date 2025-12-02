@@ -24,12 +24,23 @@ function safeEquals(a: string, b: string) {
 function nowIso() { return new Date().toISOString(); }
 
 serve(async (req) => {
+  // CORS headers for browser requests
+  const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  } as Record<string, string>;
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   try {
-    if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+    if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       console.error('Missing SUPABASE env')
-      return new Response(JSON.stringify({ ok: false, error: 'server_misconfigured' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, error: 'server_misconfigured' }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
     const payload = await req.json().catch(() => ({}));
@@ -37,7 +48,7 @@ serve(async (req) => {
     let phone: string = (payload?.phone || '').trim();
     const code = String(payload?.code || '').trim();
 
-    if (!phone || !code) return new Response(JSON.stringify({ ok: false, error: 'missing phone or code' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    if (!phone || !code) return new Response(JSON.stringify({ ok: false, error: 'missing phone or code' }), { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 
     // basic normalization
     phone = phone.replace(/[\s()\-]/g, '');
@@ -48,19 +59,19 @@ serve(async (req) => {
     const otpRes = await fetch(otpUrl, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
     if (!otpRes.ok) {
       console.error('Failed fetching OTP row', otpRes.status);
-      return new Response(JSON.stringify({ ok: false, error: 'otp_lookup_failed' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, error: 'otp_lookup_failed' }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
     const otpRows = await otpRes.json();
     const otpRow = Array.isArray(otpRows) && otpRows.length ? otpRows[0] : null;
     if (!otpRow) {
-      return new Response(JSON.stringify({ ok: false, verified: false, reason: 'no_valid_otp' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, verified: false, reason: 'no_valid_otp' }), { status: 404, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
     const otpId = otpRow.id as string;
     const attempts = Number(otpRow.attempts || 0);
     const MAX_ATTEMPTS = 5;
     if (attempts >= MAX_ATTEMPTS) {
-      return new Response(JSON.stringify({ ok: false, verified: false, reason: 'max_attempts_exceeded' }), { status: 429, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, verified: false, reason: 'max_attempts_exceeded' }), { status: 429, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
     const providedHash = await sha256Hex(code);
@@ -79,7 +90,7 @@ serve(async (req) => {
 
     // compare hash
     if (!safeEquals(providedHash, storedHash)) {
-      return new Response(JSON.stringify({ ok: false, verified: false, reason: 'invalid_code' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, verified: false, reason: 'invalid_code' }), { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
     // Before marking verified, ensure no other profile owns this phone
@@ -88,19 +99,19 @@ serve(async (req) => {
       const pRes = await fetch(profilesUrl, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
       if (!pRes.ok) {
         console.error('profiles lookup failed', pRes.status);
-        return new Response(JSON.stringify({ ok: false, error: 'profiles_lookup_failed' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ ok: false, error: 'profiles_lookup_failed' }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
       }
       const profiles = await pRes.json();
       // if any profile exists with this phone and user_id different from requester -> reject
       if (Array.isArray(profiles) && profiles.length) {
         const conflict = profiles.find((pr: any) => String(pr.user_id) !== String(user_id));
         if (conflict) {
-          return new Response(JSON.stringify({ ok: false, verified: false, reason: 'phone_in_use_by_other_account' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ ok: false, verified: false, reason: 'phone_in_use_by_other_account' }), { status: 409, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
         }
       }
     } catch (e) {
       console.error('profiles uniqueness check failed', e);
-      return new Response(JSON.stringify({ ok: false, error: 'profiles_check_error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, error: 'profiles_check_error' }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
     // Mark OTP row verified
@@ -126,14 +137,14 @@ serve(async (req) => {
         });
       } catch (e) {
         console.error('failed to update profile phone', e);
-        return new Response(JSON.stringify({ ok: false, verified: true, warning: 'profile_update_failed' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ ok: false, verified: true, warning: 'profile_update_failed' }), { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, verified: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: true, verified: true }), { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 
   } catch (err) {
     console.error('unexpected in verify-phone-otp', err);
-    return new Response(JSON.stringify({ ok: false, error: 'internal', details: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: false, error: 'internal', details: String(err) }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
   }
 });

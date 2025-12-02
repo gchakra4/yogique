@@ -44,8 +44,19 @@ async function sendSmsViaTwilio(to: string, body: string) {
 }
 
 serve(async (req) => {
+  // CORS headers for browser requests
+  const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  } as Record<string, string>;
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   try {
-    if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+    if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
 
     // Basic env validation
     const missing: string[] = [];
@@ -56,13 +67,13 @@ serve(async (req) => {
     if (!TWILIO_SMS_FROM) missing.push('TWILIO_SMS_FROM');
     if (missing.length > 0) {
       console.error('Missing env vars:', missing.join(', '));
-      return new Response(JSON.stringify({ ok: false, missing }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, missing }), { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
     const payload = await req.json().catch(() => ({}));
     const user_id = payload?.user_id || null;
     let phone = payload?.phone || '';
-    if (!phone) return new Response(JSON.stringify({ ok: false, error: 'missing phone' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    if (!phone) return new Response(JSON.stringify({ ok: false, error: 'missing phone' }), { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 
     // minimal phone normalization: remove spaces/paren/dashes
     phone = phone.replace(/[\s()-]/g, '');
@@ -74,7 +85,7 @@ serve(async (req) => {
     if (checkRes.ok) {
       const arr = await checkRes.json();
       if (Array.isArray(arr) && arr.length >= 3) {
-        return new Response(JSON.stringify({ ok: false, error: 'rate_limited' }), { status: 429, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ ok: false, error: 'rate_limited' }), { status: 429, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
       }
     }
 
@@ -97,7 +108,7 @@ serve(async (req) => {
     if (!insertRes.ok) {
       const text = await insertRes.text().catch(() => '');
       console.error('Failed to insert OTP row', insertRes.status, text);
-      return new Response(JSON.stringify({ ok: false, error: 'otp_insert_failed' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, error: 'otp_insert_failed' }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
     // Send SMS via Twilio
@@ -105,13 +116,13 @@ serve(async (req) => {
     if (!twResp.ok) {
       console.error('Twilio send failed', twResp.status, twResp.body);
       // don't return the code; but indicate failed to send
-      return new Response(JSON.stringify({ ok: false, error: 'sms_send_failed', details: twResp.body }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: false, error: 'sms_send_failed', details: twResp.body }), { status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
     // Success — do not include the code in response
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('unexpected error in send-phone-otp', err);
-    return new Response(JSON.stringify({ ok: false, error: 'internal', details: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: false, error: 'internal', details: String(err) }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
   }
 });
