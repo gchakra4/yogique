@@ -20,8 +20,8 @@ jobs:
         with:
           node-version: '20'
       - name: Install deps
+        working-directory: tools/scheduler
         run: |
-          cd tools/scheduler
           npm install --no-audit --no-fund
 
       # safe secret presence check (prints only booleans)
@@ -35,6 +35,7 @@ jobs:
           SCHEDULER_SECRET_TOKEN: ${{ secrets.SCHEDULER_SECRET_TOKEN }}
 
       - name: Run scheduler
+        working-directory: tools/scheduler
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -47,4 +48,4 @@ jobs:
           SCHEDULER_SECRET_HEADER: ${{ secrets.SCHEDULER_SECRET_HEADER || '' }}
           SCHEDULER_SECRET_TOKEN: ${{ secrets.SCHEDULER_SECRET_TOKEN || '' }}
         run: |
-          node tools/scheduler/scheduler.js
+          node scheduler.js
