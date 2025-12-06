@@ -63,6 +63,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
     TeachingDashboard,
     Overview,
     AdminClassesOverview,
+    AuditLogs: React.lazy(() => import('./Modules/AuditLogs')),
     InstructorRatesPage: React.lazy(() => import('../../instructor-rates/pages/InstructorRatesPage')),
   };
 

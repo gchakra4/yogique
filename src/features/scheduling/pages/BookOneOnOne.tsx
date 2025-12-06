@@ -1,25 +1,14 @@
 import { Calendar, ChevronDown, ChevronUp, Clock, Mail, Phone, Search, Star, User, Users, Video } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import EmailService from '../../../services/emailService'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
+import { useSettings } from '../../../shared/contexts/SettingsContext'
 import { supabase } from '../../../shared/lib/supabase'
 import { COMMON_TIMEZONES, getUserTimezone } from '../../../shared/utils/timezoneUtils'
 import { useAuth } from '../../auth/contexts/AuthContext'
-
-interface ClassPackage {
-    id: string
-    name: string
-    description: string | null
-    class_count: number
-    price: number
-    validity_days?: number
-    class_type_restrictions: string[] | null
-    is_active?: boolean
-    is_archived: boolean
-    type: string | null
-    duration: string | null
-    course_type: string | null
-}
+import { generateCancelToken } from '../lib/generateCancelToken'
+// Remove erroneous top-level token generation using undefined variables
 
 export function BookOneOnOne() {
     const { user } = useAuth()
@@ -27,6 +16,18 @@ export function BookOneOnOne() {
     const [loading, setLoading] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [bookingId, setBookingId] = useState<string>('')
+    // Local type for class packages
+    interface ClassPackage {
+        id: string
+        name: string
+        price: number
+        class_count: number
+        course_type: 'regular' | 'crash'
+        description?: string
+        duration?: string
+        validity_days?: number
+        class_type_restrictions?: string[]
+    }
     const [classPackages, setClassPackages] = useState<ClassPackage[]>([])
     const [loadingPackages, setLoadingPackages] = useState(true)
     const [packageSearch, setPackageSearch] = useState('')
@@ -320,8 +321,115 @@ export function BookOneOnOne() {
             }
 
             console.log('Successfully inserted:', data)
-            setBookingId(data?.[0]?.booking_id || 'N/A')
+            const bookingIdValue = data?.[0]?.booking_id || 'N/A'
+            setBookingId(bookingIdValue)
             setStep(4) // Success step
+
+            // Send confirmation email to the user with booking ID and package details
+            try {
+                const userName = `${formData.firstName} ${formData.lastName}`.trim() || formData.email
+                const baseUrl = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : ''
+                // Link to user's profile > My Bookings section
+                const actionUrl = `${baseUrl}/profile#my-bookings`
+                const year = new Date().getFullYear()
+
+                const classPackageDetails = selectedPackage ? `${selectedPackage.name} — ₹${selectedPackage.price}` : 'N/A'
+                const classTime = formData.preferredTimes && formData.preferredTimes.length > 0 ? formData.preferredTimes[0] : ''
+                const bookingNotes = formData.healthConditions || formData.specialRequests || ''
+                const timezone = formData.timezone || ''
+                const { settings = {} } = useSettings() || {}
+                const supportContact = settings.business_contact?.email || 'support@yogique.example.com'
+                const policyUrl = `${baseUrl}/terms`
+
+                // Request server-side generation of a one-time cancellation token
+                try {
+                    const tokenResp = await generateCancelToken(bookingIdValue)
+                    const cancelToken = tokenResp?.token || ''
+                    const builtCancelUrl = `${baseUrl}/bookings/${encodeURIComponent(bookingIdValue)}/cancel?token=${cancelToken}`
+                        ; (globalThis as any).__lastCancelUrl = builtCancelUrl
+                } catch (e) {
+                    console.warn('Failed to generate server-side cancel token, falling back to profile link', e)
+                        ; (globalThis as any).__lastCancelUrl = `${baseUrl}/profile#my-bookings`
+                }
+
+                // Your provided HTML template (simple placeholder replacement)
+                const emailHtmlTemplate = `<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Booking Confirmation</title>
+        <style>
+            body { font-family: Arial, sans-serif; background-color: #0f1012; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 40px auto; background: #181818; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
+            .header { background: linear-gradient(135deg, #222222, #000000); color: white; text-align: center; padding: 30px 20px; }
+            .header h1 { margin: 0; font-size: 28px; }
+            .content { padding: 25px 30px; color: #f5f5f5; }
+            .content p { line-height: 1.6; font-size: 16px; }
+            .booking-box { background: #242018; border-left: 5px solid #d9a441; padding: 15px 20px; margin: 20px 0; border-radius: 8px; }
+            .booking-box strong { font-size: 18px; color: #ffd470; }
+            .button { display: inline-block; margin-top: 25px; padding: 14px 24px; background: #d9a441; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
+            .footer { text-align: center; padding: 20px; font-size: 14px; color: #aaaaaa; }
+            @media only screen and (max-width: 480px) { .container { margin: 20px 12px; border-radius: 10px; } .header { padding: 20px 14px; } .header h1 { font-size: 22px; } .content { padding: 18px 16px; } .content p, .booking-box p, ul { font-size: 14px; } .button { display: block; width: 100%; text-align: center; padding: 14px 0; box-sizing: border-box; } }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <img src="https://yourdomain.com/path-to-logo.png" alt="Yogique Logo" style="width:80px; margin-bottom:10px;" />
+                <h1>Yogique – Booking Confirmed</h1>
+            </div>
+            <div class="content">
+                <p>Hi {{user_name}},</p>
+                <p>Thank you for booking with us! We’re excited to have you. Below are your booking details for quick reference.</p>
+                                <div class="booking-box">
+                    <p><strong>Booking ID:</strong> {{booking_id}}</p>
+                    <p><strong>Preferred Start Date:</strong> {{preferred_start_date}}</p>
+                    <p><strong>Preferred Time:</strong> {{class_time}}</p>
+                    <p><strong>Class/Package Details:</strong> {{class_package_details}}</p>
+                    <p><strong>Timezone:</strong> {{timezone}}</p>
+                    <p><strong>Notes / Requests:</strong> {{booking_notes}}</p>
+                </div>
+                <ul style="margin: 20px 0; padding-left: 20px; font-size:16px; line-height:1.6;">
+                    <li>You'll receive a confirmation email within 24 hours</li>
+                    <li>We'll send you the video call link before your session</li>
+                    <li>Our team may call to discuss your specific needs</li>
+                </ul>
+                <p>If you have any questions, feel free to reply to this email or contact us at <a href="mailto:{{support_contact}}" style="color:#ffd470;">{{support_contact}}</a>.</p>
+                <a href="{{action_url}}" class="button">View Your Booking</a>
+                <p style="margin-top:8px; font-size:13px; color:#dddddd;">If you've changed your mind, you can <a href="{{cancel_url}}" style="color:#ffd470;">cancel your booking</a>. Please include a short note when cancelling so our team can follow up.</p>
+                <p style="margin-top:6px; font-size:12px; color:#bbbbbb;">Policy: <a href="{{policy_url}}" style="color:#ffd470;">Terms &amp; Cancellation Policy</a></p>
+            </div>
+            <div class="footer">© {{year}} Sampurnayogam LLP. All rights reserved.<br /><span style="font-size:12px; color:#999; line-height:1.4;">Yogique is a brand operating under the umbrella of Sampurnayogam LLP (a registered company). All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.</span></div>
+        </div>
+    </body>
+</html>`
+
+                const emailHtml = emailHtmlTemplate
+                    .replace(/{{user_name}}/g, userName)
+                    .replace(/{{booking_id}}/g, bookingIdValue)
+                    .replace(/{{preferred_start_date}}/g, formData.startDate || '')
+                    .replace(/{{class_package_details}}/g, classPackageDetails)
+                    .replace(/{{class_time}}/g, classTime)
+                    .replace(/{{support_contact}}/g, supportContact)
+                    .replace(/{{booking_notes}}/g, bookingNotes)
+                    .replace(/{{timezone}}/g, timezone)
+                    .replace(/{{policy_url}}/g, policyUrl)
+                    .replace(/{{cancel_url}}/g, ((globalThis as any).__lastCancelUrl as string) || actionUrl)
+                    .replace(/{{action_url}}/g, actionUrl)
+                    .replace(/{{year}}/g, String(year))
+
+                const subject = `Your Yogique Booking (${bookingIdValue})`
+
+                // Fire-and-forget: don't block the UI if email fails
+                EmailService.sendTransactionalEmail(formData.email, subject, emailHtml)
+                    .then(res => {
+                        if (!res.ok) console.warn('Failed to send booking confirmation email:', res.error)
+                    })
+                    .catch(err => console.error('Error sending booking confirmation email:', err))
+            } catch (emailErr) {
+                console.error('Error while preparing/sending confirmation email:', emailErr)
+            }
         } catch (error: any) {
             console.error('Full error:', error)
             setErrors({ general: error.message || 'An error occurred while booking your session.' })

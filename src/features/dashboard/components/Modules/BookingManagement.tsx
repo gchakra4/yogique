@@ -174,6 +174,29 @@ export function BookingManagement() {
     }
   }
 
+  const handleRevokeToken = async (id: string) => {
+    try {
+      const confirmed = window.confirm('Revoke cancellation token for this booking?')
+      if (!confirmed) return
+
+      // Prompt admin for optional reason (stored in audit log)
+      const reason = window.prompt('Reason for revoking cancel token (optional)') || null
+      // Call server-side revoke function so we don't rely on client DB privileges
+      const payload = { id, reason }
+      const res = await supabase.functions.invoke('revoke-cancel-token', { body: payload })
+
+      if ((res as any).error) {
+        throw (res as any).error
+      }
+
+      setBookings(bookings.map(b => b.id === id ? { ...b, cancel_token: null, cancel_token_expires_at: null } : b))
+      setSuccessMessage('Cancel token revoked')
+      setTimeout(() => setSuccessMessage(''), 3000)
+    } catch (err) {
+      console.error('Error revoking token:', err)
+    }
+  }
+
   const handleUpdateBookingStatus = async (id: string, status: string) => {
     try {
       const { error } = await supabase
@@ -488,6 +511,15 @@ export function BookingManagement() {
                             <X className="w-4 h-4" />
                           </button>
                         )}
+
+                        {/* Revoke cancel token (admin) */}
+                        <button
+                          onClick={() => handleRevokeToken(booking.id)}
+                          className="text-yellow-600 hover:text-yellow-900 p-1"
+                          title="Revoke Cancel Token"
+                        >
+                          <AlertTriangle className="w-4 h-4" />
+                        </button>
 
                         <button
                           onClick={() => setShowConfirmDelete(booking.id)}

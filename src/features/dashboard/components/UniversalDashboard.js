@@ -46,6 +46,7 @@ const UniversalDashboard = ({ user }) => {
         TeachingDashboard,
         Overview,
         AdminClassesOverview,
+        AuditLogs: React.lazy(() => import('./Modules/AuditLogs')),
         InstructorRatesPage: React.lazy(() => import('../../instructor-rates/pages/InstructorRatesPage')),
     };
     // Get the first available module for default tab

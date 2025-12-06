@@ -13,6 +13,7 @@ export const ROLE_MODULES = {
         { id: 'class_type_manager', title: 'Class & Package Manager', component: 'ClassTypeManager', icon: 'layers', order: 12 },
         { id: 'newsletterManagement', title: 'NewsLetter Management', component: 'NewsletterManagement', icon: 'mail', order: 13 },
         { id: 'admin_classes_overview', title: 'Classes Overview', component: 'AdminClassesOverview', icon: 'bar-chart', order: 14 },
+        { id: 'audit_logs', title: 'Audit Logs', component: 'AuditLogs', icon: 'archive', order: 15 },
     ],
     admin: [
         { id: 'overview', title: 'Overview', component: 'Overview', icon: 'dashboard', order: 1 },
@@ -24,7 +25,8 @@ export const ROLE_MODULES = {
         { id: 'article_editing', title: 'Article Editing', component: 'ArticleEditing', icon: 'edit', order: 7 },
         { id: 'forms', title: 'Forms', component: 'Forms', icon: 'file-text', order: 9 },
         { id: 'class_type_manager', title: 'Class & Package Manager', component: 'ClassTypeManager', icon: 'layers', order: 8 },
-        { id: 'admin_classes_overview', title: 'Classes Overview', component: 'AdminClassesOverview', icon: 'bar-chart', order: 15 }
+        { id: 'admin_classes_overview', title: 'Classes Overview', component: 'AdminClassesOverview', icon: 'bar-chart', order: 15 },
+        { id: 'audit_logs', title: 'Audit Logs', component: 'AuditLogs', icon: 'archive', order: 16 }
     ],
     instructor: [
         { id: 'teaching_dashboard', title: 'Teaching Dashboard', component: 'TeachingDashboard', icon: 'graduation-cap', order: 1 },

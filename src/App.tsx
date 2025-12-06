@@ -35,6 +35,7 @@ import { YogaForYou } from './features/marketing/pages/YogaForYou';
 import { BookClass } from './features/scheduling/pages/BookClass';
 import { BookCorporate } from './features/scheduling/pages/BookCorporate';
 import { BookOneOnOne } from './features/scheduling/pages/BookOneOnOne';
+import CancelBookingPage from './features/scheduling/pages/CancelBookingPage';
 import InstructorProfile from './features/scheduling/pages/InstructorProfile';
 import { Schedule } from './features/scheduling/pages/Schedule';
 import { Profile } from './features/user-profile/pages/Profile';
@@ -134,6 +135,7 @@ function AppRoutes() {
                 }
               />
               <Route path="/instructor/:instructorId" element={<InstructorProfile />} />
+              <Route path="/bookings/:bookingId/cancel" element={<CancelBookingPage />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/book/individual" element={<BookOneOnOne />} />
               <Route path="/book/corporate" element={<BookCorporate />} />
