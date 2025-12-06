@@ -13,6 +13,7 @@ export function Profile() {
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState(false)
   const [userBookings, setUserBookings] = useState<any[]>([])
+  const [scheduledBookingIds, setScheduledBookingIds] = useState<Set<string>>(new Set())
   const [userQueries, setUserQueries] = useState<any[]>([])
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -141,6 +142,23 @@ export function Profile() {
   const renderJsonField = (field: any, key: string) => {
     if (!field || typeof field !== 'object') return 'Not provided'
     return field[key] || 'Not provided'
+  }
+
+  const isClassStartInPast = (dateStr?: string, timeStr?: string) => {
+    if (!dateStr || !timeStr) return false
+    try {
+      const isoLike = `${dateStr}T${timeStr}`
+      const dt = new Date(isoLike)
+      if (isNaN(dt.getTime())) {
+        // Fallback: attempt parsing common formats
+        const dt2 = new Date(`${dateStr} ${timeStr}`)
+        if (isNaN(dt2.getTime())) return false
+        return dt2.getTime() < Date.now()
+      }
+      return dt.getTime() < Date.now()
+    } catch {
+      return false
+    }
   }
 
   useEffect(() => {
@@ -287,7 +305,27 @@ export function Profile() {
         console.error('Error fetching bookings:', bookingsResult.error)
         setUserBookings([])
       } else {
-        setUserBookings(bookingsResult.data || [])
+        const bookings = bookingsResult.data || []
+        setUserBookings(bookings)
+        try {
+          const ids = bookings.map((b: any) => String(b.booking_id || b.id)).filter(Boolean)
+          if (ids.length) {
+            const { data: abData, error: abErr } = await supabase
+              .from('assignment_bookings')
+              .select('booking_id')
+              .in('booking_id', ids)
+            if (!abErr && Array.isArray(abData)) {
+              setScheduledBookingIds(new Set(abData.map((r: any) => String(r.booking_id))))
+            } else {
+              setScheduledBookingIds(new Set())
+            }
+          } else {
+            setScheduledBookingIds(new Set())
+          }
+        } catch (e) {
+          console.warn('Failed to fetch assignment bookings linkage', e)
+          setScheduledBookingIds(new Set())
+        }
       }
 
       if (queriesResult.error) {
@@ -1091,7 +1129,14 @@ export function Profile() {
                             </div>
                           )}
                           <div className="mt-4 flex items-center gap-2">
-                            {String(booking.status) !== 'cancelled' && (
+                            {(() => {
+                              const s = String(booking.status || '').toLowerCase()
+                              const isCanceled = s === 'cancelled' || s === 'canceled'
+                              const isCompleted = s === 'completed'
+                              const isScheduled = scheduledBookingIds.has(String(booking.booking_id || booking.id))
+                              const startedInPast = isClassStartInPast(booking.class_date, booking.class_time)
+                              return !isCanceled && !isCompleted && !isScheduled && !startedInPast
+                            })() && (
                               <Button
                                 variant="outline"
                                 onClick={() => navigate(`/bookings/${String(booking.booking_id || booking.id)}/cancel`)}
