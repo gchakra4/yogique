@@ -24,7 +24,7 @@ import { Learning } from './features/learning/pages/Learning';
 import { About } from './features/marketing/pages/About';
 import { Achievements } from './features/marketing/pages/Achievements';
 import { BookLanding } from './features/marketing/pages/BookLanding';
-import { Contact } from './features/marketing/pages/Contact';
+import { Contact } from './features/marketing/pages/Contact.jsx';
 import { Home } from './features/marketing/pages/Home';
 import { Privacy } from './features/marketing/pages/Privacy';
 import { Terms } from './features/marketing/pages/Terms';
