@@ -264,6 +264,42 @@ serve(async (req) => {
             },
             body: JSON.stringify(auditBody),
           });
+
+          // Dual-write: also create a canonical audit_logs entry (best-effort)
+          try {
+            const auditPayload = {
+              event_type: (r && r.ok) ? 'notification_sent' : 'notification_failed',
+              entity_type: 'class',
+              entity_id: String(classId),
+              action: 'send_notification',
+              actor_id: p.user_id || p.id || null,
+              actor_role: null,
+              metadata: {
+                channel: 'whatsapp',
+                recipient: phone,
+                provider: 'twilio',
+                provider_message_id: sid,
+                status: (r && r.ok) ? 'sent' : 'failed',
+                attempts: 1,
+                response_status: r?.status,
+                response_body: r?.body,
+                original_message_metadata: auditBody[0].metadata || null,
+              },
+              created_at: new Date().toISOString(),
+            };
+            await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/audit_logs?on_conflict=constraint:uniq_audit_logs_provider_message_id`, {
+              method: 'POST',
+              headers: {
+                apikey: SUPABASE_KEY,
+                Authorization: `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=ignore-duplicates'
+              },
+              body: JSON.stringify([auditPayload]),
+            });
+          } catch (e) {
+            try { console.error('Failed to insert audit_logs row (whatsapp)', e); } catch (_) {}
+          }
         } catch (e) {
           try { console.error('Failed to insert whatsapp audit row', e); } catch (_) {}
         }

@@ -73,6 +73,32 @@ serve(async (req) => {
         const rows = await rowsRes.json();
         const row = Array.isArray(rows) && rows.length ? rows[0] : null;
         if (row && row.class_id && row.channel) {
+          // Dual-write: record status update in canonical audit_logs (best-effort)
+          try {
+            const auditPayload = {
+              event_type: 'notification_status_updated',
+              entity_type: 'class',
+              entity_id: String(row.class_id),
+              action: 'status_update',
+              actor_id: null,
+              actor_role: null,
+              metadata: {
+                provider_message_id: providerId || null,
+                channel: row.channel || null,
+                status: status || null,
+                last_updated_at: new Date().toISOString(),
+              },
+              created_at: new Date().toISOString(),
+            };
+            await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/audit_logs?on_conflict=constraint:uniq_audit_logs_provider_message_id`, {
+              method: 'POST',
+              headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=ignore-duplicates' },
+              body: JSON.stringify([auditPayload]),
+            });
+          } catch (e) {
+            try { console.error('Failed to insert audit_logs row (resend webhook)', e); } catch (_) {}
+          }
+
           const channel = String(row.channel);
           const deliveredRes = await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/message_audit?select=id&class_id=eq.${encodeURIComponent(row.class_id)}&channel=eq.${encodeURIComponent(channel)}&status=eq.delivered`, {
             headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
