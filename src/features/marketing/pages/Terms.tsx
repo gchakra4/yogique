@@ -74,7 +74,36 @@ export function Terms(): JSX.Element {
                     </section>
 
                     <section className="mt-6">
-                        <h2>8. Contact</h2>
+                        <h2>8. Cancellation &amp; Refund Policy</h2>
+                        <div className="mt-2 text-sm text-gray-700 dark:text-slate-300">
+                            <h3 className="font-semibold">8.1 Monthly Class Packages</h3>
+                            <p className="mt-2 font-semibold">8.1.1 Full Refund Before Start</p>
+                            <p className="mt-1">You may cancel your booking at any time before the first scheduled class of the monthly package. In this case, you are eligible for a 100% refund. The monthly class schedule is published 2 days prior to the first class of the package.</p>
+
+                            <p className="mt-3 font-semibold">8.1.2 Partial Refund After Start</p>
+                            <p className="mt-1">Once the first class of the monthly package has taken place, the following refund rules apply:</p>
+                            <ul className="list-disc ml-5 mt-2">
+                                <li>If you cancel within 7 days from the date of the first class, you will receive a 75% refund.</li>
+                                <li>If you cancel within 15 days from the date of the first class, you will receive a 50% refund.</li>
+                                <li>If you cancel after 15 days from the date of the first class, no refund will be provided.</li>
+                            </ul>
+
+                            <h3 className="font-semibold mt-4">8.2 Crash Courses (Short-Term / Intensive Programs)</h3>
+                            <p className="mt-2">8.2.1 Full Refund Before Start — You may cancel and receive a 100% refund if the cancellation is made before the crash course begins.</p>
+                            <p className="mt-2">8.2.2 No Refund After Start — Due to the short and intensive nature of crash courses, no refunds are offered once the course has started, regardless of attendance or the number of sessions completed or remaining.</p>
+
+                            <h3 className="font-semibold mt-4">8.3 Cancellation Procedure and Refund Timelines</h3>
+                            <div className="mt-2">
+                                <p>To cancel a booking, you must contact Yogique through the official booking channels (website, email, or the method used during booking).</p>
+                                <p className="mt-2">Cancellations must be submitted before the relevant deadlines mentioned above for eligibility.</p>
+                                <p className="mt-2">Approved refunds will be processed within 7–10 business days to the original method of payment.</p>
+                                <p className="mt-2">By booking any package or course, you acknowledge and agree to this Cancellation &amp; Refund Policy.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="mt-6">
+                        <h2>9. Contact</h2>
                         <p className="mt-2 text-sm text-gray-700 dark:text-slate-300">
                             For questions about these Terms, contact us at <a href="mailto:namaste@yogique.life" className="text-emerald-600 dark:text-emerald-400 hover:underline">namaste@yogique.life</a>.
                         </p>
