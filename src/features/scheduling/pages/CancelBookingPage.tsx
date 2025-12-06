@@ -27,14 +27,23 @@ export default function CancelBookingPage() {
             // Use Supabase Functions invoke so the Edge Function receives the payload
             const res = await supabase.functions.invoke('cancel-booking', { body: payload })
             if ((res as any).error) {
-                setMessage(`Cancellation failed: ${(res as any).error.message || JSON.stringify(res)}`)
+                const raw = (res as any).error
+                const lower = String(raw?.message || '').toLowerCase()
+                const userFriendly = lower.includes('non-2xx') || lower.includes('already cancelled') || lower.includes('invalid') || lower.includes('expired')
+                    ? 'This booking is already cancelled or the cancellation link has expired. If you need help, please contact support.'
+                    : 'We could not cancel this booking right now. Please try again or contact support.'
+                setMessage(userFriendly)
             } else {
                 setMessage('Booking cancelled successfully.')
                 // Redirect to profile after short delay
                 setTimeout(() => navigate('/profile#my-bookings'), 1200)
             }
         } catch (err: any) {
-            setMessage('Cancellation failed: ' + (err?.message || String(err)))
+            const lower = String(err?.message || err || '').toLowerCase()
+            const userFriendly = lower.includes('non-2xx') || lower.includes('already cancelled') || lower.includes('invalid') || lower.includes('expired')
+                ? 'This booking is already cancelled or the cancellation link has expired. If you need help, please contact support.'
+                : 'We could not cancel this booking right now. Please try again or contact support.'
+            setMessage(userFriendly)
         } finally {
             setLoading(false)
         }

@@ -1064,7 +1064,7 @@ export function Profile() {
                               <span className="ml-1">{booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span>
                             </span>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-slate-300">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600 dark:text-slate-300">
                             <div className="flex items-center">
                               <Calendar className="w-4 h-4 mr-2" />
                               {formatDate(booking.class_date)}
@@ -1077,6 +1077,10 @@ export function Profile() {
                               <User className="w-4 h-4 mr-2" />
                               {booking.instructor}
                             </div>
+                            <div className="flex items-center">
+                              <FileText className="w-4 h-4 mr-2" />
+                              Booking # {String(booking.booking_id || booking.id || '').toString()}
+                            </div>
                           </div>
                           {booking.special_requests && (
                             <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -1086,6 +1090,16 @@ export function Profile() {
                               </p>
                             </div>
                           )}
+                          <div className="mt-4 flex items-center gap-2">
+                            {String(booking.status) !== 'cancelled' && (
+                              <Button
+                                variant="outline"
+                                onClick={() => navigate(`/bookings/${String(booking.booking_id || booking.id)}/cancel`)}
+                              >
+                                Cancel Booking
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
