@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import EmailService from '../../../services/emailService'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
-import { useSettings } from '../../../shared/contexts/SettingsContext'
+// Avoid using useSettings hook here to prevent invalid hook call when
+// this component is executed in non-render contexts during async flows.
 import { supabase } from '../../../shared/lib/supabase'
 import { COMMON_TIMEZONES, getUserTimezone } from '../../../shared/utils/timezoneUtils'
 import { useAuth } from '../../auth/contexts/AuthContext'
@@ -12,7 +13,26 @@ import { generateCancelToken } from '../lib/generateCancelToken'
 
 export function BookOneOnOne() {
     const { user } = useAuth()
-    const { settings = {} } = useSettings() || {}
+    // Local settings copy used only for email preparation (support contact, etc.)
+    const [localSettings, setLocalSettings] = useState<any>({})
+
+    useEffect(() => {
+        let mounted = true
+        ;(async () => {
+            try {
+                const { data, error } = await supabase.from('business_settings').select('key, value')
+                if (error) throw error
+                if (!mounted) return
+                const mapped: any = {}
+                data?.forEach((r: any) => (mapped[r.key] = r.value))
+                setLocalSettings(mapped)
+            } catch (e) {
+                // fail silently; email will fallback to default support address
+                console.warn('Failed to load local settings for BookOneOnOne:', e)
+            }
+        })()
+        return () => { mounted = false }
+    }, [])
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
@@ -338,7 +358,7 @@ export function BookOneOnOne() {
                 const classTime = formData.preferredTimes && formData.preferredTimes.length > 0 ? formData.preferredTimes[0] : ''
                 const bookingNotes = formData.healthConditions || formData.specialRequests || ''
                 const timezone = formData.timezone || ''
-                const supportContact = settings.business_contact?.email || 'support@yogique.example.com'
+                const supportContact = localSettings.business_contact?.email || 'support@yogique.example.com'
                 const policyUrl = `${baseUrl}/terms`
 
                 // Request server-side generation of a one-time cancellation token
