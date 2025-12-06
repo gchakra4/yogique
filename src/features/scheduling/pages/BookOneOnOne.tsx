@@ -12,6 +12,7 @@ import { generateCancelToken } from '../lib/generateCancelToken'
 
 export function BookOneOnOne() {
     const { user } = useAuth()
+    const { settings = {} } = useSettings() || {}
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
@@ -337,7 +338,6 @@ export function BookOneOnOne() {
                 const classTime = formData.preferredTimes && formData.preferredTimes.length > 0 ? formData.preferredTimes[0] : ''
                 const bookingNotes = formData.healthConditions || formData.specialRequests || ''
                 const timezone = formData.timezone || ''
-                const { settings = {} } = useSettings() || {}
                 const supportContact = settings.business_contact?.email || 'support@yogique.example.com'
                 const policyUrl = `${baseUrl}/terms`
 
