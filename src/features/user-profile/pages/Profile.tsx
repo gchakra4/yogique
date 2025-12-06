@@ -75,6 +75,9 @@ export function Profile() {
 
   const [errors, setErrors] = useState<any>({})
   const [activeTab, setActiveTab] = useState('overview')
+  const [cancelModalBooking, setCancelModalBooking] = useState<any | null>(null)
+  const [canceling, setCanceling] = useState(false)
+  const [cancelSuccessMessage, setCancelSuccessMessage] = useState<string>('')
 
   // OTP toggle (Vite env): set `VITE_ENABLE_PHONE_OTP=true` to enable phone OTP verification flow
   const ENABLE_PHONE_OTP = import.meta.env.VITE_ENABLE_PHONE_OTP === 'true'
@@ -340,6 +343,43 @@ export function Profile() {
       setUserBookings([])
       setUserQueries([])
     } finally {
+      setLoading(false)
+    }
+  }
+
+  // Open cancel confirmation modal (inline) for a booking
+  const handleUserCancel = (booking: any) => {
+    setCancelModalBooking(booking)
+  }
+
+  // Perform the cancellation (called from modal Confirm)
+  const performCancel = async () => {
+    if (!cancelModalBooking) return
+    try {
+      setCanceling(true)
+      setLoading(true)
+      const booking = cancelModalBooking
+      // Call server-side Edge Function to perform RLS-safe cancellation
+      const fnPayload = { booking_id: booking.id || booking.booking_id }
+      const res = await supabase.functions.invoke('user-cancel-booking', { body: fnPayload }) as any
+      // supabase.functions.invoke returns { data, error }
+      if (res.error || (res.data && res.data.ok === false)) {
+        console.error('Failed to cancel booking via edge function:', res.error || res.data)
+        setCancelSuccessMessage('Unable to cancel booking right now. Please try again or contact support.')
+        return
+      }
+
+      // Refresh user's bookings
+      await fetchUserData()
+      setCancelSuccessMessage('Booking cancelled successfully.')
+      // auto-clear after a short delay
+      setTimeout(() => setCancelSuccessMessage(''), 4000)
+      setCancelModalBooking(null)
+    } catch (e) {
+      console.error('Error cancelling booking from profile:', e)
+      setCancelSuccessMessage('Unable to cancel booking right now. Please try again or contact support.')
+    } finally {
+      setCanceling(false)
       setLoading(false)
     }
   }
@@ -801,6 +841,24 @@ export function Profile() {
             </div>
           </div>
         </div>
+        {/* Cancel Confirmation Modal */}
+        {cancelModalBooking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black opacity-40" />
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-6 z-50 w-full max-w-md mx-4">
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Cancel Booking</h3>
+              <p className="text-sm text-gray-600 dark:text-slate-300 mb-4">You're about to cancel the booking <span className="font-mono">{cancelModalBooking.booking_id || cancelModalBooking.id}</span>. This action cannot be undone.</p>
+              <div className="mb-4">
+                <div className="text-sm text-gray-900 font-medium">{cancelModalBooking.class_name}</div>
+                <div className="text-sm text-gray-500">{formatDate(cancelModalBooking.class_date)} • {cancelModalBooking.class_time}</div>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <Button variant="outline" onClick={() => setCancelModalBooking(null)}>Back</Button>
+                <Button className="bg-red-600 hover:bg-red-700" loading={canceling} onClick={performCancel}>Confirm Cancel</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {phoneConflictMessage && (
@@ -1064,6 +1122,14 @@ export function Profile() {
             </div>
           </div>
         )}
+        {cancelSuccessMessage && (
+          <div className="mx-4 mt-4 bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 flex justify-between items-center">
+            <span>{cancelSuccessMessage}</span>
+            <button onClick={() => setCancelSuccessMessage('')}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Bookings Tab */}
         {activeTab === 'bookings' && (
@@ -1140,7 +1206,7 @@ export function Profile() {
                           })() && (
                               <Button
                                 variant="outline"
-                                onClick={() => navigate(`/bookings/${String(booking.booking_id || booking.id)}/cancel`)}
+                                onClick={() => handleUserCancel(booking)}
                               >
                                 Cancel Booking
                               </Button>

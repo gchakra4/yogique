@@ -53,6 +53,12 @@ interface Booking {
   package_type?: string
   booking_notes?: string
   class_packages?: ClassPackage | null // This will contain the joined package data
+  // Optional cancellation fields
+  cancel_token?: string | null
+  cancel_token_expires_at?: string | null
+  user_cancelled?: boolean
+  cancelled_by?: string | null
+  cancelled_at?: string | null
 }
 
 export function BookingManagement() {
@@ -199,20 +205,25 @@ export function BookingManagement() {
 
   const handleUpdateBookingStatus = async (id: string, status: string) => {
     try {
+      // When admin cancels a booking via this action, record cancelled_by = 'admin'
+      const updatePayload: any = { status }
+      if (status === 'cancelled' || status === 'canceled') updatePayload.cancelled_by = 'admin'
+      else updatePayload.cancelled_by = null
+
       const { error } = await supabase
         .from('bookings')
-        .update({ status })
+        .update(updatePayload)
         .eq('id', id)
 
       if (error) throw error
 
       // Update local state
       setBookings(bookings.map(booking =>
-        booking.id === id ? { ...booking, status } : booking
+        booking.id === id ? { ...booking, ...updatePayload } : booking
       ))
 
       if (selectedBooking && selectedBooking.id === id) {
-        setSelectedBooking({ ...selectedBooking, status })
+        setSelectedBooking({ ...selectedBooking, ...updatePayload })
       }
 
       setSuccessMessage(`Booking status updated to ${status}`)
@@ -307,7 +318,17 @@ export function BookingManagement() {
       booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.class_name.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter
+    let matchesStatus = false
+    if (statusFilter === 'all') matchesStatus = true
+    else if (statusFilter === 'user_cancelled') {
+      // user-cancelled: status is cancelled and cancel token is null/expired
+      const s = String(booking.status || '').toLowerCase()
+      const isCancelled = s === 'cancelled' || s === 'canceled'
+      const hasValidToken = !!booking.cancel_token && !!booking.cancel_token_expires_at && new Date(String(booking.cancel_token_expires_at)).getTime() > Date.now()
+      matchesStatus = isCancelled && !hasValidToken
+    } else {
+      matchesStatus = booking.status === statusFilter
+    }
 
     let matchesDate = true
     const bookingDate = new Date(booking.class_date)
@@ -382,6 +403,7 @@ export function BookingManagement() {
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
                 <option value="cancelled">Cancelled</option>
+                <option value="user_cancelled">User Cancelled</option>
                 <option value="completed">Completed</option>
                 <option value="rescheduled">Rescheduled</option>
               </select>

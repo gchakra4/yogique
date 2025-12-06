@@ -56,6 +56,7 @@ serve(async (req) => {
     const body: Record<string, any> = {
       user_cancelled: true,
       cancelled_at: new Date().toISOString(),
+      cancelled_by: 'user',
       cancel_token: null,
       cancel_token_expires_at: null
     }
