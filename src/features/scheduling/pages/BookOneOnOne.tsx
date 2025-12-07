@@ -1,5 +1,5 @@
 import { Calendar, ChevronDown, ChevronUp, Clock, Mail, Phone, Search, Star, User, Users, Video } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import EmailService from '../../../services/emailService'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
@@ -35,6 +35,7 @@ export function BookOneOnOne() {
     }, [])
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
+    const submittingRef = useRef(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [bookingId, setBookingId] = useState<string>('')
     // Local type for class packages
@@ -266,6 +267,13 @@ export function BookOneOnOne() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
+        // Prevent duplicate concurrent submissions
+        if (submittingRef.current) {
+            console.warn('Submission already in progress — ignoring duplicate submit')
+            return
+        }
+        submittingRef.current = true
+
         // Check if user is authenticated
         if (!user) {
             // Save form data and redirect to login
@@ -455,6 +463,7 @@ export function BookOneOnOne() {
             setErrors({ general: error.message || 'An error occurred while booking your session.' })
         } finally {
             setLoading(false)
+            submittingRef.current = false
             console.log('Loading set to false')
         }
     }
@@ -1006,7 +1015,7 @@ export function BookOneOnOne() {
                                 <Button variant="outline" onClick={() => setStep(2)}>
                                     Previous
                                 </Button>
-                                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                                <Button type="submit" loading={loading} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
                                     Submit Booking
                                 </Button>
                             </div>

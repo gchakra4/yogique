@@ -1,5 +1,5 @@
 import { Building, Calendar, ChevronDown, ChevronUp, Clock, Mail, Phone, Search, Star, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../shared/lib/supabase'
@@ -24,6 +24,7 @@ export function BookCorporate() {
     const { user } = useAuth()
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
+    const submittingRef = useRef(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [bookingId, setBookingId] = useState<string>('')
     const [classPackages, setClassPackages] = useState<ClassPackage[]>([])
@@ -262,6 +263,9 @@ export function BookCorporate() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        // Prevent duplicate concurrent submissions
+        if (submittingRef.current) return
+        submittingRef.current = true
 
         // Check if user is authenticated
         if (!user) {
@@ -325,6 +329,7 @@ export function BookCorporate() {
             setErrors({ general: error.message || 'An error occurred while submitting your request.' })
         } finally {
             setLoading(false)
+            submittingRef.current = false
         }
     }
 
@@ -1040,7 +1045,7 @@ export function BookCorporate() {
                                 <Button variant="outline" onClick={() => setStep(2)}>
                                     Previous
                                 </Button>
-                                <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+                                <Button type="submit" loading={loading} disabled={loading} className="bg-purple-600 hover:bg-purple-700">
                                     Submit Request
                                 </Button>
                             </div>
