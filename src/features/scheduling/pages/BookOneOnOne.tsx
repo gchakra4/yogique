@@ -151,6 +151,69 @@ export function BookOneOnOne() {
 
     const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
+    // Tab identifier for cross-tab logging
+    const tabIdKey = 'yq_tab_id'
+    let tabId = sessionStorage.getItem(tabIdKey)
+    if (!tabId) {
+        try {
+            tabId = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join('')
+            sessionStorage.setItem(tabIdKey, tabId)
+        } catch (e) {
+            tabId = `tab-${Date.now()}`
+            try { sessionStorage.setItem(tabIdKey, tabId) } catch { }
+        }
+    }
+
+    // Simple local logging helper (keeps recent logs in localStorage and console)
+    const LOG_KEY = 'yq_booking_logs'
+    function recordLog(type: string, payload: any) {
+        try {
+            const logsRaw = localStorage.getItem(LOG_KEY)
+            const logs = logsRaw ? JSON.parse(logsRaw) : []
+            const entry = { time: new Date().toISOString(), tabId, type, payload }
+            logs.push(entry)
+            // keep last 200 entries
+            const trimmed = logs.slice(-200)
+            localStorage.setItem(LOG_KEY, JSON.stringify(trimmed))
+            // Also mirror to console for easy visibility
+            console.debug('[booking-log]', entry)
+        } catch (err) {
+            console.debug('recordLog failed', err)
+        }
+    }
+
+    // Listen for cross-tab storage changes to observe other tabs' booking activity
+    useEffect(() => {
+        function onStorage(e: StorageEvent) {
+            if (!e.key) return
+            if (e.key === 'lastBookingCreated' || e.key === 'lastBookingPayloadHash') {
+                try {
+                    recordLog('storage-event', { key: e.key, newValue: e.newValue, oldValue: e.oldValue })
+                } catch { }
+            }
+            if (e.key === LOG_KEY) {
+                // ignore
+            }
+        }
+        window.addEventListener('storage', onStorage)
+        let bc: BroadcastChannel | null = null
+        try {
+            if (typeof BroadcastChannel !== 'undefined') {
+                // channel for booking events
+                // @ts-ignore
+                bc = new BroadcastChannel('yq-booking-events')
+                bc.onmessage = (m: any) => recordLog('bc-message', m?.data)
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        return () => {
+            window.removeEventListener('storage', onStorage)
+            try { if (bc) bc.close() } catch { }
+        }
+    }, [])
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
@@ -267,6 +330,13 @@ export function BookOneOnOne() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
+        recordLog('submit-attempt', {
+            selectedPackageId: selectedPackage?.id || null,
+            startDate: formData.startDate,
+            preferredDays: formData.preferredDays,
+            preferredTimes: formData.preferredTimes
+        })
+
         // Prevent duplicate concurrent submissions
         if (submittingRef.current) {
             console.warn('Submission already in progress — ignoring duplicate submit')
@@ -341,6 +411,24 @@ export function BookOneOnOne() {
             console.log('User ID being sent:', user.id)
             console.log('Booking data user_id:', bookingData.user_id)
 
+            // Idempotency guard across tabs: compute a simple payload hash and skip insert
+            try {
+                const payloadHash = JSON.stringify(bookingData)
+                const lastHash = localStorage.getItem('lastBookingPayloadHash')
+                const lastCreated = localStorage.getItem('lastBookingCreated')
+                if (lastHash && lastCreated && lastHash === payloadHash) {
+                    console.info('Detected previous booking with same payload in this browser — skipping duplicate insert')
+                    const parsed = JSON.parse(lastCreated)
+                    setBookingId(parsed.bookingId || 'N/A')
+                    setStep(4)
+                    submittingRef.current = false
+                    setLoading(false)
+                    return
+                }
+            } catch (hashErr) {
+                console.warn('Failed to run idempotency check', hashErr)
+            }
+
             // Defensive pre-check: avoid creating duplicate bookings when user selected multiple days/times
             try {
                 const { data: existing, error: existingErr } = await supabase
@@ -357,6 +445,7 @@ export function BookOneOnOne() {
 
                 if (existing && (existing.status === 'pending' || existing.status === 'confirmed')) {
                     console.info('Found existing booking - skipping insert', existing)
+                    recordLog('skip-insert-found-existing', existing)
                     setBookingId(existing.booking_id || existing.id || 'N/A')
                     setStep(4)
                     submittingRef.current = false
@@ -379,6 +468,15 @@ export function BookOneOnOne() {
 
             console.log('Successfully inserted:', data)
             const bookingIdValue = data?.[0]?.booking_id || 'N/A'
+            recordLog('submit-success', { bookingId: bookingIdValue, response: data })
+            try {
+                // persist payload hash + booking id so other tabs won't re-submit
+                const payloadHash = JSON.stringify(bookingData)
+                localStorage.setItem('lastBookingPayloadHash', payloadHash)
+                localStorage.setItem('lastBookingCreated', JSON.stringify({ bookingId: bookingIdValue, createdAt: Date.now() }))
+            } catch (lsErr) {
+                console.warn('Failed to persist booking idempotency info to localStorage', lsErr)
+            }
             setBookingId(bookingIdValue)
             setStep(4) // Success step
 
@@ -489,6 +587,7 @@ export function BookOneOnOne() {
         } catch (error: any) {
             console.error('Full error:', error)
             setErrors({ general: error.message || 'An error occurred while booking your session.' })
+            recordLog('submit-error', { message: error?.message, stack: String(error) })
         } finally {
             setLoading(false)
             submittingRef.current = false

@@ -54,6 +54,8 @@ serve(async (req) => {
     const url = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/bookings?booking_id=eq.${encodeURIComponent(booking_id)}&cancel_token=eq.${encodeURIComponent(token)}`;
 
     const body: Record<string, any> = {
+      // Mark booking as cancelled and record who cancelled it
+      status: 'cancelled',
       user_cancelled: true,
       cancelled_at: new Date().toISOString(),
       cancelled_by: 'user',
