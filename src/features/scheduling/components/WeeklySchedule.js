@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Award, Calendar, Clock, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../../shared/components/ui/Button';
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner';
@@ -15,11 +15,15 @@ function WeeklyScheduleContent() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [bookingLoading, setBookingLoading] = useState(null);
+    const submittingRef = useRef(false);
     const handleBookClass = async (schedule) => {
         if (!user) {
             navigate('/login?redirect=/schedule');
             return;
         }
+        if (submittingRef.current)
+            return;
+        submittingRef.current = true;
         setBookingLoading(schedule.id);
         try {
             const className = schedule.name || schedule.class_type.name;
@@ -42,6 +46,8 @@ function WeeklyScheduleContent() {
             }
             if (existingBooking) {
                 alert('You already have a booking for this class on this date.');
+                setBookingLoading(null);
+                submittingRef.current = false;
                 return;
             }
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -104,6 +110,7 @@ function WeeklyScheduleContent() {
         }
         finally {
             setBookingLoading(null);
+            submittingRef.current = false;
         }
     };
     if (loading) {
@@ -133,7 +140,7 @@ function WeeklyScheduleContent() {
                                                             experience: 0,
                                                             joinDate: '',
                                                             profileImage: ''
-                                                        }, className: "text-xs font-medium hover:text-blue-600 hover:underline transition-colors" })] }), schedule.class_type.price && (_jsxs("div", { className: "text-blue-600 dark:text-blue-400 font-semibold", children: ["\u20B9", schedule.class_type.price] }))] }), _jsx(Button, { onClick: () => handleBookClass(schedule), loading: bookingLoading === schedule.id, size: "sm", className: "w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2", children: bookingLoading === schedule.id ? 'Booking...' : 'Book Now' })] }, schedule.id))) || (_jsx("div", { className: "text-center text-gray-500 dark:text-gray-400 text-sm py-8", children: "No classes scheduled" })) })] }, day))) }), _jsx("div", { className: "p-6 bg-gray-50 dark:bg-slate-700 border-t border-gray-200 dark:border-slate-600", children: _jsxs("div", { className: "text-center", children: [_jsx("h3", { className: "text-lg font-semibold text-gray-900 dark:text-white mb-2", children: "How Booking Works" }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-slate-300", children: [_jsxs("div", { className: "flex flex-col items-center", children: [_jsx("div", { className: "w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2", children: _jsx("span", { className: "text-white font-semibold", children: "1" }) }), _jsx("p", { className: "text-gray-900 dark:text-white", children: "Click \"Book Now\" on any class" })] }), _jsxs("div", { className: "flex flex-col items-center", children: [_jsx("div", { className: "w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2", children: _jsx("span", { className: "text-white font-semibold", children: "2" }) }), _jsx("p", { className: "text-gray-900 dark:text-white", children: "Sign in to your account" })] }), _jsxs("div", { className: "flex flex-col items-center", children: [_jsx("div", { className: "w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2", children: _jsx("span", { className: "text-white font-semibold", children: "3" }) }), _jsx("p", { className: "text-gray-900 dark:text-white", children: "Get instant confirmation" })] })] }), _jsx("p", { className: "mt-4 text-xs text-gray-500 dark:text-slate-300", children: "* Bookings are made for the next occurrence of the selected class" })] }) })] }));
+                                                        }, className: "text-xs font-medium hover:text-blue-600 hover:underline transition-colors" })] }), schedule.class_type.price && (_jsxs("div", { className: "text-blue-600 dark:text-blue-400 font-semibold", children: ["\u20B9", schedule.class_type.price] }))] }), _jsx(Button, { onClick: () => handleBookClass(schedule), loading: bookingLoading === schedule.id, disabled: bookingLoading === schedule.id, size: "sm", className: "w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2", children: bookingLoading === schedule.id ? 'Booking...' : 'Book Now' })] }, schedule.id))) || (_jsx("div", { className: "text-center text-gray-500 dark:text-gray-400 text-sm py-8", children: "No classes scheduled" })) })] }, day))) }), _jsx("div", { className: "p-6 bg-gray-50 dark:bg-slate-700 border-t border-gray-200 dark:border-slate-600", children: _jsxs("div", { className: "text-center", children: [_jsx("h3", { className: "text-lg font-semibold text-gray-900 dark:text-white mb-2", children: "How Booking Works" }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-slate-300", children: [_jsxs("div", { className: "flex flex-col items-center", children: [_jsx("div", { className: "w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2", children: _jsx("span", { className: "text-white font-semibold", children: "1" }) }), _jsx("p", { className: "text-gray-900 dark:text-white", children: "Click \"Book Now\" on any class" })] }), _jsxs("div", { className: "flex flex-col items-center", children: [_jsx("div", { className: "w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2", children: _jsx("span", { className: "text-white font-semibold", children: "2" }) }), _jsx("p", { className: "text-gray-900 dark:text-white", children: "Sign in to your account" })] }), _jsxs("div", { className: "flex flex-col items-center", children: [_jsx("div", { className: "w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2", children: _jsx("span", { className: "text-white font-semibold", children: "3" }) }), _jsx("p", { className: "text-gray-900 dark:text-white", children: "Get instant confirmation" })] })] }), _jsx("p", { className: "mt-4 text-xs text-gray-500 dark:text-slate-300", children: "* Bookings are made for the next occurrence of the selected class" })] }) })] }));
 }
 // Main component wrapped with InstructorProvider
 export function WeeklySchedule() {

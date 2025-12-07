@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { ChevronLeft, ChevronRight, Clock, Search, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '../../../shared/components/ui/Button';
 import { getCountryList } from '../../../shared/lib/phone';
 import { supabase } from '../../../shared/lib/supabase';
@@ -35,6 +35,7 @@ export function BookClass() {
         '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'
     ];
     const [countries, setCountries] = useState([]);
+    const submittingRef = useRef(false);
     useEffect(() => {
         try {
             const list = getCountryList().map(c => c.name);
@@ -133,8 +134,11 @@ export function BookClass() {
     };
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (submittingRef.current)
+            return;
         if (!validateForm())
             return;
+        submittingRef.current = true;
         setLoading(true);
         try {
             const bookingData = {
@@ -186,6 +190,7 @@ export function BookClass() {
         }
         finally {
             setLoading(false);
+            submittingRef.current = false;
         }
     };
     const canProceedToBooking = selectedDate && selectedTime;
@@ -205,5 +210,5 @@ export function BookClass() {
                                                                 ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-md'
                                                                 : 'border-gray-200 dark:border-slate-600 hover:border-blue-300 dark:border-blue-500'}`, children: _jsxs("div", { className: "flex items-start justify-between", children: [_jsxs("div", { className: "flex-1", children: [_jsx("h4", { className: "font-semibold text-gray-900 dark:text-white mb-1", children: pkg.name }), pkg.description && (_jsx("p", { className: "text-sm text-gray-600 dark:text-white mb-2", children: pkg.description })), _jsxs("div", { className: "flex flex-wrap gap-2 items-center", children: [_jsxs("span", { className: "flex items-center text-xs text-gray-500 dark:text-gray-300", children: [_jsx(Clock, { className: "w-3 h-3 mr-1" }), pkg.duration ? pkg.duration : '60-90 min'] }), _jsxs("span", { className: "flex items-center text-xs text-gray-500 dark:text-gray-300", children: [_jsx(Users, { className: "w-3 h-3 mr-1" }), pkg.class_count, " Sessions"] }), _jsxs("span", { className: "text-sm font-semibold text-green-600", children: ["\u20B9", pkg.price] }), pkg.validity_days && (_jsxs("span", { className: "text-xs text-gray-500 dark:text-gray-300", children: [pkg.validity_days, " Days Validity"] })), pkg.course_type && (_jsx("span", { className: `text-xs px-2 py-1 rounded ${pkg.course_type === 'crash'
                                                                                             ? 'bg-orange-100 text-orange-800'
-                                                                                            : 'bg-green-100 text-green-800'}`, children: pkg.course_type === 'crash' ? 'Crash Course' : 'Regular Course' }))] })] }), selectedPackage?.id === pkg.id && (_jsx("div", { className: "ml-3", children: _jsx("div", { className: "w-5 h-5 bg-blue-50 dark:bg-blue-900/200 rounded-full flex items-center justify-center", children: _jsx("div", { className: "w-2 h-2 bg-white dark:bg-slate-800 rounded-full" }) }) }))] }) }, pkg.id)))) })] })), errors.classType && _jsx("p", { className: "text-red-500 text-sm mt-1", children: errors.classType })] }), _jsxs("div", { children: [_jsx("label", { htmlFor: "timezone", className: "block text-sm font-medium text-gray-700 dark:text-white mb-1", children: "Timezone *" }), _jsxs("select", { id: "timezone", name: "timezone", value: formData.timezone, onChange: handleInputChange, className: `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 ${errors.timezone ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`, children: [_jsx("option", { value: "", children: "Select your timezone" }), COMMON_TIMEZONES.map((tz) => (_jsxs("option", { value: tz.value, children: [tz.label, tz.offset ? ` (${tz.offset})` : ''] }, tz.value)))] }), errors.timezone && _jsx("p", { className: "text-red-500 text-sm mt-1", children: errors.timezone })] }), _jsxs("div", { children: [_jsx("label", { htmlFor: "message", className: "block text-sm font-medium text-gray-700 dark:text-white mb-1", children: "Special Requirements & Goals" }), _jsx("textarea", { id: "message", name: "message", rows: 4, value: formData.message, onChange: handleInputChange, placeholder: "Tell us about your group's experience level, specific goals, occasion details, or any special requirements...", className: "w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400" })] }), _jsx(Button, { type: "submit", loading: loading, className: "w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-all duration-300", children: loading ? 'Confirming Booking...' : 'Confirm Booking' })] })] }) })) })] }));
+                                                                                            : 'bg-green-100 text-green-800'}`, children: pkg.course_type === 'crash' ? 'Crash Course' : 'Regular Course' }))] })] }), selectedPackage?.id === pkg.id && (_jsx("div", { className: "ml-3", children: _jsx("div", { className: "w-5 h-5 bg-blue-50 dark:bg-blue-900/200 rounded-full flex items-center justify-center", children: _jsx("div", { className: "w-2 h-2 bg-white dark:bg-slate-800 rounded-full" }) }) }))] }) }, pkg.id)))) })] })), errors.classType && _jsx("p", { className: "text-red-500 text-sm mt-1", children: errors.classType })] }), _jsxs("div", { children: [_jsx("label", { htmlFor: "timezone", className: "block text-sm font-medium text-gray-700 dark:text-white mb-1", children: "Timezone *" }), _jsxs("select", { id: "timezone", name: "timezone", value: formData.timezone, onChange: handleInputChange, className: `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 ${errors.timezone ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`, children: [_jsx("option", { value: "", children: "Select your timezone" }), COMMON_TIMEZONES.map((tz) => (_jsxs("option", { value: tz.value, children: [tz.label, tz.offset ? ` (${tz.offset})` : ''] }, tz.value)))] }), errors.timezone && _jsx("p", { className: "text-red-500 text-sm mt-1", children: errors.timezone })] }), _jsxs("div", { children: [_jsx("label", { htmlFor: "message", className: "block text-sm font-medium text-gray-700 dark:text-white mb-1", children: "Special Requirements & Goals" }), _jsx("textarea", { id: "message", name: "message", rows: 4, value: formData.message, onChange: handleInputChange, placeholder: "Tell us about your group's experience level, specific goals, occasion details, or any special requirements...", className: "w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400" })] }), _jsx(Button, { type: "submit", loading: loading, disabled: loading, className: "w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-all duration-300", children: loading ? 'Confirming Booking...' : 'Confirm Booking' })] })] }) })) })] }));
 }

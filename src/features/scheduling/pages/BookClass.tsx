@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Clock, Search, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Button } from '../../../shared/components/ui/Button'
 import { getCountryList } from '../../../shared/lib/phone'
 import { supabase } from '../../../shared/lib/supabase'
@@ -53,6 +53,8 @@ export function BookClass() {
   ]
 
   const [countries, setCountries] = useState<string[]>([])
+
+  const submittingRef = useRef(false)
 
   useEffect(() => {
     try {
@@ -164,8 +166,11 @@ export function BookClass() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (submittingRef.current) return
+
     if (!validateForm()) return
 
+    submittingRef.current = true
     setLoading(true)
 
     try {
@@ -220,6 +225,7 @@ export function BookClass() {
       setErrors({ general: error.message || 'An error occurred while booking your class.' })
     } finally {
       setLoading(false)
+      submittingRef.current = false
     }
   }
 
@@ -651,6 +657,7 @@ export function BookClass() {
                 <Button
                   type="submit"
                   loading={loading}
+                  disabled={loading}
                   className="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-all duration-300"
                 >
                   {loading ? 'Confirming Booking...' : 'Confirm Booking'}

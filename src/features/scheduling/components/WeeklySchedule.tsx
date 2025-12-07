@@ -1,5 +1,5 @@
 import { Award, Calendar, Clock, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
@@ -15,6 +15,7 @@ function WeeklyScheduleContent() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [bookingLoading, setBookingLoading] = useState<string | null>(null)
+  const submittingRef = useRef(false)
 
   const handleBookClass = async (schedule: any) => {
     if (!user) {
@@ -22,6 +23,9 @@ function WeeklyScheduleContent() {
       return
     }
 
+    if (submittingRef.current) return
+
+    submittingRef.current = true
     setBookingLoading(schedule.id)
 
     try {
@@ -49,6 +53,8 @@ function WeeklyScheduleContent() {
 
       if (existingBooking) {
         alert('You already have a booking for this class on this date.')
+        setBookingLoading(null)
+        submittingRef.current = false
         return
       }
 
@@ -117,6 +123,7 @@ function WeeklyScheduleContent() {
       alert('Failed to book class. Please try again.')
     } finally {
       setBookingLoading(null)
+      submittingRef.current = false
     }
   }
 
@@ -220,6 +227,7 @@ function WeeklyScheduleContent() {
                   <Button
                     onClick={() => handleBookClass(schedule)}
                     loading={bookingLoading === schedule.id}
+                    disabled={bookingLoading === schedule.id}
                     size="sm"
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2"
                   >
