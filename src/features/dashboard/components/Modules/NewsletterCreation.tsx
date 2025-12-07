@@ -231,6 +231,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
   const [selectedTemplate, setSelectedTemplate] = useState<NewsletterTemplate | null>(null)
   const [templateCategory, setTemplateCategory] = useState<string>('all')
   const [previewTemplate, setPreviewTemplate] = useState<NewsletterTemplate | null>(null)
+  const [simpleMode, setSimpleMode] = useState(true)
   const [newsletterData, setNewsletterData] = useState<NewsletterData>({
     title: editingNewsletter?.title || '',
     subject: editingNewsletter?.subject || '',
@@ -371,6 +372,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
     setSelectedTemplate(template)
     setNewsletterData(prev => ({ ...prev, template: template.id }))
     setCurrentStep('content')
+    setSimpleMode(true)
   }
 
 
@@ -451,11 +453,11 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 md:overflow-visible overflow-x-auto snap-x snap-mandatory pb-2 -mx-3 px-3">
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className="md:border md:border-gray-200 md:rounded-lg overflow-hidden cursor-pointer hover:md:shadow-lg transition relative bg-white md:bg-white"
+              className="md:border md:border-gray-200 md:rounded-lg overflow-hidden cursor-pointer hover:md:shadow-lg transition relative bg-white md:bg-white snap-center min-w-[85%] md:min-w-0"
             >
               <div className="h-48 bg-gray-100 flex items-center justify-center" onClick={() => setPreviewTemplate(template)}>
                 <img
@@ -512,80 +514,162 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
   }
 
   const renderContentStep = () => {
-    // Available block types for drag-and-drop
-    const availableBlocks = [
-      { type: 'text', label: 'Text' },
-      { type: 'image', label: 'Image' },
-      { type: 'button', label: 'Button' },
-      { type: 'divider', label: 'Divider' },
-      { type: 'hero', label: 'Hero (Image + Overlay)' }
-    ]
+    // Advanced drag-and-drop helpers removed in simple-first iteration.
 
-    // Drag handlers
-    const onDragStart = (e, type) => {
-      e.dataTransfer.setData('blockType', type)
-    }
-    const onDrop = (e) => {
-      e.preventDefault()
-      const type = e.dataTransfer.getData('blockType')
-      const id = `block-${blockIdRef.current++}`
-      let content: any = ''
-      if (type === 'text') content = 'New text...'
-      if (type === 'button') content = 'Click Me'
-      if (type === 'divider') content = ''
-      if (type === 'image') content = ''
-      if (type === 'hero') content = {
-        imageUrl: '',
-        title: 'Your headline',
-        text: 'Add a short description here...'
-        ,
-        buttonText: 'Learn More',
-        buttonUrl: '#',
-        align: 'center', // 'left' | 'center' | 'right'
-        overlayHex: '#000000',
-        overlayOpacity: 0.4,
-        textColor: '#ffffff'
-      }
-      setBlocks(prev => [
-        ...prev,
-        { id, type, content, styles: type === 'button' ? { url: '' } : {}, position: prev.length }
-      ])
-    }
-    const onDragOver = (e) => e.preventDefault()
-
-    // Remove block
-    const removeBlock = (id) => setBlocks(prev => prev.filter(b => b.id !== id))
-
-    // Move block up/down
-    const moveBlock = (id, dir) => {
-      setBlocks(prev => {
-        const idx = prev.findIndex(b => b.id === id)
-        if (idx < 0) return prev
-        const newBlocks = [...prev]
-        const swapIdx = dir === 'up' ? idx - 1 : idx + 1
-        if (swapIdx < 0 || swapIdx >= newBlocks.length) return prev
-          ;[newBlocks[idx], newBlocks[swapIdx]] = [newBlocks[swapIdx], newBlocks[idx]]
-        return newBlocks.map((b, i) => ({ ...b, position: i }))
-      })
-    }
-
-    // Update block content
-    const updateBlockContent = (id, value) => {
-      setBlocks(prev => prev.map(b => b.id === id ? { ...b, content: value } : b))
-    }
-    const updateHeroField = (id, key, value) => {
-      setBlocks(prev => prev.map(b => b.id === id ? { ...b, content: { ...b.content, [key]: value } } : b))
-    }
-    // Update arbitrary style properties for a block (e.g., button URL)
-    const updateBlockStyle = (id, key, value) => {
-      setBlocks(prev => prev.map(b => b.id === id ? { ...b, styles: { ...(b.styles || {}), [key]: value } } : b))
-    }
-
+    // Simple mode handled by separate renderer
+    // Advanced mode (drag/drop)
     return (
       <div className="space-y-6">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Create Your Content</h2>
           <p className="text-gray-600 mb-8">Add your newsletter content and details</p>
+        </div>
+
+        <div className="flex justify-end">
+          <button className="text-sm text-blue-600" onClick={() => setSimpleMode(true)}>Switch to Simple Mode</button>
+        </div>
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Add Your Content</h2>
+          <p className="text-gray-600 mb-8">Fill in the fields; no dragging needed</p>
+        </div>
+
+        <div className="bg-white md:border rounded-lg p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={newsletterData.title}
+                onChange={(e) => setNewsletterData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Newsletter title"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={newsletterData.subject}
+                onChange={(e) => setNewsletterData(prev => ({ ...prev, subject: e.target.value }))}
+                placeholder="Email subject"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Preheader (optional)</label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border rounded"
+              value={newsletterData.preheader}
+              onChange={(e) => setNewsletterData(prev => ({ ...prev, preheader: e.target.value }))}
+              placeholder="Short preview text"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Main Content</label>
+            <textarea
+              className="w-full px-3 py-2 border rounded"
+              rows={6}
+              value={newsletterData.content}
+              onChange={(e) => setNewsletterData(prev => ({ ...prev, content: e.target.value }))}
+              placeholder="Write your newsletter..."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Header Image URL</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={newsletterData.customizations.headerImage || ''}
+                onChange={(e) => setNewsletterData(prev => ({ ...prev, customizations: { ...prev.customizations, headerImage: e.target.value } }))}
+                placeholder="https://..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Background Image URL</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={newsletterData.customizations.backgroundImage || ''}
+                onChange={(e) => setNewsletterData(prev => ({ ...prev, customizations: { ...prev.customizations, backgroundImage: e.target.value } }))}
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button Text</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={(blocks.find(b => b.type === 'button')?.content as string) || ''}
+                onChange={(e) => {
+                  const existing = blocks.find(b => b.type === 'button')
+                  if (existing) {
+                    setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, content: e.target.value } : b))
+                  } else {
+                    const id = `block-${blockIdRef.current++}`
+                    setBlocks(prev => [...prev, { id, type: 'button', content: e.target.value, styles: { url: '' }, position: prev.length }])
+                  }
+                }}
+                placeholder="Buy now"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button URL</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={(blocks.find(b => b.type === 'button')?.styles?.url as string) || ''}
+                onChange={(e) => {
+                  const existing = blocks.find(b => b.type === 'button')
+                  if (existing) {
+                    setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, styles: { ...(b.styles || {}), url: e.target.value } } : b))
+                  } else {
+                    const id = `block-${blockIdRef.current++}`
+                    setBlocks(prev => [...prev, { id, type: 'button', content: 'Click', styles: { url: e.target.value }, position: prev.length }])
+                  }
+                }}
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3">
+          <Button variant="outline" onClick={() => setCurrentStep('template')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Templates
+          </Button>
+          <div className="space-x-4">
+            <Button variant="outline" onClick={handleSaveDraft} disabled={loading}>
+              <Save className="w-4 h-4 mr-2" />
+              Save Draft
+            </Button>
+            <Button onClick={() => setCurrentStep('design')} disabled={!newsletterData.title || !newsletterData.content}>
+              Next: Design
+            </Button>
+          </div>
+        </div>
+      </div>
+      </div>
+    )
+  }
+
+  const renderSimpleContentStep = () => {
+    // Simple mode: form fields mapped to template placeholders
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Add Your Content</h2>
+          <p className="text-gray-600 mb-8">Fill in the fields; no dragging needed</p>
         </div>
 
         {/* Basic details to enable Next button */}
@@ -624,191 +708,71 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-          {/* Sidebar: Drag blocks */}
-          <div className="lg:col-span-1 space-y-3 lg:space-y-4">
-            <h4 className="font-semibold mb-2">Blocks</h4>
-            {availableBlocks.map(b => (
-              <div
-                key={b.type}
-                draggable
-                onDragStart={e => onDragStart(e, b.type)}
-                className="md:border rounded px-3 py-3 md:py-2 bg-white shadow-sm cursor-move hover:bg-blue-50"
-              >
-                {b.label}
-              </div>
-            ))}
-          </div>
-          {/* Main: Drop zone and block editor */}
-          <div className="lg:col-span-3 space-y-3 lg:space-y-4">
-            <div
-              className="min-h-32 md:border-2 border-dashed border-blue-300 rounded-lg p-3 md:p-4 bg-white"
-              onDrop={onDrop}
-              onDragOver={onDragOver}
-            >
-              {blocks.length === 0 && (
-                <div className="text-gray-400 text-center py-8">Drag blocks here to build your newsletter</div>
-              )}
-              {blocks.map((block) => (
-                <div key={block.id} className="flex items-start gap-2 mb-3 group md:border rounded p-2 hover:shadow">
-                  <div className="flex-1">
-                    {block.type === 'text' && (
-                      <textarea
-                        className="w-full border rounded px-2 py-1"
-                        value={block.content}
-                        onChange={e => updateBlockContent(block.id, e.target.value)}
-                        placeholder="Text block..."
-                        rows={2}
-                      />
-                    )}
-                    {block.type === 'image' && (
-                      <input
-                        type="text"
-                        className="w-full border rounded px-2 py-1"
-                        value={block.content}
-                        onChange={e => updateBlockContent(block.id, e.target.value)}
-                        placeholder="Paste image URL..."
-                      />
-                    )}
-                    {block.type === 'button' && (
-                      <>
-                        <input
-                          type="text"
-                          className="w-full border rounded px-2 py-1 mb-2"
-                          value={block.content}
-                          onChange={e => updateBlockContent(block.id, e.target.value)}
-                          placeholder="Button text..."
-                        />
-                        <input
-                          type="text"
-                          className="w-full border rounded px-2 py-1"
-                          value={(block.styles && block.styles.url) || ''}
-                          onChange={e => updateBlockStyle(block.id, 'url', e.target.value)}
-                          placeholder="Button URL (https://...)"
-                        />
-                      </>
-                    )}
-                    {block.type === 'divider' && (
-                      <div className="w-full border-t border-gray-300 my-2" />
-                    )}
-                    {block.type === 'hero' && (
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-xs text-gray-600">Image URL</label>
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={block.content?.imageUrl || ''}
-                              onChange={e => updateHeroField(block.id, 'imageUrl', e.target.value)}
-                              placeholder="https://..."
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-600">Text color</label>
-                            <input
-                              type="color"
-                              className="w-full h-9 border rounded"
-                              value={block.content?.textColor || '#ffffff'}
-                              onChange={e => updateHeroField(block.id, 'textColor', e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-xs text-gray-600">Overlay color</label>
-                            <input
-                              type="color"
-                              className="w-full h-9 border rounded"
-                              value={block.content?.overlayHex || '#000000'}
-                              onChange={e => updateHeroField(block.id, 'overlayHex', e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-600">Overlay opacity ({Math.round((block.content?.overlayOpacity ?? 0.4) * 100)}%)</label>
-                            <input
-                              type="range"
-                              min={0}
-                              max={0.9}
-                              step={0.05}
-                              value={block.content?.overlayOpacity ?? 0.4}
-                              onChange={e => updateHeroField(block.id, 'overlayOpacity', parseFloat(e.target.value))}
-                              className="w-full"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                          <div className="md:col-span-3">
-                            <label className="text-xs text-gray-600">Title</label>
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={block.content?.title || ''}
-                              onChange={e => updateHeroField(block.id, 'title', e.target.value)}
-                              placeholder="Headline..."
-                            />
-                          </div>
-                          <div className="md:col-span-3">
-                            <label className="text-xs text-gray-600">Text</label>
-                            <textarea
-                              className="w-full border rounded px-2 py-1"
-                              rows={3}
-                              value={block.content?.text || ''}
-                              onChange={e => updateHeroField(block.id, 'text', e.target.value)}
-                              placeholder="Short description..."
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-600">Button text</label>
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={block.content?.buttonText || ''}
-                              onChange={e => updateHeroField(block.id, 'buttonText', e.target.value)}
-                              placeholder="Learn more"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-600">Button link</label>
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1"
-                              value={block.content?.buttonUrl || ''}
-                              onChange={e => updateHeroField(block.id, 'buttonUrl', e.target.value)}
-                              placeholder="https://..."
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-600">Align</label>
-                            <select
-                              className="w-full border rounded px-2 py-1"
-                              value={block.content?.align || 'center'}
-                              onChange={e => updateHeroField(block.id, 'align', e.target.value)}
-                            >
-                              <option value="left">Left</option>
-                              <option value="center">Center</option>
-                              <option value="right">Right</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition">
-                    <button type="button" className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200" onClick={() => moveBlock(block.id, 'up')}>↑</button>
-                    <button type="button" className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200" onClick={() => moveBlock(block.id, 'down')}>↓</button>
-                    <button type="button" className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200" onClick={() => removeBlock(block.id)}>✕</button>
-                  </div>
-                </div>
-              ))}
+        {/* Simple CTA and images */}
+        <div className="bg-white md:border rounded-lg p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Header Image URL</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={newsletterData.customizations.headerImage || ''}
+                onChange={(e) => setNewsletterData(prev => ({ ...prev, customizations: { ...prev.customizations, headerImage: e.target.value } }))}
+                placeholder="https://..."
+              />
             </div>
-            <div className="bg-gray-50 md:border rounded p-3 md:p-4 mt-4 overflow-x-hidden">
-              <h4 className="font-semibold mb-2">Live Preview</h4>
-              <div dangerouslySetInnerHTML={{ __html: serializeBlocks() || '<div class="text-gray-400">No content yet</div>' }} />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Background Image URL</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={newsletterData.customizations.backgroundImage || ''}
+                onChange={(e) => setNewsletterData(prev => ({ ...prev, customizations: { ...prev.customizations, backgroundImage: e.target.value } }))}
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button Text</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={(blocks.find(b => b.type === 'button')?.content as string) || ''}
+                onChange={(e) => {
+                  const existing = blocks.find(b => b.type === 'button')
+                  if (existing) {
+                    setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, content: e.target.value } : b))
+                  } else {
+                    const id = `block-${blockIdRef.current++}`
+                    setBlocks(prev => [...prev, { id, type: 'button', content: e.target.value, styles: { url: '' }, position: prev.length }])
+                  }
+                }}
+                placeholder="Buy now"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button URL</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded"
+                value={(blocks.find(b => b.type === 'button')?.styles?.url as string) || ''}
+                onChange={(e) => {
+                  const existing = blocks.find(b => b.type === 'button')
+                  if (existing) {
+                    setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, styles: { ...(b.styles || {}), url: e.target.value } } : b))
+                  } else {
+                    const id = `block-${blockIdRef.current++}`
+                    setBlocks(prev => [...prev, { id, type: 'button', content: 'Click', styles: { url: e.target.value }, position: prev.length }])
+                  }
+                }}
+                placeholder="https://..."
+              />
             </div>
           </div>
         </div>
-        <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3 px-2 md:px-0 mt-2 md:mt-0">
+
+        <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3">
           <Button variant="outline" onClick={() => setCurrentStep('template')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Templates
@@ -818,7 +782,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
               <Save className="w-4 h-4 mr-2" />
               Save Draft
             </Button>
-            <Button onClick={() => setCurrentStep('design')} disabled={!newsletterData.title || blocks.length === 0}>
+            <Button onClick={() => setCurrentStep('design')} disabled={!newsletterData.title || !newsletterData.content}>
               Next: Design
             </Button>
           </div>
@@ -832,6 +796,12 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-900 mb-4">Customize Design</h2>
         <p className="text-gray-600 mb-8">Personalize colors and styling</p>
+      </div>
+
+      <div className="flex justify-end">
+        <button className="text-sm text-blue-600" onClick={() => setSimpleMode(!simpleMode)}>
+          {simpleMode ? 'Switch to Advanced Mode' : 'Switch to Simple Mode'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
@@ -1168,9 +1138,30 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         )}
 
         {currentStep === 'template' && renderTemplateStep()}
-        {currentStep === 'content' && renderContentStep()}
+        {currentStep === 'content' && (simpleMode ? renderSimpleContentStep() : renderContentStep())}
         {currentStep === 'design' && renderDesignStep()}
         {currentStep === 'preview' && renderPreviewStep()}
+      </div>
+
+      {/* Mobile bottom nav for wizard steps */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden">
+        <div className="flex items-center justify-between">
+          {[
+            { id: 'template', label: 'Templates', icon: '🖼️' },
+            { id: 'content', label: 'Content', icon: '✍️' },
+            { id: 'design', label: 'Design', icon: '🎨' },
+            { id: 'preview', label: 'Preview', icon: '👁️' },
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => setCurrentStep(item.id as any)}
+              className={`flex flex-col items-center text-xs ${currentStep === item.id ? 'text-blue-600' : 'text-gray-600'}`}
+            >
+              <span className="text-lg">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
