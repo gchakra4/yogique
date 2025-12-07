@@ -528,137 +528,137 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         <div className="flex justify-end">
           <button className="text-sm text-blue-600" onClick={() => setSimpleMode(true)}>Switch to Simple Mode</button>
         </div>
-      <div className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Add Your Content</h2>
-          <p className="text-gray-600 mb-8">Fill in the fields; no dragging needed</p>
-        </div>
+        <div className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Add Your Content</h2>
+            <p className="text-gray-600 mb-8">Fill in the fields; no dragging needed</p>
+          </div>
 
-        <div className="bg-white md:border rounded-lg p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white md:border rounded-lg p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded"
+                  value={newsletterData.title}
+                  onChange={(e) => setNewsletterData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Newsletter title"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded"
+                  value={newsletterData.subject}
+                  onChange={(e) => setNewsletterData(prev => ({ ...prev, subject: e.target.value }))}
+                  placeholder="Email subject"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Preheader (optional)</label>
               <input
                 type="text"
                 className="w-full px-3 py-2 border rounded"
-                value={newsletterData.title}
-                onChange={(e) => setNewsletterData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Newsletter title"
+                value={newsletterData.preheader}
+                onChange={(e) => setNewsletterData(prev => ({ ...prev, preheader: e.target.value }))}
+                placeholder="Short preview text"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-              <input
-                type="text"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Main Content</label>
+              <textarea
                 className="w-full px-3 py-2 border rounded"
-                value={newsletterData.subject}
-                onChange={(e) => setNewsletterData(prev => ({ ...prev, subject: e.target.value }))}
-                placeholder="Email subject"
+                rows={6}
+                value={newsletterData.content}
+                onChange={(e) => setNewsletterData(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Write your newsletter..."
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Header Image URL</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded"
+                  value={newsletterData.customizations.headerImage || ''}
+                  onChange={(e) => setNewsletterData(prev => ({ ...prev, customizations: { ...prev.customizations, headerImage: e.target.value } }))}
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Background Image URL</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded"
+                  value={newsletterData.customizations.backgroundImage || ''}
+                  onChange={(e) => setNewsletterData(prev => ({ ...prev, customizations: { ...prev.customizations, backgroundImage: e.target.value } }))}
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button Text</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded"
+                  value={(blocks.find(b => b.type === 'button')?.content as string) || ''}
+                  onChange={(e) => {
+                    const existing = blocks.find(b => b.type === 'button')
+                    if (existing) {
+                      setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, content: e.target.value } : b))
+                    } else {
+                      const id = `block-${blockIdRef.current++}`
+                      setBlocks(prev => [...prev, { id, type: 'button', content: e.target.value, styles: { url: '' }, position: prev.length }])
+                    }
+                  }}
+                  placeholder="Buy now"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button URL</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded"
+                  value={(blocks.find(b => b.type === 'button')?.styles?.url as string) || ''}
+                  onChange={(e) => {
+                    const existing = blocks.find(b => b.type === 'button')
+                    if (existing) {
+                      setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, styles: { ...(b.styles || {}), url: e.target.value } } : b))
+                    } else {
+                      const id = `block-${blockIdRef.current++}`
+                      setBlocks(prev => [...prev, { id, type: 'button', content: 'Click', styles: { url: e.target.value }, position: prev.length }])
+                    }
+                  }}
+                  placeholder="https://..."
+                />
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Preheader (optional)</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border rounded"
-              value={newsletterData.preheader}
-              onChange={(e) => setNewsletterData(prev => ({ ...prev, preheader: e.target.value }))}
-              placeholder="Short preview text"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Main Content</label>
-            <textarea
-              className="w-full px-3 py-2 border rounded"
-              rows={6}
-              value={newsletterData.content}
-              onChange={(e) => setNewsletterData(prev => ({ ...prev, content: e.target.value }))}
-              placeholder="Write your newsletter..."
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Header Image URL</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border rounded"
-                value={newsletterData.customizations.headerImage || ''}
-                onChange={(e) => setNewsletterData(prev => ({ ...prev, customizations: { ...prev.customizations, headerImage: e.target.value } }))}
-                placeholder="https://..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Background Image URL</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border rounded"
-                value={newsletterData.customizations.backgroundImage || ''}
-                onChange={(e) => setNewsletterData(prev => ({ ...prev, customizations: { ...prev.customizations, backgroundImage: e.target.value } }))}
-                placeholder="https://..."
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button Text</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border rounded"
-                value={(blocks.find(b => b.type === 'button')?.content as string) || ''}
-                onChange={(e) => {
-                  const existing = blocks.find(b => b.type === 'button')
-                  if (existing) {
-                    setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, content: e.target.value } : b))
-                  } else {
-                    const id = `block-${blockIdRef.current++}`
-                    setBlocks(prev => [...prev, { id, type: 'button', content: e.target.value, styles: { url: '' }, position: prev.length }])
-                  }
-                }}
-                placeholder="Buy now"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button URL</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border rounded"
-                value={(blocks.find(b => b.type === 'button')?.styles?.url as string) || ''}
-                onChange={(e) => {
-                  const existing = blocks.find(b => b.type === 'button')
-                  if (existing) {
-                    setBlocks(prev => prev.map(b => b.id === existing.id ? { ...b, styles: { ...(b.styles || {}), url: e.target.value } } : b))
-                  } else {
-                    const id = `block-${blockIdRef.current++}`
-                    setBlocks(prev => [...prev, { id, type: 'button', content: 'Click', styles: { url: e.target.value }, position: prev.length }])
-                  }
-                }}
-                placeholder="https://..."
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3">
-          <Button variant="outline" onClick={() => setCurrentStep('template')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Templates
-          </Button>
-          <div className="space-x-4">
-            <Button variant="outline" onClick={handleSaveDraft} disabled={loading}>
-              <Save className="w-4 h-4 mr-2" />
-              Save Draft
+          <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3">
+            <Button variant="outline" onClick={() => setCurrentStep('template')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Templates
             </Button>
-            <Button onClick={() => setCurrentStep('design')} disabled={!newsletterData.title || !newsletterData.content}>
-              Next: Design
-            </Button>
+            <div className="space-x-4">
+              <Button variant="outline" onClick={handleSaveDraft} disabled={loading}>
+                <Save className="w-4 h-4 mr-2" />
+                Save Draft
+              </Button>
+              <Button onClick={() => setCurrentStep('design')} disabled={!newsletterData.title || !newsletterData.content}>
+                Next: Design
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
       </div>
     )
   }
