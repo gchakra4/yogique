@@ -329,7 +329,7 @@ export function Contact() {
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Quick Links</h3>
                   <div className="space-y-2">
-                    <a href="/book-class" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
+                    <a href="https://yogique.life/yogique-for-you" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm" target="_blank" rel="noopener noreferrer">
                       Book a Session
                     </a>
                     <a href="/yogique-for-you" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">

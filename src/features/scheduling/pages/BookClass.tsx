@@ -52,6 +52,34 @@ export function BookClass() {
     '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'
   ]
 
+  // Cross-tab id and lightweight local logging (used for idempotency diagnostics)
+  const tabIdKey = 'yq_tab_id'
+  let tabId = sessionStorage.getItem(tabIdKey)
+  if (!tabId) {
+    try {
+      tabId = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join('')
+      sessionStorage.setItem(tabIdKey, tabId)
+    } catch (e) {
+      tabId = `tab-${Date.now()}`
+      try { sessionStorage.setItem(tabIdKey, tabId) } catch { }
+    }
+  }
+
+  const LOG_KEY = 'yq_booking_logs'
+  function recordLog(type: string, payload: any) {
+    try {
+      const logsRaw = localStorage.getItem(LOG_KEY)
+      const logs = logsRaw ? JSON.parse(logsRaw) : []
+      const entry = { time: new Date().toISOString(), tabId, type, payload }
+      logs.push(entry)
+      const trimmed = logs.slice(-200)
+      localStorage.setItem(LOG_KEY, JSON.stringify(trimmed))
+      console.debug('[booking-log]', entry)
+    } catch (err) {
+      console.debug('recordLog failed', err)
+    }
+  }
+
   const [countries, setCountries] = useState<string[]>([])
 
   const submittingRef = useRef(false)
@@ -194,6 +222,57 @@ export function BookClass() {
         class_package_id: selectedPackage?.id || null
       }
 
+      recordLog('submit-attempt', { packageId: selectedPackage?.id || null, class_date: selectedDate, class_time: selectedTime })
+
+      // Idempotency guard across tabs: compute a simple payload hash and skip insert
+      try {
+        const payloadHash = JSON.stringify({ user_id: user?.id || null, class_date: selectedDate, class_time: selectedTime, class_package_id: selectedPackage?.id || null })
+        const lastHash = localStorage.getItem('lastBookingPayloadHash')
+        const lastCreated = localStorage.getItem('lastBookingCreated')
+        if (lastHash && lastCreated && lastHash === payloadHash) {
+          console.info('Detected previous booking with same payload in this browser — skipping duplicate insert')
+          const parsed = JSON.parse(lastCreated)
+          setBookingId(parsed.bookingId || 'N/A')
+          setShowBookingForm(false)
+          setShowConfirmation(true)
+          submittingRef.current = false
+          setLoading(false)
+          return
+        }
+      } catch (hashErr) {
+        console.warn('Failed to run idempotency check', hashErr)
+      }
+
+      // Defensive pre-check: avoid creating duplicate bookings when user selected multiple days/times
+      try {
+        if (user?.id) {
+          const { data: existing, error: existingErr } = await supabase
+            .from('bookings')
+            .select('id,booking_id,status')
+            .eq('user_id', user.id)
+            .eq('class_date', selectedDate)
+            .eq('class_time', selectedTime)
+            .eq('class_package_id', selectedPackage?.id || null)
+            .limit(1)
+            .maybeSingle()
+
+          if (existingErr) console.warn('Error checking for existing booking', existingErr)
+
+          if (existing && (existing.status === 'pending' || existing.status === 'confirmed')) {
+            console.info('Found existing booking - skipping insert', existing)
+            recordLog('skip-insert-found-existing', existing)
+            setBookingId(existing.booking_id || existing.id || 'N/A')
+            setShowBookingForm(false)
+            setShowConfirmation(true)
+            submittingRef.current = false
+            setLoading(false)
+            return
+          }
+        }
+      } catch (checkErr) {
+        console.warn('Failed to run pre-insert booking check', checkErr)
+      }
+
       const { data: bookingResult, error } = await supabase
         .from('bookings')
         .insert([bookingData])
@@ -204,6 +283,25 @@ export function BookClass() {
       }
 
       const bookingId = bookingResult?.[0]?.booking_id || 'N/A'
+
+      // persist payload hash + booking id so other tabs won't re-submit
+      try {
+        const payloadHash = JSON.stringify({ user_id: user?.id || null, class_date: selectedDate, class_time: selectedTime, class_package_id: selectedPackage?.id || null })
+        localStorage.setItem('lastBookingPayloadHash', payloadHash)
+        localStorage.setItem('lastBookingCreated', JSON.stringify({ bookingId, createdAt: Date.now() }))
+      } catch (lsErr) {
+        console.warn('Failed to persist booking idempotency info to localStorage', lsErr)
+      }
+
+      // Broadcast booking creation to other tabs/windows
+      try {
+        // @ts-ignore
+        const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('yq-booking-events') : null
+        bc?.postMessage({ type: 'booking-created', bookingId, context: 'private_group' })
+        try { bc?.close() } catch { }
+      } catch (bcErr) {
+        console.debug('BroadcastChannel not available or failed', bcErr)
+      }
 
       // Reset form and show success
       setFormData({

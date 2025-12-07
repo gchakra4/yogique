@@ -14,7 +14,7 @@ export function BookLanding() {
             icon: _jsx(Users, { className: "w-10 h-10 text-emerald-600" }),
             title: 'Group Class',
             description: 'Practice with a supportive community and shared energy.',
-            to: '/book-class'
+            to: 'https://yogique.life/yogique-for-you'
         },
         {
             icon: _jsx(Building, { className: "w-10 h-10 text-purple-600" }),

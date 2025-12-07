@@ -61,7 +61,7 @@ export function Home() {
             title: "Online Group Sessions",
             description: "Build consistency with like-minded professionals",
             features: ["Small group classes", "Community support", "Regular schedule", "Affordable pricing"],
-            route: "/book-class"
+            route: "https://yogique.life/yogique-for-you"
         },
         {
             icon: _jsx(Building, { className: "w-12 h-12 text-orange-500 dark:text-orange-400" }),

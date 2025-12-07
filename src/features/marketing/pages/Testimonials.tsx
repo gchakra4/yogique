@@ -201,7 +201,7 @@ export function Testimonials() {
             Your wellness journey starts with a single session.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/book-class" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300 hover:scale-105 inline-block">
+            <a href="https://yogique.life/yogique-for-you" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300 hover:scale-105 inline-block" target="_blank" rel="noopener noreferrer">
               Start Your Journey
             </a>
             <a href="/contact" className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300 inline-block">

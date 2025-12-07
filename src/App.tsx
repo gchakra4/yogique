@@ -32,7 +32,6 @@ import { Terms } from './features/marketing/pages/Terms';
 import { Testimonials } from './features/marketing/pages/Testimonials';
 import Unsubscribe from './features/marketing/pages/Unsubscribe';
 import { YogaForYou } from './features/marketing/pages/YogaForYou';
-import { BookClass } from './features/scheduling/pages/BookClass';
 import { BookCorporate } from './features/scheduling/pages/BookCorporate';
 import { BookOneOnOne } from './features/scheduling/pages/BookOneOnOne';
 import CancelBookingPage from './features/scheduling/pages/CancelBookingPage';
@@ -118,7 +117,7 @@ function AppRoutes() {
               <Route path="/testimonials" element={<Testimonials />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
-              <Route path="/book-class" element={<BookClass />} />
+              {/* Removed /book-class route; links now point to external URL */}
               <Route path="/contact" element={<Contact />} />
               <Route path="/learning" element={<Learning />} />
               <Route path="/learning/:id" element={<ArticleView />} />
