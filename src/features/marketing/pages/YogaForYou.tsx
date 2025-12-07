@@ -139,11 +139,11 @@ export function YogaForYou() {
                                                 Have a private group? Use the "Private Group" button to request a dedicated session. To join our regular public classes or try a free demo, click "View &amp; Join" to see the schedule.
                                             </p>
                                             <div className="flex flex-col sm:flex-row gap-3 items-center">
-                                                                <a href="https://yogique.life/yogique-for-you" target="_blank" rel="noopener noreferrer">
-                                                                    <Button variant="outline" className="border-2 border-emerald-600 text-emerald-600 px-6 py-3 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transform hover:scale-[1.02]">
-                                                                        Private Group
-                                                                    </Button>
-                                                                </a>
+                                                <a href="https://yogique.life/yogique-for-you" target="_blank" rel="noopener noreferrer">
+                                                    <Button variant="outline" className="border-2 border-emerald-600 text-emerald-600 px-6 py-3 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transform hover:scale-[1.02]">
+                                                        Private Group
+                                                    </Button>
+                                                </a>
                                                 <Link to="/schedule" className="relative inline-block">
                                                     <Button className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-3">
                                                         <span>View &amp; Join</span>

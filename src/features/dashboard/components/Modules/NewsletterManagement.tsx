@@ -225,9 +225,9 @@ export function NewsletterManagement() {
         )}
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
+      {/* Stats - app-like on mobile (no card chrome) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="bg-transparent md:bg-white md:rounded-xl md:shadow-lg md:p-6 p-4 border-0 md:border">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Subscribers</p>
@@ -237,7 +237,7 @@ export function NewsletterManagement() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="bg-transparent md:bg-white md:rounded-xl md:shadow-lg md:p-6 p-4 border-0 md:border">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Active Subscribers</p>
@@ -247,7 +247,7 @@ export function NewsletterManagement() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="bg-transparent md:bg-white md:rounded-xl md:shadow-lg md:p-6 p-4 border-0 md:border">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Newsletters Sent</p>
@@ -261,9 +261,9 @@ export function NewsletterManagement() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-lg">
+      <div className="bg-transparent md:bg-white md:rounded-xl md:shadow-lg">
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
+          <nav className="flex space-x-4 md:space-x-8 px-4 md:px-6 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab('newsletters')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'newsletters'
@@ -285,7 +285,7 @@ export function NewsletterManagement() {
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {activeTab === 'newsletters' ? (
             <div className="space-y-4">
               {newsletters.length === 0 ? (
@@ -293,7 +293,7 @@ export function NewsletterManagement() {
                   <Mail className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No newsletters yet</h3>
                   <p className="text-gray-600 mb-6">Create your first newsletter to get started.</p>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center px-2">
                     <ResponsiveActionButton onClick={handleCreateNewsletter} className="bg-blue-600 hover:bg-blue-700">
                       <Plus className="w-4 h-4 mr-2" />
                       Create Newsletter
@@ -309,7 +309,7 @@ export function NewsletterManagement() {
                 </div>
               ) : (
                 newsletters.map((newsletter) => (
-                  <div key={newsletter.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div key={newsletter.id} className="border-0 md:border md:border-gray-200 md:rounded-lg p-3 md:p-4 hover:md:shadow-md transition-shadow bg-white md:bg-white">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-gray-900">{newsletter.title}</h3>
@@ -379,7 +379,7 @@ export function NewsletterManagement() {
                   </div>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto md:overflow-x-visible">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>

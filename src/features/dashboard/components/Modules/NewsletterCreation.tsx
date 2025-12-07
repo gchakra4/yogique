@@ -440,7 +440,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Choose a Template</h2>
           <p className="text-gray-600 mb-8">Select a template that matches your newsletter style</p>
         </div>
-        <div className="flex justify-center mb-6 gap-2 flex-wrap">
+        <div className="flex justify-center mb-6 gap-2 flex-wrap px-2">
           {categories.map(cat => (
             <button
               key={cat}
@@ -451,21 +451,21 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className="border border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition relative"
+              className="md:border md:border-gray-200 md:rounded-lg overflow-hidden cursor-pointer hover:md:shadow-lg transition relative bg-white md:bg-white"
             >
               <div className="h-48 bg-gray-100 flex items-center justify-center" onClick={() => setPreviewTemplate(template)}>
                 <img
                   src={template.thumbnail}
                   alt={template.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain md:object-cover"
                 />
                 <span className="absolute top-2 right-2 bg-white bg-opacity-80 px-2 py-1 rounded text-xs shadow">Preview</span>
               </div>
-              <div className="p-4">
+              <div className="p-3 md:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-gray-900">{template.name}</h3>
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
@@ -474,7 +474,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
                 </div>
                 <p className="text-sm text-gray-600">{template.description}</p>
                 <button
-                  className="mt-3 w-full bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700 transition"
+                  className="mt-3 w-full bg-blue-600 text-white rounded px-3 py-3 md:py-2 hover:bg-blue-700 transition"
                   onClick={() => handleTemplateSelect(template)}
                 >
                   Select
@@ -484,8 +484,8 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           ))}
         </div>
         {previewTemplate && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg max-w-2xl w-full p-6 relative">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full p-4 md:p-6 relative">
               <button
                 className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
                 onClick={() => setPreviewTemplate(null)}
@@ -497,7 +497,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
               <div className="mb-4">
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{previewTemplate.category}</span>
               </div>
-              <div className="border rounded p-4 bg-gray-50 mb-4" dangerouslySetInnerHTML={{ __html: previewTemplate.htmlContent.replace('{{TITLE}}', 'Sample Title').replace('{{CONTENT}}', 'Sample content...') }} />
+              <div className="border rounded p-2 md:p-4 bg-gray-50 mb-4 overflow-x-hidden" dangerouslySetInnerHTML={{ __html: previewTemplate.htmlContent.replace('{{TITLE}}', 'Sample Title').replace('{{CONTENT}}', 'Sample content...') }} />
               <button
                 className="w-full bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700 transition"
                 onClick={() => { handleTemplateSelect(previewTemplate); setPreviewTemplate(null); }}
@@ -624,25 +624,25 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Sidebar: Drag blocks */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-3 lg:space-y-4">
             <h4 className="font-semibold mb-2">Blocks</h4>
             {availableBlocks.map(b => (
               <div
                 key={b.type}
                 draggable
                 onDragStart={e => onDragStart(e, b.type)}
-                className="border rounded px-3 py-2 bg-white shadow-sm cursor-move hover:bg-blue-50"
+                className="md:border rounded px-3 py-3 md:py-2 bg-white shadow-sm cursor-move hover:bg-blue-50"
               >
                 {b.label}
               </div>
             ))}
           </div>
           {/* Main: Drop zone and block editor */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-3 space-y-3 lg:space-y-4">
             <div
-              className="min-h-32 border-2 border-dashed border-blue-300 rounded-lg p-4 bg-white"
+              className="min-h-32 md:border-2 border-dashed border-blue-300 rounded-lg p-3 md:p-4 bg-white"
               onDrop={onDrop}
               onDragOver={onDragOver}
             >
@@ -650,7 +650,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
                 <div className="text-gray-400 text-center py-8">Drag blocks here to build your newsletter</div>
               )}
               {blocks.map((block) => (
-                <div key={block.id} className="flex items-start gap-2 mb-3 group border rounded p-2 hover:shadow">
+                <div key={block.id} className="flex items-start gap-2 mb-3 group md:border rounded p-2 hover:shadow">
                   <div className="flex-1">
                     {block.type === 'text' && (
                       <textarea
@@ -802,13 +802,13 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
                 </div>
               ))}
             </div>
-            <div className="bg-gray-50 border rounded p-4 mt-4">
+            <div className="bg-gray-50 md:border rounded p-3 md:p-4 mt-4 overflow-x-hidden">
               <h4 className="font-semibold mb-2">Live Preview</h4>
               <div dangerouslySetInnerHTML={{ __html: serializeBlocks() || '<div class="text-gray-400">No content yet</div>' }} />
             </div>
           </div>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3 px-2 md:px-0 mt-2 md:mt-0">
           <Button variant="outline" onClick={() => setCurrentStep('template')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Templates
@@ -834,7 +834,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         <p className="text-gray-600 mb-8">Personalize colors and styling</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -907,7 +907,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
 
         <div className="lg:border-l lg:pl-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Design Preview</h3>
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="md:border md:border-gray-200 rounded-lg overflow-hidden">
             <div
               style={{
                 backgroundColor: newsletterData.customizations.backgroundColor,
@@ -927,8 +927,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           </div>
         </div>
       </div>
-
-      <div className="flex justify-between">
+      <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3 px-2 md:px-0 mt-2 md:mt-0">
         <Button variant="outline" onClick={() => setCurrentStep('content')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Content
@@ -1045,7 +1044,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         <p className="text-gray-600 mb-8">Review your newsletter before sending</p>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <div className="bg-white md:border md:border-gray-200 rounded-lg p-4 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Ready to Send</h3>
@@ -1069,8 +1068,8 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           </div>
         )}
 
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+        <div className="md:border md:border-gray-200 rounded-lg overflow-hidden">
+          <div className="bg-gray-50 px-3 md:px-4 py-2 md:border-b md:border-gray-200">
             <div className="text-sm">
               <strong>Subject:</strong> {newsletterData.subject}
             </div>
@@ -1079,7 +1078,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 md:p-6 overflow-x-hidden">
             <div
               dangerouslySetInnerHTML={{
                 __html: buildTemplateHtml(selectedTemplate, newsletterData, blocks)
@@ -1088,8 +1087,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           </div>
         </div>
       </div>
-
-      <div className="flex justify-between">
+      <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3 px-2 md:px-0 mt-2 md:mt-0">
         <Button variant="outline" onClick={() => setCurrentStep('design')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Design
@@ -1131,8 +1129,8 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Button variant="outline" onClick={onBack} className="mr-4">
@@ -1159,7 +1157,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-3 md:px-6 py-6 md:py-8">
         {loading && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg">

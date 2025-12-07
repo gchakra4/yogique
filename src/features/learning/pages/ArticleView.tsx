@@ -7,14 +7,14 @@ import { useArticle } from '../hooks/useArticle'
 
 export function ArticleView() {
   const { id } = useParams<{ id: string }>()
-  const { 
-    article, 
-    averageRating, 
-    totalRatings, 
-    userRating, 
-    loading, 
-    error, 
-    submitRating 
+  const {
+    article,
+    averageRating,
+    totalRatings,
+    userRating,
+    loading,
+    error,
+    submitRating
   } = useArticle(id!)
 
   if (loading) {
@@ -114,7 +114,7 @@ export function ArticleView() {
                 </div>
 
                 {/* Article Content */}
-                <div 
+                <div
                   className="prose prose-lg max-w-none prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-slate-300 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-strong:text-gray-900 dark:prose-strong:text-white prose-ul:text-gray-700 dark:prose-ul:text-slate-300 prose-ol:text-gray-700 dark:prose-ol:text-slate-300"
                   dangerouslySetInnerHTML={{ __html: article.content }}
                 />
