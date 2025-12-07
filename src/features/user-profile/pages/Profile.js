@@ -353,7 +353,18 @@ export function Profile() {
             const booking = cancelModalBooking;
             // Call server-side Edge Function to perform RLS-safe cancellation
             const fnPayload = { booking_id: booking.id || booking.booking_id };
-            const res = await supabase.functions.invoke('user-cancel-booking', { body: fnPayload });
+            // Ensure we pass the current user's access token to the Edge Function
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session || !session.access_token) {
+                setCancelSuccessMessage('Your session has expired. Please sign in again and try cancelling.');
+                setCanceling(false);
+                setLoading(false);
+                return;
+            }
+            const res = await supabase.functions.invoke('user-cancel-booking', {
+                body: fnPayload,
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
             // supabase.functions.invoke returns { data, error }
             if (res.error || (res.data && res.data.ok === false)) {
                 console.error('Failed to cancel booking via edge function:', res.error || res.data);
