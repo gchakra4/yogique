@@ -1,5 +1,5 @@
 import { Building, Calendar, ChevronDown, ChevronUp, Clock, Mail, Phone, Search, Star, Users } from 'lucide-react'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../shared/lib/supabase'

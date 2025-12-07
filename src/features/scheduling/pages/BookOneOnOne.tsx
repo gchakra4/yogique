@@ -1,5 +1,5 @@
 import { Calendar, ChevronDown, ChevronUp, Clock, Mail, Phone, Search, Star, User, Users, Video } from 'lucide-react'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import EmailService from '../../../services/emailService'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
@@ -18,19 +18,19 @@ export function BookOneOnOne() {
 
     useEffect(() => {
         let mounted = true
-        ;(async () => {
-            try {
-                const { data, error } = await supabase.from('business_settings').select('key, value')
-                if (error) throw error
-                if (!mounted) return
-                const mapped: any = {}
-                data?.forEach((r: any) => (mapped[r.key] = r.value))
-                setLocalSettings(mapped)
-            } catch (e) {
-                // fail silently; email will fallback to default support address
-                console.warn('Failed to load local settings for BookOneOnOne:', e)
-            }
-        })()
+            ; (async () => {
+                try {
+                    const { data, error } = await supabase.from('business_settings').select('key, value')
+                    if (error) throw error
+                    if (!mounted) return
+                    const mapped: any = {}
+                    data?.forEach((r: any) => (mapped[r.key] = r.value))
+                    setLocalSettings(mapped)
+                } catch (e) {
+                    // fail silently; email will fallback to default support address
+                    console.warn('Failed to load local settings for BookOneOnOne:', e)
+                }
+            })()
         return () => { mounted = false }
     }, [])
     const [step, setStep] = useState(1)
@@ -278,6 +278,7 @@ export function BookOneOnOne() {
         if (!user) {
             // Save form data and redirect to login
             saveFormDataAndRedirect()
+            submittingRef.current = false
             return
         }
 
@@ -286,6 +287,7 @@ export function BookOneOnOne() {
 
         if (!validateStep(3)) {
             console.log('Validation failed!')
+            submittingRef.current = false
             return
         }
 
@@ -338,6 +340,32 @@ export function BookOneOnOne() {
             console.log('Auth user:', user)
             console.log('User ID being sent:', user.id)
             console.log('Booking data user_id:', bookingData.user_id)
+
+            // Defensive pre-check: avoid creating duplicate bookings when user selected multiple days/times
+            try {
+                const { data: existing, error: existingErr } = await supabase
+                    .from('bookings')
+                    .select('id,booking_id,status')
+                    .eq('user_id', user.id)
+                    .eq('class_date', formData.startDate)
+                    .eq('class_time', formData.preferredTimes[0])
+                    .eq('class_package_id', selectedPackage?.id || null)
+                    .limit(1)
+                    .maybeSingle()
+
+                if (existingErr) console.warn('Error checking for existing booking', existingErr)
+
+                if (existing && (existing.status === 'pending' || existing.status === 'confirmed')) {
+                    console.info('Found existing booking - skipping insert', existing)
+                    setBookingId(existing.booking_id || existing.id || 'N/A')
+                    setStep(4)
+                    submittingRef.current = false
+                    setLoading(false)
+                    return
+                }
+            } catch (checkErr) {
+                console.warn('Failed to run pre-insert booking check', checkErr)
+            }
 
             const { data, error } = await supabase
                 .from('bookings')

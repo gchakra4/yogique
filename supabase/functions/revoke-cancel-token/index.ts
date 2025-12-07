@@ -29,10 +29,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ ok: false, error: 'missing_auth_token' }), { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
-    // Validate the token and fetch user info
+    // Validate the token and fetch user info. Auth endpoint requires an API key header.
     const userRes = await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/auth/v1/user`, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_KEY }
     })
 
     if (!userRes.ok) {

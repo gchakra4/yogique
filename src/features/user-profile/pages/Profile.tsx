@@ -361,8 +361,21 @@ export function Profile() {
       const booking = cancelModalBooking
       // Call server-side Edge Function to perform RLS-safe cancellation
       const fnPayload = { booking_id: booking.id || booking.booking_id }
-      // Ensure we pass the current user's access token to the Edge Function
-      const { data: { session } } = await supabase.auth.getSession()
+      // Ensure we pass a valid access token to the Edge Function.
+      // Try to refresh the session if possible before invoking.
+      let { data: { session } } = await supabase.auth.getSession()
+
+      try {
+        if (session && session.refresh_token) {
+          const refreshRes = await supabase.auth.refreshSession()
+          if (refreshRes && (refreshRes as any).data && (refreshRes as any).data.session) {
+            session = (refreshRes as any).data.session
+          }
+        }
+      } catch (refreshErr) {
+        console.warn('Failed to refresh session before cancel invoke', refreshErr)
+      }
+
       if (!session || !session.access_token) {
         setCancelSuccessMessage('Your session has expired. Please sign in again and try cancelling.')
         setCanceling(false)
@@ -370,10 +383,14 @@ export function Profile() {
         return
       }
 
+      console.debug('Invoking user-cancel-booking with token exp:', session.expires_at)
+
       const res = await supabase.functions.invoke('user-cancel-booking', {
         body: fnPayload,
         headers: { Authorization: `Bearer ${session.access_token}` }
       }) as any
+
+      console.debug('user-cancel-booking response:', res)
       // supabase.functions.invoke returns { data, error }
       if (res.error || (res.data && res.data.ok === false)) {
         console.error('Failed to cancel booking via edge function:', res.error || res.data)

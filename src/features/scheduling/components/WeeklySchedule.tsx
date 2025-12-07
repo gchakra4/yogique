@@ -1,5 +1,5 @@
 import { Award, Calendar, Clock, Users } from 'lucide-react'
-import { useState, useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
