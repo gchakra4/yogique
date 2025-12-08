@@ -1,7 +1,10 @@
 import {
   ArrowLeft,
   Eye,
+  Image as ImageIcon,
   Mail,
+  Palette,
+  PenTool,
   Save,
   Send,
   Users
@@ -227,6 +230,7 @@ const NEWSLETTER_TEMPLATES: NewsletterTemplate[] = [
 
 export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCreationProps) {
   const [currentStep, setCurrentStep] = useState<'template' | 'content' | 'design' | 'preview' | 'send'>('template')
+  const steps: Array<'template' | 'content' | 'design' | 'preview'> = ['template', 'content', 'design', 'preview']
   const [loading, setLoading] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<NewsletterTemplate | null>(null)
   const [templateCategory, setTemplateCategory] = useState<string>('all')
@@ -457,7 +461,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className="md:border md:border-gray-200 md:rounded-lg overflow-hidden cursor-pointer hover:md:shadow-lg transition relative bg-white md:bg-white snap-center min-w-[85%] md:min-w-0"
+              className="md:border md:border-gray-200 rounded-none md:rounded-lg overflow-hidden cursor-pointer hover:md:shadow-lg transition relative bg-white md:bg-white snap-center min-w-full md:min-w-0"
             >
               <div className="h-48 bg-gray-100 flex items-center justify-center" onClick={() => setPreviewTemplate(template)}>
                 <img
@@ -643,7 +647,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
             </div>
           </div>
 
-          <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3">
+          <div className="hidden md:flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3">
             <Button variant="outline" onClick={() => setCurrentStep('template')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Templates
@@ -673,7 +677,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         </div>
 
         {/* Basic details to enable Next button */}
-        <div className="bg-white border rounded-lg p-4">
+        <div className="bg-white md:border md:rounded-lg p-4 -mx-3 md:mx-0 rounded-none">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
@@ -709,7 +713,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         </div>
 
         {/* Simple CTA and images */}
-        <div className="bg-white md:border rounded-lg p-4 space-y-4">
+        <div className="bg-white md:border md:rounded-lg p-4 space-y-4 -mx-3 md:mx-0 rounded-none">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Header Image URL</label>
@@ -772,7 +776,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           </div>
         </div>
 
-        <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3">
+        <div className="hidden md:flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3">
           <Button variant="outline" onClick={() => setCurrentStep('template')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Templates
@@ -877,7 +881,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
 
         <div className="lg:border-l lg:pl-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Design Preview</h3>
-          <div className="md:border md:border-gray-200 rounded-lg overflow-hidden">
+          <div className="md:border md:border-gray-200 rounded-none md:rounded-lg overflow-hidden -mx-3 md:mx-0">
             <div
               style={{
                 backgroundColor: newsletterData.customizations.backgroundColor,
@@ -897,7 +901,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           </div>
         </div>
       </div>
-      <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3 px-2 md:px-0 mt-2 md:mt-0">
+      <div className="hidden md:flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3 px-2 md:px-0 mt-2 md:mt-0">
         <Button variant="outline" onClick={() => setCurrentStep('content')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Content
@@ -1014,7 +1018,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         <p className="text-gray-600 mb-8">Review your newsletter before sending</p>
       </div>
 
-      <div className="bg-white md:border md:border-gray-200 rounded-lg p-4 md:p-6">
+      <div className="bg-white md:border md:border-gray-200 rounded-none md:rounded-lg p-4 md:p-6 -mx-3 md:mx-0">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Ready to Send</h3>
@@ -1038,7 +1042,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           </div>
         )}
 
-        <div className="md:border md:border-gray-200 rounded-lg overflow-hidden">
+        <div className="md:border md:border-gray-200 rounded-none md:rounded-lg overflow-hidden">
           <div className="bg-gray-50 px-3 md:px-4 py-2 md:border-b md:border-gray-200">
             <div className="text-sm">
               <strong>Subject:</strong> {newsletterData.subject}
@@ -1057,7 +1061,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           </div>
         </div>
       </div>
-      <div className="flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3 px-2 md:px-0 mt-2 md:mt-0">
+      <div className="hidden md:flex justify-between sticky bottom-0 bg-white/80 backdrop-blur-md py-3 px-2 md:px-0 mt-2 md:mt-0">
         <Button variant="outline" onClick={() => setCurrentStep('design')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Design
@@ -1143,28 +1147,73 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         {currentStep === 'preview' && renderPreviewStep()}
       </div>
 
-      {/* Mobile bottom nav for wizard steps */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 md:hidden">
-        <div className="flex items-center justify-between">
-          {[
-            { id: 'template', label: 'Templates', icon: '🖼️' },
-            { id: 'content', label: 'Content', icon: '✍️' },
-            { id: 'design', label: 'Design', icon: '🎨' },
-            { id: 'preview', label: 'Preview', icon: '👁️' },
-          ].map(item => (
-            <button
-              key={item.id}
-              onClick={() => setCurrentStep(item.id as any)}
-              className={`flex flex-col items-center text-xs ${currentStep === item.id ? 'text-blue-600' : 'text-gray-600'}`}
-            >
-              <span className="text-lg">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Mobile bottom nav for wizard steps - news-style */}
+      <MobileBottomWizard
+        currentStep={currentStep}
+        steps={steps}
+        onStep={(s) => setCurrentStep(s)}
+        onNext={() => {
+          const idx = steps.indexOf(currentStep as any)
+          if (currentStep === 'template' && !selectedTemplate) return
+          if (currentStep === 'content' && (!newsletterData.title || !newsletterData.content)) return
+          if (idx < steps.length - 1) setCurrentStep(steps[idx + 1])
+          else handleSendNewsletter()
+        }}
+      />
+      <div className="h-16 md:h-0" />
     </div>
   )
 }
 
 export default NewsletterCreation
+
+type WizardStep = 'template' | 'content' | 'design' | 'preview'
+
+function MobileBottomWizard({
+  currentStep,
+  steps,
+  onStep,
+  onNext,
+}: {
+  currentStep: WizardStep | 'send'
+  steps: WizardStep[]
+  onStep: (s: WizardStep) => void
+  onNext: () => void
+}) {
+  const idx = steps.indexOf(currentStep as WizardStep)
+  const progress = Math.max(0, Math.min(100, ((idx + 1) / steps.length) * 100))
+  const labelFor = (s: WizardStep) => s === 'template' ? 'Templates' : s.charAt(0).toUpperCase() + s.slice(1)
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-50 md:hidden supports-[backdrop-filter]:bg-white/80 dark:bg-slate-900/80 backdrop-blur border-t border-slate-200 dark:border-slate-700 shadow-md rounded-t-2xl px-2 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.25rem)]">
+      <div className="relative max-w-3xl mx-auto">
+        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-28 h-1 rounded-full overflow-hidden bg-gradient-to-r from-slate-200/70 to-slate-300/70 dark:from-slate-700/70 dark:to-slate-600/70">
+          <div className="h-full bg-gradient-to-r from-blue-500 via-fuchsia-500 to-emerald-500" style={{ width: `${progress}%` }} />
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-1 items-center justify-between gap-1.5">
+            {steps.map((s) => {
+              const active = s === currentStep
+              const color = active ? (s === 'template' ? 'bg-blue-600 ring-2 ring-blue-100 text-white'
+                : s === 'content' ? 'bg-fuchsia-600 ring-2 ring-fuchsia-100 text-white'
+                  : s === 'design' ? 'bg-rose-600 ring-2 ring-rose-100 text-white'
+                    : 'bg-amber-500 ring-2 ring-amber-100 text-white') : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200'
+              const Icon = s === 'template' ? ImageIcon : s === 'content' ? PenTool : s === 'design' ? Palette : Eye
+              return (
+                <button key={s} onClick={() => onStep(s)} aria-current={active ? 'step' : undefined} className={`flex flex-col items-center flex-1 min-w-0 px-0.5 py-1 ${active ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-300'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow ${color}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className="mt-0.5 text-[10px] font-medium truncate">{labelFor(s)}</span>
+                </button>
+              )
+            })}
+          </div>
+          <button onClick={onNext} className="ml-2 shrink-0 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow flex items-center">
+            <span className="mr-1.5 text-sm">{currentStep === 'preview' ? 'Send' : 'Next'}</span>
+            {currentStep === 'preview' ? <Send className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

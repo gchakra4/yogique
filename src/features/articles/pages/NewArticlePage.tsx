@@ -82,14 +82,14 @@ export default function NewArticlePage({ article, onSave, onCancel, backToPath =
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     {/* Editor */}
                     <div className="lg:col-span-3">
-                        <div className="bg-white dark:bg-slate-900 rounded-xl">
+                        <div className="bg-transparent dark:bg-transparent rounded-none sm:bg-white sm:dark:bg-slate-900 sm:rounded-xl sm:shadow-sm -mx-4 sm:mx-0">
                             <ArticleEditor article={article} onSave={handleSave} onCancel={handleCancel} />
                         </div>
                     </div>
 
                     {/* Sidebar */}
                     <aside className="space-y-6">
-                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-6">
+                        <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-xl border-0 sm:border sm:border-gray-200 sm:dark:border-slate-700 shadow-none sm:shadow-sm p-4 sm:p-6 -mx-4 sm:mx-0">
                             <div className="flex items-center gap-2 mb-3">
                                 <Sparkles className="w-5 h-5 text-amber-500" />
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -116,7 +116,7 @@ export default function NewArticlePage({ article, onSave, onCancel, backToPath =
                             </ul>
                         </div>
 
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 rounded-xl border border-blue-100 dark:border-slate-700 p-6">
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 rounded-none sm:rounded-xl border-0 sm:border sm:border-blue-100 sm:dark:border-slate-700 p-4 sm:p-6 -mx-4 sm:mx-0">
                             <div className="flex items-center gap-2 mb-3">
                                 <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

@@ -14,6 +14,7 @@ export interface Article {
   updated_at: string;
   published_at: string | null;
   author_id: string;
+  template?: 'optimal' | 'light' | 'news' | 'howto' | 'listicle';
   moderation_status?: 'pending' | 'approved' | 'rejected';
   author?: {
     id: string;
