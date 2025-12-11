@@ -628,6 +628,14 @@ export function Profile() {
         }
       }
 
+      // If the function responded with HTTP 409 Conflict, treat as phone-in-use
+      const respAny: any = resp
+      if (respAny && (respAny.status === 409 || respAny.statusCode === 409 || String(respAny.status) === '409' || String(respAny.statusText).toLowerCase().includes('conflict'))) {
+        setPhoneConflictMessage('This mobile number is already registered with another account. If this is your number, please sign in with that account or contact support.')
+        setOtpModalOpen(false)
+        return
+      }
+
       // Handle responses explicitly
       if (data && data.verified === true) {
         // Server verified and (server-side) updated the profile.phone; refresh profile data
@@ -727,6 +735,13 @@ export function Profile() {
     } catch (err: any) {
       console.error('Error verifying OTP:', err)
       const msg = String(err?.message || err || '')
+      // If the network/server returned HTTP 409 or a Conflict, treat as phone-in-use
+      if (err?.status === 409 || err?.statusCode === 409 || err?.response?.status === 409 || /\b409\b/.test(msg) || /conflict/i.test(msg)) {
+        setPhoneConflictMessage('This mobile number is already registered with another account. If this is your number, please sign in with that account or contact support.')
+        setOtpModalOpen(false)
+        return
+      }
+
       if (msg && /already\s+associated|in\s+use|exists|taken/i.test(msg)) {
         setPhoneConflictMessage('This mobile number is already registered with another account. If this is your number, please sign in with that account or contact support.')
         setOtpModalOpen(false)
