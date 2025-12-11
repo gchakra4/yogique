@@ -84,6 +84,7 @@ export function Profile() {
     const resendIntervalRef = useRef(null);
     const [phoneConflictMessage, setPhoneConflictMessage] = useState(null);
     const [otpError, setOtpError] = useState(null);
+    const [rawOtpResponse, setRawOtpResponse] = useState(null);
     const tabs = [
         { id: 'overview', label: 'Overview', icon: User },
         { id: 'bookings', label: 'My Bookings', icon: Calendar },
@@ -599,6 +600,8 @@ export function Profile() {
             const resp = await supabase.functions.invoke?.('verify-phone-otp', { body: { user_id: user.id, phone: pendingPhone, code: otpCode } });
             // Normalize edge function response: it may return JSON string or object
             let data = resp?.data ?? resp;
+            // store raw response for debugging UI
+            setRawOtpResponse(resp);
             if (typeof data === 'string') {
                 try {
                     data = JSON.parse(data);
@@ -707,6 +710,8 @@ export function Profile() {
         }
         catch (err) {
             console.error('Error verifying OTP:', err);
+            // store thrown error for debugging UI
+            setRawOtpResponse(err);
             const msg = String(err?.message || err || '');
             // If the network/server returned HTTP 409 or a Conflict, treat as phone-in-use
             if (err?.status === 409 || err?.statusCode === 409 || err?.response?.status === 409 || /\b409\b/.test(msg) || /conflict/i.test(msg)) {
@@ -763,7 +768,7 @@ export function Profile() {
     if (!user) {
         return (_jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center", children: _jsxs("div", { className: "text-center", children: [_jsx("div", { className: "w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4", children: _jsx(XCircle, { className: "w-8 h-8 text-red-600 dark:text-red-400" }) }), _jsx("h1", { className: "text-2xl font-bold text-gray-900 dark:text-white mb-4", children: "Access Denied" }), _jsx("p", { className: "text-gray-600 dark:text-slate-300 mb-6", children: "Please sign in to view your profile." }), _jsx(Button, { onClick: () => navigate('/login'), children: "Sign In" })] }) }));
     }
-    return (_jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pb-24 sm:pb-8 overflow-x-hidden", children: [otpModalOpen && (_jsxs("div", { className: "fixed inset-0 z-50 flex items-center justify-center", children: [_jsx("div", { className: "absolute inset-0 bg-black opacity-40" }), _jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-lg p-6 z-50 w-full max-w-md mx-4", children: [_jsx("h3", { className: "text-lg font-semibold mb-2 text-gray-900 dark:text-white", children: "Verify Phone Number" }), _jsxs("p", { className: "text-sm text-gray-600 dark:text-slate-300 mb-4", children: ["We've sent a one-time code to ", _jsx("span", { className: "font-medium", children: pendingPhone }), ". Enter the code below to verify your phone number."] }), _jsx("input", { type: "text", value: otpCode, onChange: (e) => setOtpCode(e.target.value), className: "w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-4", placeholder: "Enter OTP" }), otpError && (_jsx("div", { className: "mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2", children: otpError })), _jsx("div", { className: "mb-3 text-sm text-gray-600 dark:text-slate-300", children: resendSecondsLeft > 0 ? (_jsxs("div", { children: ["Didn't receive the code? You can resend in ", _jsxs("span", { className: "font-medium", children: [resendSecondsLeft, "s"] }), "."] })) : (_jsxs("div", { children: ["Didn't receive the code? ", _jsx("button", { className: "underline text-blue-600 dark:text-blue-400", onClick: async () => {
+    return (_jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pb-24 sm:pb-8 overflow-x-hidden", children: [otpModalOpen && (_jsxs("div", { className: "fixed inset-0 z-50 flex items-center justify-center", children: [_jsx("div", { className: "absolute inset-0 bg-black opacity-40" }), _jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-lg p-6 z-50 w-full max-w-md mx-4", children: [_jsx("h3", { className: "text-lg font-semibold mb-2 text-gray-900 dark:text-white", children: "Verify Phone Number" }), _jsxs("p", { className: "text-sm text-gray-600 dark:text-slate-300 mb-4", children: ["We've sent a one-time code to ", _jsx("span", { className: "font-medium", children: pendingPhone }), ". Enter the code below to verify your phone number."] }), _jsx("input", { type: "text", value: otpCode, onChange: (e) => setOtpCode(e.target.value), className: "w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-4", placeholder: "Enter OTP" }), otpError && (_jsx("div", { className: "mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2", children: otpError })), rawOtpResponse && (_jsx("div", { className: "mb-3 text-xs text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded p-2", children: _jsxs("details", { children: [_jsx("summary", { className: "cursor-pointer text-sm font-medium", children: "Debug: raw function response" }), _jsx("pre", { className: "whitespace-pre-wrap mt-2 max-h-48 overflow-auto text-xs", children: JSON.stringify(rawOtpResponse, null, 2) })] }) })), _jsx("div", { className: "mb-3 text-sm text-gray-600 dark:text-slate-300", children: resendSecondsLeft > 0 ? (_jsxs("div", { children: ["Didn't receive the code? You can resend in ", _jsxs("span", { className: "font-medium", children: [resendSecondsLeft, "s"] }), "."] })) : (_jsxs("div", { children: ["Didn't receive the code? ", _jsx("button", { className: "underline text-blue-600 dark:text-blue-400", onClick: async () => {
                                                 if (!pendingPhone || !user)
                                                     return;
                                                 try {
