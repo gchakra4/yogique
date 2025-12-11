@@ -618,8 +618,15 @@ export function Profile() {
       // @ts-ignore
       const resp = await supabase.functions.invoke?.('verify-phone-otp', { body: { user_id: user!.id, phone: pendingPhone, code: otpCode } })
 
-      // Prefer structured function response when available
-      const data = resp?.data ?? resp
+      // Normalize edge function response: it may return JSON string or object
+      let data: any = resp?.data ?? resp
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data)
+        } catch {
+          // keep as string if not parseable
+        }
+      }
 
       // Handle responses explicitly
       if (data && data.verified === true) {
