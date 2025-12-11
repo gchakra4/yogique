@@ -91,7 +91,7 @@ export function Profile() {
   const resendIntervalRef = useRef<number | null>(null)
   const [phoneConflictMessage, setPhoneConflictMessage] = useState<string | null>(null)
   const [otpError, setOtpError] = useState<string | null>(null)
-  const [rawOtpResponse, setRawOtpResponse] = useState<any | null>(null)
+  
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User },
@@ -621,8 +621,7 @@ export function Profile() {
 
       // Normalize edge function response: it may return JSON string or object
       let data: any = resp?.data ?? resp
-      // store raw response for debugging UI
-      setRawOtpResponse(resp)
+      
       if (typeof data === 'string') {
         try {
           data = JSON.parse(data)
@@ -710,9 +709,6 @@ export function Profile() {
       }
 
       // Extra defensive checks: some responses embed the useful reason in nested/stringified fields
-      // Log raw response to browser console to help debugging unexpected shapes
-      // eslint-disable-next-line no-console
-      console.debug('verify-phone-otp resp:', resp, 'parsed data:', data)
 
       const responseContains = (obj: any, re: RegExp) => {
         try {
@@ -744,8 +740,7 @@ export function Profile() {
       setOtpError('Unable to verify OTP at this time. Please try again later.')
     } catch (err: any) {
       console.error('Error verifying OTP:', err)
-      // store thrown error for debugging UI
-      setRawOtpResponse(err)
+      
       const msg = String(err?.message || err || '')
       // If the network/server returned HTTP 409 or a Conflict, treat as phone-in-use
       if (err?.status === 409 || err?.statusCode === 409 || err?.response?.status === 409 || /\b409\b/.test(msg) || /conflict/i.test(msg)) {
@@ -832,15 +827,7 @@ export function Profile() {
             {otpError && (
               <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">{otpError}</div>
             )}
-            {/* Raw debug output (temporary) */}
-            {rawOtpResponse && (
-              <div className="mb-3 text-xs text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded p-2">
-                <details>
-                  <summary className="cursor-pointer text-sm font-medium">Debug: raw function response</summary>
-                  <pre className="whitespace-pre-wrap mt-2 max-h-48 overflow-auto text-xs">{JSON.stringify(rawOtpResponse, null, 2)}</pre>
-                </details>
-              </div>
-            )}
+            {/* debug UI removed */}
             <div className="mb-3 text-sm text-gray-600 dark:text-slate-300">
               {resendSecondsLeft > 0 ? (
                 <div>Didn't receive the code? You can resend in <span className="font-medium">{resendSecondsLeft}s</span>.</div>
