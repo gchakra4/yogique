@@ -1160,7 +1160,7 @@ export function BookOneOnOne() {
 
                             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Booking Submitted!</h2>
                             <p className="text-gray-600 dark:text-white mb-4">
-                                Thank you for booking with us! We'll review your request and send you a confirmation email within 24 hours with your session details and payment instructions.
+                                Thank you for booking with us! We have sent your booking confirmation number by email. We'll review your request and email you within 24 hours with your session details and payment instructions.
                             </p>
 
                             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-8">
@@ -1174,7 +1174,7 @@ export function BookOneOnOne() {
                                 <div className="space-y-3 text-sm text-gray-700 dark:text-white text-left">
                                     <div className="flex items-center">
                                         <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" />
-                                        <span>You'll receive a confirmation email within 24 hours</span>
+                                        <span>Your confirmation number and further instructions are in your email. You'll receive a follow-up within 24 hours.</span>
                                     </div>
                                     <div className="flex items-center">
                                         <Video className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" />

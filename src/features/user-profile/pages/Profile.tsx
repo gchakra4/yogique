@@ -658,11 +658,23 @@ export function Profile() {
         return
       }
 
-      // Fallback: if no structured response, optimistic success is not safe — show generic error
+      // Fallback: if no structured response, try to infer common conflicts
+      const text = JSON.stringify(data || {})
+      if (text && /already\s+associated|in\s+use|exists|taken/i.test(text)) {
+        setPhoneConflictMessage('This mobile number is already registered with another account. If this is your number, please sign in with that account or contact support.')
+        setOtpModalOpen(false)
+        return
+      }
       alert('Unable to verify OTP at this time. Please try again later.')
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error verifying OTP:', err)
-      alert('Unable to verify OTP right now. Please try again later.')
+      const msg = String(err?.message || err || '')
+      if (msg && /already\s+associated|in\s+use|exists|taken/i.test(msg)) {
+        setPhoneConflictMessage('This mobile number is already registered with another account. If this is your number, please sign in with that account or contact support.')
+        setOtpModalOpen(false)
+      } else {
+        alert('Unable to verify OTP right now. Please try again later.')
+      }
     } finally {
       setOtpLoading(false)
     }
