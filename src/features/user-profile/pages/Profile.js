@@ -83,6 +83,7 @@ export function Profile() {
     const [resendSecondsLeft, setResendSecondsLeft] = useState(0);
     const resendIntervalRef = useRef(null);
     const [phoneConflictMessage, setPhoneConflictMessage] = useState(null);
+    const [otpError, setOtpError] = useState(null);
     const tabs = [
         { id: 'overview', label: 'Overview', icon: User },
         { id: 'bookings', label: 'My Bookings', icon: Calendar },
@@ -590,6 +591,7 @@ export function Profile() {
         if (!pendingPhone)
             return;
         setOtpLoading(true);
+        setOtpError(null);
         try {
             // call Supabase Edge Function `verify-phone-otp`
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -618,20 +620,20 @@ export function Profile() {
                     return;
                 }
                 if (reason === 'invalid_code') {
-                    alert('The code you entered is incorrect. Please try again.');
+                    setOtpError('The code you entered is incorrect. Please try again.');
                     return;
                 }
                 if (reason === 'no_valid_otp') {
-                    alert('No valid verification code was found or it expired. Please request a new code.');
+                    setOtpError('No valid verification code was found or it expired. Please request a new code.');
                     setOtpModalOpen(false);
                     return;
                 }
                 if (reason === 'max_attempts_exceeded') {
-                    alert('Maximum verification attempts exceeded. Please request a new code.');
+                    setOtpError('Maximum verification attempts exceeded. Please request a new code.');
                     setOtpModalOpen(false);
                     return;
                 }
-                alert('Verification failed: ' + String(reason));
+                setOtpError('Verification failed. Please try again.');
                 return;
             }
             // Fallback: if no structured response, try to infer common conflicts
@@ -641,7 +643,7 @@ export function Profile() {
                 setOtpModalOpen(false);
                 return;
             }
-            alert('Unable to verify OTP at this time. Please try again later.');
+            setOtpError('Unable to verify OTP at this time. Please try again later.');
         }
         catch (err) {
             console.error('Error verifying OTP:', err);
@@ -651,7 +653,7 @@ export function Profile() {
                 setOtpModalOpen(false);
             }
             else {
-                alert('Unable to verify OTP right now. Please try again later.');
+                setOtpError('Unable to verify OTP right now. Please try again later.');
             }
         }
         finally {
@@ -695,7 +697,7 @@ export function Profile() {
     if (!user) {
         return (_jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center", children: _jsxs("div", { className: "text-center", children: [_jsx("div", { className: "w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4", children: _jsx(XCircle, { className: "w-8 h-8 text-red-600 dark:text-red-400" }) }), _jsx("h1", { className: "text-2xl font-bold text-gray-900 dark:text-white mb-4", children: "Access Denied" }), _jsx("p", { className: "text-gray-600 dark:text-slate-300 mb-6", children: "Please sign in to view your profile." }), _jsx(Button, { onClick: () => navigate('/login'), children: "Sign In" })] }) }));
     }
-    return (_jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pb-24 sm:pb-8 overflow-x-hidden", children: [otpModalOpen && (_jsxs("div", { className: "fixed inset-0 z-50 flex items-center justify-center", children: [_jsx("div", { className: "absolute inset-0 bg-black opacity-40" }), _jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-lg p-6 z-50 w-full max-w-md mx-4", children: [_jsx("h3", { className: "text-lg font-semibold mb-2 text-gray-900 dark:text-white", children: "Verify Phone Number" }), _jsxs("p", { className: "text-sm text-gray-600 dark:text-slate-300 mb-4", children: ["We've sent a one-time code to ", _jsx("span", { className: "font-medium", children: pendingPhone }), ". Enter the code below to verify your phone number."] }), _jsx("input", { type: "text", value: otpCode, onChange: (e) => setOtpCode(e.target.value), className: "w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-4", placeholder: "Enter OTP" }), _jsx("div", { className: "mb-3 text-sm text-gray-600 dark:text-slate-300", children: resendSecondsLeft > 0 ? (_jsxs("div", { children: ["Didn't receive the code? You can resend in ", _jsxs("span", { className: "font-medium", children: [resendSecondsLeft, "s"] }), "."] })) : (_jsxs("div", { children: ["Didn't receive the code? ", _jsx("button", { className: "underline text-blue-600 dark:text-blue-400", onClick: async () => {
+    return (_jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pb-24 sm:pb-8 overflow-x-hidden", children: [otpModalOpen && (_jsxs("div", { className: "fixed inset-0 z-50 flex items-center justify-center", children: [_jsx("div", { className: "absolute inset-0 bg-black opacity-40" }), _jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-lg p-6 z-50 w-full max-w-md mx-4", children: [_jsx("h3", { className: "text-lg font-semibold mb-2 text-gray-900 dark:text-white", children: "Verify Phone Number" }), _jsxs("p", { className: "text-sm text-gray-600 dark:text-slate-300 mb-4", children: ["We've sent a one-time code to ", _jsx("span", { className: "font-medium", children: pendingPhone }), ". Enter the code below to verify your phone number."] }), _jsx("input", { type: "text", value: otpCode, onChange: (e) => setOtpCode(e.target.value), className: "w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-4", placeholder: "Enter OTP" }), otpError && (_jsx("div", { className: "mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2", children: otpError })), _jsx("div", { className: "mb-3 text-sm text-gray-600 dark:text-slate-300", children: resendSecondsLeft > 0 ? (_jsxs("div", { children: ["Didn't receive the code? You can resend in ", _jsxs("span", { className: "font-medium", children: [resendSecondsLeft, "s"] }), "."] })) : (_jsxs("div", { children: ["Didn't receive the code? ", _jsx("button", { className: "underline text-blue-600 dark:text-blue-400", onClick: async () => {
                                                 if (!pendingPhone || !user)
                                                     return;
                                                 try {
