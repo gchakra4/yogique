@@ -641,7 +641,30 @@ export function Profile() {
                     setOtpModalOpen(false);
                     return;
                 }
+                if (reason === 'rate_limited') {
+                    setOtpError('Too many attempts. Please wait a minute before trying again.');
+                    return;
+                }
                 setOtpError('Verification failed. Please try again.');
+                return;
+            }
+            // Some functions respond as { ok: false, error: '...' } without verified flag
+            if (data && data.ok === false) {
+                const reason = data.reason || data.error || 'verification_failed';
+                if (reason === 'phone_in_use_by_other_account') {
+                    setPhoneConflictMessage('This mobile number is already registered with another account. If this is your number, please sign in with that account or contact support.');
+                    setOtpModalOpen(false);
+                    return;
+                }
+                if (reason === 'rate_limited') {
+                    setOtpError('Too many attempts. Please wait a minute before trying again.');
+                    return;
+                }
+                if (reason === 'invalid_code') {
+                    setOtpError('The code you entered is incorrect. Please try again.');
+                    return;
+                }
+                setOtpError('Unable to verify OTP at this time. Please try again later.');
                 return;
             }
             // Fallback: if no structured response, try to infer common conflicts
