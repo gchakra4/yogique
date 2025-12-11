@@ -691,6 +691,31 @@ export function Profile() {
         return
       }
 
+      // Extra defensive checks: some responses embed the useful reason in nested/stringified fields
+      // Log raw response to browser console to help debugging unexpected shapes
+      // eslint-disable-next-line no-console
+      console.debug('verify-phone-otp resp:', resp, 'parsed data:', data)
+
+      const responseContains = (obj: any, re: RegExp) => {
+        try {
+          const s = typeof obj === 'string' ? obj : JSON.stringify(obj)
+          return re.test(s)
+        } catch {
+          return false
+        }
+      }
+
+      if (responseContains(data, /phone_in_use_by_other_account|already\s+associated|in\s+use|exists|taken/i) || responseContains(resp, /phone_in_use_by_other_account|already\s+associated|in\s+use|exists|taken/i)) {
+        setPhoneConflictMessage('This mobile number is already registered with another account. If this is your number, please sign in with that account or contact support.')
+        setOtpModalOpen(false)
+        return
+      }
+
+      if (responseContains(data, /rate_limited|throttl/i) || responseContains(resp, /rate_limited|throttl/i)) {
+        setOtpError('Too many attempts. Please wait a minute before trying again.')
+        return
+      }
+
       // Fallback: if no structured response, try to infer common conflicts
       const text = JSON.stringify(data || {})
       if (text && /already\s+associated|in\s+use|exists|taken/i.test(text)) {
