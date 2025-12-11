@@ -639,6 +639,13 @@ export function Profile() {
         return
       }
 
+      // If Supabase returned a FunctionsHttpError (often for non-2xx responses) and no structured body
+      if (respAny && respAny.error && respAny.error.name === 'FunctionsHttpError') {
+        setPhoneConflictMessage('This mobile number is already registered with another account. If this is your number, please sign in with that account or contact support.')
+        setOtpModalOpen(false)
+        return
+      }
+
       // Handle responses explicitly
       if (data && data.verified === true) {
         // Server verified and (server-side) updated the profile.phone; refresh profile data
