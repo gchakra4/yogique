@@ -1,0 +1,70 @@
+# Supabase Backup - Git Ignore
+# CRITICAL: These files contain sensitive data and must NEVER be committed!
+
+# Environment files with secrets
+.env
+.env.*
+!.env.example
+
+# Backup files
+backups/
+*.tar.gz
+*.tar.gz.gpg
+*.tar.gz.sha256
+*.dump
+*.sql
+
+# Backup extraction directories
+backup-*/
+manifests-*/
+
+# Temporary files
+*.log
+*.tmp
+tmp/
+
+# Database dumps
+db-full.dump
+db-schema.sql
+db-data.sql
+roles.sql
+globals.sql
+
+# Storage files
+storage/
+!storage/DOWNLOAD_INSTRUCTIONS.txt
+
+# Secrets
+secrets/
+!secrets/README.txt
+
+# Functions
+functions/
+!functions/.gitkeep
+
+# Node modules (if any)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Encryption keys
+*.key
+*.pem
+*.gpg
+!*.tar.gz.gpg
+
+# Supabase local files (if running local dev)
+.supabase/
+
+# Checksums (optional - some prefer to keep these)
+# *.sha256

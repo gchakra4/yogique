@@ -1,0 +1,345 @@
+{
+  "booking_flow": {
+    "individual": {
+      "entry_point": "/book/individual",
+      "component": "src/features/scheduling/pages/BookOneOnOne.tsx",
+      "steps": [
+        "personal_info",
+        "package_selection",
+        "schedule_preferences",
+        "confirmation"
+      ],
+      "validations": [
+        "per-step field checks",
+        "timezone required",
+        "at least one preferred day/time"
+      ],
+      "data_fields": [
+        "firstName",
+        "lastName",
+        "email",
+        "phone",
+        "timezone",
+        "packageType",
+        "experienceLevel",
+        "goals",
+        "healthConditions",
+        "preferredDays",
+        "preferredTimes",
+        "startDate",
+        "emergencyContact"
+      ],
+      "idempotency": {
+        "localStorage": [
+          "lastBookingPayloadHash",
+          "lastBookingCreated"
+        ],
+        "pre_insert_query": {
+          "table": "bookings",
+          "filters": [
+            "user_id",
+            "class_date",
+            "class_time",
+            "class_package_id"
+          ]
+        }
+      },
+      "post_insert": [
+        "recordLog",
+        "generateCancelToken",
+        "EmailService.sendTransactionalEmail"
+      ],
+      "booking_payload": {
+        "table": "bookings",
+        "defaults": {
+          "status": "pending",
+          "booking_type": "individual"
+        },
+        "fields": [
+          "class_name",
+          "instructor",
+          "class_date",
+          "class_time",
+          "preferred_days",
+          "preferred_times",
+          "price",
+          "session_duration",
+          "package_type",
+          "booking_notes"
+        ]
+      }
+    },
+    "corporate": {
+      "entry_point": "/book/corporate",
+      "component": "src/features/scheduling/pages/BookCorporate.tsx",
+      "steps": [
+        "company_profile",
+        "program_details",
+        "schedule_logistics",
+        "confirmation"
+      ],
+      "data_fields": [
+        "companyName",
+        "industry",
+        "companySize",
+        "contactName",
+        "position",
+        "email",
+        "phone",
+        "packageType",
+        "participantCount",
+        "frequency",
+        "objectives",
+        "preferredDays",
+        "preferredTimes",
+        "timezone",
+        "location",
+        "budget",
+        "specialRequests",
+        "hasWellnessProgram",
+        "previousExperience"
+      ],
+      "calculations": {
+        "estimated_price": "package.price * participantMultiplier * frequency.multiplier"
+      },
+      "idempotency": "same hash + existing row check as individual",
+      "broadcast_channel": "yq-booking-events",
+      "booking_payload": {
+        "table": "bookings",
+        "booking_type": "corporate",
+        "company_fields": [
+          "company_name",
+          "job_title",
+          "industry",
+          "participants_count",
+          "work_location",
+          "session_frequency"
+        ],
+        "defaults": {
+          "status": "pending"
+        }
+      }
+    }
+  },
+  "booking_options": {
+    "class_packages": {
+      "query": "supabase.from('class_packages').select('*').eq('is_active', true).eq('is_archived', false)",
+      "filters": [
+        "type (Individual/Corporate)",
+        "course_type regular/crash",
+        "search text"
+      ],
+      "fields": [
+        "name",
+        "description",
+        "price",
+        "class_count",
+        "duration",
+        "validity_days",
+        "class_type_restrictions"
+      ],
+      "ui": [
+        "expand/collapse description",
+        "price-per-class for regular",
+        "course-type badges"
+      ]
+    }
+  },
+  "booking_management": {
+    "module": "src/features/dashboard/components/Modules/BookingManagement.tsx",
+    "features": [
+      "search",
+      "status filter",
+      "date filter",
+      "view/edit drawer",
+      "package link editing",
+      "delete",
+      "notify"
+    ],
+    "status_logic": {
+      "user_cancelled": "status in (cancelled,canceled) && cancel_token expired/null",
+      "admin_cancel": "updates cancelled_by = 'admin'"
+    },
+    "cancellation_tokens": {
+      "revoke_endpoint": "supabase.functions.invoke('revoke-cancel-token')",
+      "fields_cleared": [
+        "cancel_token",
+        "cancel_token_expires_at"
+      ]
+    }
+  },
+  "class_assignment_pipeline": {
+    "manager_component": "ClassAssignmentManager/ClassAssignmentManager.tsx",
+    "views": [
+      "list",
+      "calendar",
+      "analytics"
+    ],
+    "filters": [
+      "date range",
+      "assignment type",
+      "class status",
+      "payment status",
+      "instructor",
+      "class type",
+      "packages",
+      "client name",
+      "weekly toggle"
+    ],
+    "conflict_checks": [
+      "existing class_assignments",
+      "weekly schedules",
+      "duration bounds",
+      "early/late windows",
+      "weekend flag"
+    ],
+    "data_hook": "useClassAssignmentData.ts loads class_types, class_packages, user profiles (by role), schedules, bookings, assignments"
+  },
+  "assignment_form": {
+    "component": "components/AssignmentForm.tsx",
+    "assignment_types": [
+      "adhoc",
+      "weekly",
+      "monthly",
+      "crash_course",
+      "package"
+    ],
+    "booking_selection": "AdaptiveBookingSelector with assignment/booking type filters, supports multiple bookings except where blocked",
+    "rate_prefill": "useRateForAssignment(scheduleType, booking_type, class_type_id, package_id)",
+    "template_support": [
+      "weekly template pick",
+      "manual calendar builder",
+      "timeline summary"
+    ]
+  },
+  "assignment_creation_service": {
+    "file": "services/assignmentCreation.js",
+    "shared_steps": [
+      "validate UUID/date/time",
+      "ensure instructor rate",
+      "calculate payment",
+      "clean data",
+      "insert class_assignments",
+      "create assignment_bookings",
+      "update bookings to completed"
+    ],
+    "assignment_type_logic": {
+      "adhoc": {
+        "schedule_type": "adhoc",
+        "required": [
+          "class_type_id",
+          "instructor_id",
+          "date",
+          "start_time",
+          "end_time"
+        ],
+        "fallback_scheduled_class_id": true
+      },
+      "weekly": {
+        "modes": [
+          "existing template",
+          "new template"
+        ],
+        "generator": "generateWeeklyAssignments"
+      },
+      "monthly": {
+        "requires_package": true,
+        "methods": [
+          "weekly_recurrence",
+          "manual_calendar"
+        ],
+        "schedule_type": "monthly"
+      },
+      "crash_course": {
+        "requires_package": true,
+        "schedule_type": "crash",
+        "methods": [
+          "weekly_recurrence",
+          "manual_calendar",
+          "legacy weekly"
+        ]
+      },
+      "package": {
+        "mirrors monthly but caps with package.class_count/validity"
+      }
+    },
+    "payment_types": [
+      "per_class",
+      "per_student_per_class",
+      "per_class_total",
+      "per_member",
+      "monthly",
+      "total_duration"
+    ],
+    "functions": [
+      "validateBookingExists",
+      "shouldAllowMultipleBookings",
+      "createAssignmentBookings",
+      "generateWeeklyAssignments",
+      "generateManualCalendarAssignments"
+    ]
+  },
+  "instructor_payment": {
+    "edit_modal": "components/EditAssignmentModal.tsx",
+    "behaviors": [
+      "recalculate base amount when student count changes",
+      "support payment_type switch",
+      "manual override"
+    ],
+    "status_flow": {
+      "class_status": [
+        "scheduled",
+        "completed",
+        "canceled",
+        "rescheduled",
+        "not_conducted"
+      ],
+      "payment_status": [
+        "pending",
+        "paid",
+        "approved",
+        "reversed",
+        "withheld"
+      ]
+    },
+    "types_source": "src/shared/types/assignments.ts"
+  },
+  "financial_operations": {
+    "transactions_module": {
+      "file": "src/features/dashboard/components/Modules/TransactionManagement.tsx",
+      "dataset": "transactions_with_user view",
+      "filters": [
+        "search text",
+        "status",
+        "type",
+        "date range"
+      ],
+      "manual_entry": "record-transaction edge function consumes user_id/email, amount, billing_plan_type",
+      "invoice_generation": "pdf-lib + business_settings (profile/contact/invoice/legal)",
+      "realtime": "supabase channel public:transactions"
+    },
+    "payout_structures": {
+      "types_file": "src/shared/types/assignments.ts",
+      "fields": [
+        "final_payment_amount",
+        "payment_status",
+        "PayoutSummary",
+        "AttendanceAggregate"
+      ]
+    }
+  },
+  "supporting_mechanics": [
+    {
+      "name": "generateCancelToken",
+      "purpose": "issue single-use booking cancellation URLs used in confirmation emails"
+    },
+    {
+      "name": "recordLog",
+      "purpose": "store booking action traces in localStorage + console for debugging multi-tab behavior"
+    },
+    {
+      "name": "BroadcastChannel",
+      "purpose": "notify other tabs when bookings are created (corporate flow)"
+    }
+  ]
+}

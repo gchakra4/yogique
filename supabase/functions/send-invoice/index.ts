@@ -125,11 +125,19 @@ Deno.serve(async (req) => {
                         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
                         content = bytes;
                     }
-                    return {
+                    // Support inline/CID attachments when caller provides `cid` property
+                    const attachment: any = {
                         filename: a.filename,
                         content,
-                        contentType: a.contentType || 'application/pdf'
+                        contentType: a.contentType || 'application/octet-stream'
                     };
+                    // Resend expects `content_id` for CID and `disposition: 'inline'` for inline images
+                    const cid = a.cid || a.contentId || a.content_id;
+                    if (cid) {
+                        attachment.content_id = cid;
+                        attachment.disposition = 'inline';
+                    }
+                    return attachment;
                 })
                 : undefined
         });

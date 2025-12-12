@@ -8,3 +8,17 @@ dist/
 .env_prod
 supabase/backups
 secret/
+
+# Supabase backup scripts - NEVER commit these!
+scripts/supabase-backup/.env
+scripts/supabase-backup/backups/
+scripts/supabase-backup/*.tar.gz
+scripts/supabase-backup/*.tar.gz.gpg
+scripts/supabase-backup/*.dump
+scripts/supabase-backup/*.sql
+scripts/supabase-backup/backup-*/
+scripts/supabase-backup/storage/
+scripts/supabase-backup/functions/
+scripts/supabase-backup/secrets/
+!scripts/supabase-backup/storage/.gitkeep
+!scripts/supabase-backup/secrets/.gitkeep

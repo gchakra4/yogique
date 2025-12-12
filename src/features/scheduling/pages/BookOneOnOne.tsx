@@ -529,8 +529,8 @@ export function BookOneOnOne() {
     </head>
     <body>
         <div class="container">
-            <div class="header">
-                <img src="https://yourdomain.com/path-to-logo.png" alt="Yogique Logo" style="width:80px; margin-bottom:10px;" />
+                <div class="header">
+                <img src="{{logo_src}}" alt="Yogique Logo" style="width:80px; margin-bottom:10px;" />
                 <h1>Yogique – Booking Confirmed</h1>
             </div>
             <div class="content">
@@ -559,6 +559,50 @@ export function BookOneOnOne() {
     </body>
 </html>`
 
+                // Attempt to fetch logo and include it as an inline CID attachment for better email client compatibility.
+                async function fetchImageAsBase64(url: string) {
+                    try {
+                        const resp = await fetch(url)
+                        if (!resp.ok) return null
+                        const blob = await resp.blob()
+                        const contentType = blob.type || 'application/octet-stream'
+                        const base64 = await new Promise<string | null>((resolve, reject) => {
+                            const reader = new FileReader()
+                            reader.onloadend = () => {
+                                if (!reader.result) return resolve(null)
+                                const parts = (reader.result as string).split(',')
+                                resolve(parts[1] || null)
+                            }
+                            reader.onerror = () => reject(new Error('Failed to read blob'))
+                            reader.readAsDataURL(blob)
+                        })
+                        if (!base64) return null
+                        return { base64, contentType }
+                    } catch (e) {
+                        return null
+                    }
+                }
+
+                const logoUrl = `${baseUrl}/images/Brand.png`
+                let attachmentsToSend: Array<{ filename: string; content: string; contentType?: string; cid?: string }> | undefined = undefined
+                let resolvedLogoSrc = `${baseUrl}/images/Brand.png`
+                try {
+                    const fetched = await fetchImageAsBase64(logoUrl)
+                    if (fetched && fetched.base64) {
+                        attachmentsToSend = [
+                            {
+                                filename: 'Brand.png',
+                                content: `data:${fetched.contentType};base64,${fetched.base64}`,
+                                contentType: fetched.contentType,
+                                cid: 'yq_logo'
+                            }
+                        ]
+                        resolvedLogoSrc = 'cid:yq_logo'
+                    }
+                } catch (e) {
+                    // ignore and fall back to absolute URL
+                }
+
                 const emailHtml = emailHtmlTemplate
                     .replace(/{{user_name}}/g, userName)
                     .replace(/{{booking_id}}/g, bookingIdValue)
@@ -572,11 +616,13 @@ export function BookOneOnOne() {
                     .replace(/{{cancel_url}}/g, ((globalThis as any).__lastCancelUrl as string) || actionUrl)
                     .replace(/{{action_url}}/g, actionUrl)
                     .replace(/{{year}}/g, String(year))
+                    .replace(/{{base_url}}/g, baseUrl)
+                    .replace(/{{logo_src}}/g, resolvedLogoSrc)
 
                 const subject = `Your Yogique Booking (${bookingIdValue})`
 
                 // Fire-and-forget: don't block the UI if email fails
-                EmailService.sendTransactionalEmail(formData.email, subject, emailHtml)
+                EmailService.sendTransactionalEmail(formData.email, subject, emailHtml, attachmentsToSend)
                     .then(res => {
                         if (!res.ok) console.warn('Failed to send booking confirmation email:', res.error)
                     })

@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Complete Supabase Backup & Restore Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3ecf8e;
+            --secondary: #1e293b;
+            --accent: #22c55e;
+            --bg: #ffffff;
+            --surface: #f8fafc;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #1e293b;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            padding: 3rem 0;
+            border-bottom: 3px solid var(--primary);
+            margin-bottom: 3rem;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dbeafe 100%);
+            border-radius: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .header .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        nav {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            margin-bottom: 3rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        nav h2 {
+            margin-bottom: 1rem;
+            color: var(--secondary);
+        }
+
+        nav ul {
+            list-style: none;
+        }
+
+        nav ul li {
+            margin: 0.5rem 0;
+        }
+
+        nav ul li a {
+            color: var(--text);
+            text-decoration: none;
+            padding: 0.5rem;
+            display: block;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        nav ul li a:hover {
+            background: var(--primary);
+            color: white;
+            padding-left: 1rem;
+        }
+
+        section {
+            margin-bottom: 4rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--secondary);
+            margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: var(--secondary);
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            color: var(--secondary);
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        code {
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e11d48;
+        }
+
+        pre {
+            background: var(--code-bg);
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        pre code {
+            background: transparent;
+            color: #e2e8f0;
+            padding: 0;
+        }
+
+        .callout {
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            border-radius: 0.5rem;
+            border-left: 4px solid;
+        }
+
+        .callout-warning {
+            background: #fffbeb;
+            border-color: var(--warning);
+        }
+
+        .callout-info {
+            background: #eff6ff;
+            border-color: var(--info);
+        }
+
+        .callout-success {
+            background: #f0fdf4;
+            border-color: var(--success);
+        }
+
+        .callout-error {
+            background: #fef2f2;
+            border-color: var(--error);
+        }
+
+        .callout-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        thead {
+            background: var(--secondary);
+            color: white;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: var(--surface);
+        }
+
+        ul,
+        ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin: 0.5rem 0;
+        }
+
+        .tree {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: var(--surface);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .step {
+            background: white;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 0.5rem;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .checklist {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .checklist li {
+            list-style: none;
+            padding: 0.5rem 0;
+        }
+
+        .checklist input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+
+        .collapsible {
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            padding: 1rem 1.5rem;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            transition: all 0.3s;
+        }
+
+        .collapsible:hover {
+            background: var(--accent);
+        }
+
+        .collapsible:after {
+            content: '▼';
+            float: right;
+            margin-left: 5px;
+            transition: transform 0.3s;
+        }
+
+        .collapsible.active:after {
+            transform: rotate(-180deg);
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background: var(--surface);
+            border-radius: 0 0 0.5rem 0.5rem;
+        }
+
+        .collapsible-content.active {
+            max-height: 5000px;
+            padding: 1.5rem;
+        }
+
+        .copy-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .copy-button:hover {
+            background: var(--accent);
+        }
+
+        @media print {
+            body {
+                max-width: 100%;
+                padding: 1rem;
+            }
+
+            nav {
+                display: none;
+            }
+
+            section {
+                page-break-inside: avoid;
+            }
+
+            pre {
+                page-break-inside: avoid;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>🚀 Complete Supabase Backup & Restore Guide</h1>
+        <p class="subtitle">📘 Comprehensive documentation for backing up and restoring your Supabase project</p>
+    </div>
+
+    <nav>
+        <h2>📑 Table of Contents</h2>
+        <ul>
+            <li><a href="#prerequisites">✅ Prerequisites</a></li>
+            <li><a href="#setup">🛠️ Initial Setup</a></li>
+            <li><a href="#backup">💾 Creating a Backup</a></li>
+            <li><a href="#restore">🔄 Restoring to a New Project</a></li>
+            <li><a href="#functions">⚡ Migrating Edge Functions</a></li>
+            <li><a href="#secrets">🔐 Migrating Secrets</a></li>
+            <li><a href="#verification">✔️ Verification</a></li>
+            <li><a href="#troubleshooting">🔧 Troubleshooting</a></li>
+        </ul>
+    </nav>
+
+    <section id="prerequisites">
+        <h2>✅ Prerequisites</h2>
+
+        <h3>🛠️ Required Tools</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tool</th>
+                    <th>Purpose</th>
+                    <th>Required</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>🐚 <strong>Git Bash</strong></td>
+                    <td>Shell environment (Windows)</td>
+                    <td>✅ Yes</td>
+                </tr>
+                <tr>
+                    <td>🐘 <strong>PostgreSQL Client</strong></td>
+                    <td><code>psql</code>, <code>pg_dump</code>, <code>pg_restore</code></td>
+                    <td>✅ Yes</td>
+                </tr>
+                <tr>
+                    <td>🟩 <strong>Supabase CLI</strong></td>
+                    <td>v2.58.5 or later</td>
+                    <td>✅ Yes</td>
+                </tr>
+                <tr>
+                    <td>📊 <strong>jq</strong></td>
+                    <td>JSON processor</td>
+                    <td>✅ Yes</td>
+                </tr>
+                <tr>
+                    <td>🔒 <strong>GPG</strong></td>
+                    <td>Encryption (optional)</td>
+                    <td>⚪ Optional</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>🔍 Check Tool Availability</h3>
+        <pre><code># Check PostgreSQL tools
+psql --version
+pg_dump --version
+pg_restore --version
+
+# Check Supabase CLI
+supabase --version
+
+# Check jq
+jq --version
+
+# Check GPG (optional)
+gpg --version</code></pre>
+
+        <h3>📥 Install Missing Tools</h3>
+
+        <h4>📊 jq on Windows (Git Bash):</h4>
+        <pre><code>mkdir -p ~/bin
+curl -L https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-win64.exe -o ~/bin/jq.exe
+chmod +x ~/bin/jq.exe
+export PATH="$HOME/bin:$PATH"
+echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc</code></pre>
+
+        <h4>🟩 Supabase CLI:</h4>
+        <p>See: <a href="https://supabase.com/docs/guides/cli/getting-started"
+                target="_blank">https://supabase.com/docs/guides/cli/getting-started</a></p>
+    </section>
+
+    <section id="setup">
+        <h2>🛠️ Initial Setup</h2>
+
+        <div class="callout callout-success">
+            <div class="callout-title">📦 Getting the Backup Scripts</div>
+            <p><strong>Option 1: You already have them</strong></p>
+            <p>If you're reading this guide from your project, the scripts are already at:</p>
+            <p><code>scripts/supabase-backup/</code></p>
+            <ul>
+                <li>✅ <code>backup_supabase.sh</code> - Main backup script</li>
+                <li>✅ <code>restore_supabase.sh</code> - Main restore script</li>
+                <li>✅ <code>verify_restore.sh</code> - Verification script</li>
+            </ul>
+
+            <p><strong>Option 2: Download from GitHub</strong></p>
+            <p>If you're setting up from scratch, download the scripts from:</p>
+            <p>🔗 <strong>GitHub Repository:</strong> <a href="https://github.com/yogique/supabase-backup-tools"
+                    target="_blank">https://github.com/yogique/supabase-backup-tools</a></p>
+            <pre><code># Clone the repository
+git clone https://github.com/yogique/supabase-backup-tools.git
+cd supabase-backup-tools
+
+# Copy scripts to your project
+cp -r scripts/supabase-backup /path/to/your/project/scripts/</code></pre>
+
+            <p><strong>Option 3: Contact Your Team</strong></p>
+            <p>If you're part of a team using this tool, request the scripts from:</p>
+            <ul>
+                <li>📧 Your team lead or DevOps engineer</li>
+                <li>📂 Your company's internal repository</li>
+                <li>💬 Your team's documentation/wiki</li>
+            </ul>
+        </div>
+
+        <div class="callout callout-success">
+            <div class="callout-title">✨ Good News: Scripts Are Schema-Agnostic!</div>
+            <p><strong>You DON'T need to update scripts when your database changes!</strong></p>
+            <p>The backup scripts use PostgreSQL's native tools (<code>pg_dump</code>, <code>pg_dumpall</code>) and
+                Supabase CLI, which automatically capture:</p>
+            <ul>
+                <li>✅ <strong>ALL tables</strong> - No matter how many you add/remove</li>
+                <li>✅ <strong>ALL columns</strong> - Including new fields you create</li>
+                <li>✅ <strong>ALL Edge Functions</strong> - Dynamically lists and downloads all functions</li>
+                <li>✅ <strong>ALL RLS policies</strong> - Captured in schema dump</li>
+                <li>✅ <strong>ALL triggers & functions</strong> - Automatically included</li>
+                <li>✅ <strong>ALL secrets</strong> - Lists whatever secrets exist</li>
+                <li>✅ <strong>ALL data</strong> - Every row in every table</li>
+            </ul>
+            <p><strong>Example:</strong></p>
+            <p>Today you have 50 tables → Script backs up 50 tables<br>
+                Tomorrow you add 10 more tables → Same script backs up 60 tables<br>
+                No changes needed! 🎉</p>
+        </div>
+
+        <div class="callout callout-info">
+            <div class="callout-title">📋 How It Works</div>
+            <p>The scripts use <strong>dynamic discovery</strong>:</p>
+            <ul>
+                <li><code>pg_dump</code> - Scans your database and exports everything it finds</li>
+                <li><code>supabase functions list</code> - Lists all Edge Functions at backup time</li>
+                <li><code>supabase secrets list</code> - Lists all secrets currently configured</li>
+            </ul>
+            <p>No hardcoded table names, no manual configuration needed!</p>
+        </div>
+
+        <div class="callout callout-warning">
+            <div class="callout-title">⚠️ When You WOULD Need to Update Scripts</div>
+            <p>You only need to update the scripts if:</p>
+            <ul>
+                <li>🐛 Bug fixes are released</li>
+                <li>✨ New features are added (e.g., better compression, new backup options)</li>
+                <li>🔧 Supabase CLI changes its API (rare)</li>
+                <li>⚙️ You want to customize backup behavior (exclude certain schemas, etc.)</li>
+            </ul>
+            <p><strong>But NOT for schema changes!</strong> That's handled automatically. 🚀</p>
+        </div>
+
+        <div class="step">
+            <h3>1️⃣ Get Your Supabase Project Credentials</h3>
+            <p><strong>Step-by-step to find your credentials:</strong></p>
+            <ol>
+                <li>🌐 Go to <a href="https://supabase.com/dashboard" target="_blank">https://supabase.com/dashboard</a>
+                </li>
+                <li>🔑 Log in to your account</li>
+                <li>📂 Click on your project (the one you want to backup)</li>
+                <li>⚙️ Click <strong>Settings</strong> (gear icon in left sidebar)</li>
+                <li>🔌 Click <strong>Database</strong></li>
+                <li>📋 Under "Connection string" section, select <strong>Session pooler</strong> tab</li>
+            </ol>
+
+            <div class="callout callout-success">
+                <div class="callout-title">✅ You'll see these values:</div>
+                <ul>
+                    <li><strong>Host:</strong> <code>aws-0-ap-south-1.pooler.supabase.com</code> (or similar region)
+                    </li>
+                    <li><strong>Database name:</strong> <code>postgres</code></li>
+                    <li><strong>Port:</strong> <code>5432</code></li>
+                    <li><strong>User:</strong> <code>postgres.iddvvefpwgwmgpyelzcv</code> (format:
+                        postgres.YOUR_PROJECT_REF)</li>
+                    <li><strong>Password:</strong> Click "Reset database password" if you don't have it, or use existing
+                    </li>
+                </ul>
+            </div>
+
+            <div class="callout callout-info">
+                <div class="callout-title">🆔 Finding Your PROJECT_REF</div>
+                <p>The <strong>Project Reference ID</strong> is visible in multiple places:</p>
+                <ul>
+                    <li>In the URL:
+                        <code>https://supabase.com/dashboard/project/<strong>iddvvefpwgwmgpyelzcv</strong></code></li>
+                    <li>In Settings → General → "Reference ID"</li>
+                    <li>In the database username: <code>postgres.<strong>iddvvefpwgwmgpyelzcv</strong></code></li>
+                </ul>
+                <p>It's a random string like: <code>iddvvefpwgwmgpyelzcv</code> or <code>qkqonewssbldfckqmbvp</code></p>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>2️⃣ Create Backup Directory Structure</h3>
+
+            <p><strong>For Windows (PowerShell):</strong></p>
+            <pre><code># Navigate to your project root
+cd "D:\New folder\tryfix - Copy"
+
+# Create directory structure (if not exists)
+New-Item -ItemType Directory -Force -Path "scripts\supabase-backup\backups"
+cd scripts\supabase-backup</code></pre>
+
+            <p><strong>For Linux/Mac (Git Bash on Windows):</strong></p>
+            <pre><code># Navigate to your project root
+cd /d/New\ folder/tryfix\ -\ Copy
+
+# Create directory structure
+mkdir -p scripts/supabase-backup/backups
+cd scripts/supabase-backup</code></pre>
+
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Verify the scripts exist:</div>
+                <p>Check that these files are present:</p>
+                <ul>
+                    <li>✅ <code>backup_supabase.sh</code></li>
+                    <li>✅ <code>restore_supabase.sh</code></li>
+                    <li>✅ <code>verify_restore.sh</code></li>
+                </ul>
+                <p>If missing, contact your team to get them!</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>2️⃣ Create .gitignore File</h3>
+            <div class="callout callout-warning">
+                <div class="callout-title">⚠️ Security Warning</div>
+                Prevent sensitive data from being committed
+            </div>
+            <pre><code>cat > .gitignore << 'EOF'
+# Environment files
+.env
+.env.*
+
+# Backups
+backups/
+*.dump
+*.sql
+*.tar.gz
+*.tar.gz.gpg
+
+# Secrets
+secrets-to-migrate.txt
+*-secrets.txt
+
+# Logs
+*.log
+EOF</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>4️⃣ Configure Environment Variables</h3>
+            <p>Create and edit your <code>.env</code> file:</p>
+
+            <p><strong>For Windows (PowerShell):</strong></p>
+            <pre><code>notepad .env</code></pre>
+
+            <p><strong>For Linux/Mac/Git Bash:</strong></p>
+            <pre><code>nano .env</code></pre>
+
+            <div class="callout callout-info">
+                <div class="callout-title">🔑 Copy and paste this template, then fill in YOUR values:</div>
+            </div>
+
+            <pre><code># Source Project Details
+PROJECT_REF=iddvvefpwgwmgpyelzcv
+PG_HOST=aws-0-ap-south-1.pooler.supabase.com
+PG_PORT=5432
+PG_DATABASE=postgres
+PG_USER=postgres.iddvvefpwgwmgpyelzcv
+PG_PASSWORD=YourActualPasswordHere
+
+# Backup Settings
+BACKUP_DIR=./backups</code></pre>
+
+            <div class="callout callout-success">
+                <div class="callout-title">📝 Example with real values:</div>
+                <p>If your Project Reference ID is <code>iddvvefpwgwmgpyelzcv</code> and you're in Mumbai region:</p>
+                <pre><code>PROJECT_REF=iddvvefpwgwmgpyelzcv
+PG_HOST=aws-0-ap-south-1.pooler.supabase.com
+PG_PORT=5432
+PG_DATABASE=postgres
+PG_USER=postgres.iddvvefpwgwmgpyelzcv
+PG_PASSWORD=abc123XYZ!yourPassword
+BACKUP_DIR=./backups</code></pre>
+            </div>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">⚠️ Important - Replace these values:</div>
+                <ul>
+                    <li><code>PROJECT_REF</code>: Replace with YOUR project ref from step 1</li>
+                    <li><code>PG_HOST</code>: Use the host from "Session pooler" tab (includes your region like
+                        ap-south-1, us-east-1, ap-northeast-2)</li>
+                    <li><code>PG_USER</code>: Format is always <code>postgres.YOUR_PROJECT_REF</code></li>
+                    <li><code>PG_PASSWORD</code>: The actual database password from Supabase dashboard</li>
+                </ul>
+            </div>
+
+            <div class="callout callout-info">
+                <div class="callout-title">🌍 Common regions:</div>
+                <ul>
+                    <li>Mumbai: <code>aws-0-ap-south-1.pooler.supabase.com</code></li>
+                    <li>Seoul: <code>aws-1-ap-northeast-2.pooler.supabase.com</code></li>
+                    <li>US East: <code>aws-0-us-east-1.pooler.supabase.com</code></li>
+                    <li>Singapore: <code>aws-0-ap-southeast-1.pooler.supabase.com</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>5️⃣ Test Database Connection</h3>
+
+            <p><strong>For Windows (PowerShell):</strong></p>
+            <pre><code>cd scripts\supabase-backup
+
+# Load environment variables
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^([^=]+)=(.*)$') {
+        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+    }
+}
+
+# Test connection
+$env:PGPASSWORD = (Get-Content .env | Select-String "PG_PASSWORD" | ForEach-Object { $_ -replace "PG_PASSWORD=","" })
+psql -h "$env:PG_HOST" -p "$env:PG_PORT" -U "$env:PG_USER" -d "$env:PG_DATABASE" -c "SELECT 1;"</code></pre>
+
+            <p><strong>For Linux/Mac/Git Bash:</strong></p>
+            <pre><code>cd scripts/supabase-backup
+source .env
+export PGPASSWORD="$PG_PASSWORD"
+psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DATABASE" -c "SELECT 1;"</code></pre>
+
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Expected output:</div>
+                <pre><code> ?column? 
+----------
+        1
+(1 row)</code></pre>
+                <p>If you see this, your database connection works! 🎉</p>
+            </div>
+
+            <div class="callout callout-error">
+                <div class="callout-title">❌ If you get errors:</div>
+                <ul>
+                    <li><strong>"command not found: psql"</strong> → PostgreSQL client not installed (see Prerequisites)
+                    </li>
+                    <li><strong>"password authentication failed"</strong> → Wrong password in .env file</li>
+                    <li><strong>"could not translate host name"</strong> → Wrong PG_HOST (check Session pooler hostname)
+                    </li>
+                    <li><strong>"role does not exist"</strong> → Wrong PG_USER format (should be postgres.PROJECT_REF)
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section id="backup">
+        <h2>💾 Creating a Backup</h2>
+
+        <div class="callout callout-info">
+            <div class="callout-title">📝 Note:</div>
+            <p>The backup script <code>backup_supabase.sh</code> should already be in your
+                <code>scripts/supabase-backup/</code> directory. If it's missing, you can download it from your team
+                repository or request it from your team lead.
+            </p>
+        </div>
+
+        <div class="step">
+            <h3>📋 What the Backup Script Does</h3>
+            <p>The <code>backup_supabase.sh</code> script automates the following tasks:</p>
+            <ul>
+                <li>🔐 <strong>Security checks</strong> - Validates environment and warns about sensitive data</li>
+                <li>🐘 <strong>Database backup</strong> - Uses <code>pg_dump</code> to create:
+                    <ul>
+                        <li><code>db-full.dump</code> - Complete database in custom format</li>
+                        <li><code>db-schema.sql</code> - Schema DDL only</li>
+                        <li><code>db-data.sql</code> - Data only (INSERT statements)</li>
+                    </ul>
+                </li>
+                <li>👥 <strong>Roles & globals</strong> - Exports database roles and global objects using
+                    <code>pg_dumpall</code>
+                </li>
+                <li>⚡ <strong>Edge Functions</strong> - Downloads all function source code from Supabase</li>
+                <li>🔐 <strong>Secrets list</strong> - Exports secret names (not values for security)</li>
+                <li>⚙️ <strong>Project metadata</strong> - Saves project configuration to JSON</li>
+                <li>📦 <strong>Compression</strong> - Creates a tar.gz archive of everything</li>
+                <li>🔒 <strong>Optional encryption</strong> - GPG encryption if configured</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>🔧 Script Requirements</h3>
+            <p>The script requires these tools (already verified in Prerequisites):</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tool</th>
+                        <th>Used For</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>pg_dump</code></td>
+                        <td>Database backup</td>
+                    </tr>
+                    <tr>
+                        <td><code>pg_dumpall</code></td>
+                        <td>Global objects & roles</td>
+                    </tr>
+                    <tr>
+                        <td><code>supabase</code></td>
+                        <td>Edge Functions & secrets</td>
+                    </tr>
+                    <tr>
+                        <td><code>jq</code></td>
+                        <td>JSON processing</td>
+                    </tr>
+                    <tr>
+                        <td><code>tar</code></td>
+                        <td>Archive creation</td>
+                    </tr>
+                    <tr>
+                        <td><code>gpg</code> (optional)</td>
+                        <td>Backup encryption</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step">
+            <h3>1️⃣ Authenticate with Supabase</h3>
+            <pre><code>supabase login</code></pre>
+            <p>🌐 This will open your browser. Complete the authentication.</p>
+        </div>
+
+        <div class="step">
+            <h3>2️⃣ Run Backup Script</h3>
+            <pre><code>cd scripts/supabase-backup
+./backup_supabase.sh</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>3️⃣ Backup Contents</h3>
+            <p>The script creates a timestamped backup directory containing:</p>
+            <div class="tree">
+                📁 backups/
+                └── 📁 backup-{project_ref}-{timestamp}/
+                ├── 📝 backup.log # Backup process log
+                ├── 💾 db-full.dump # Complete database (custom format)
+                ├── 📄 db-schema.sql # Schema DDL
+                ├── 📄 db-data.sql # Data only
+                ├── 🌐 globals.sql # Global objects
+                ├── 👥 roles.sql # Database roles
+                ├── 📁 functions/ # Edge Functions source code
+                │ ├── 📁 function-1/
+                │ ├── 📁 function-2/
+                │ └── ...
+                └── ⚙️ project-config.json # Project metadata
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>4️⃣ Backup Archive</h3>
+            <p>The backup is compressed and optionally encrypted:</p>
+            <div class="tree">
+                📁 backups/
+                ├── 📦 supabase-backup-{project_ref}-{timestamp}.tar.gz # Compressed
+                ├── 🔒 supabase-backup-{project_ref}-{timestamp}.tar.gz.gpg # Encrypted (optional)
+                └── 📄 checksums.txt # SHA256 checksums
+            </div>
+            <div class="callout callout-info">
+                <div class="callout-title">📊 Archive size:</div>
+                Typically 300-500 KB for schema-heavy projects
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>5️⃣ Manual Backup Operations (Advanced)</h3>
+            <p>If you need to manually create or verify backups without the script:</p>
+
+            <h4>📦 Create tar.gz Archive Manually</h4>
+            <pre><code>cd scripts/supabase-backup/backups
+tar -czf supabase-backup-{project_ref}-{timestamp}.tar.gz backup-{project_ref}-{timestamp}/</code></pre>
+
+            <h4>🔐 Create SHA256 Checksum</h4>
+            <p>For integrity verification:</p>
+            <pre><code># Windows (PowerShell)
+Get-FileHash supabase-backup-{project_ref}-{timestamp}.tar.gz -Algorithm SHA256
+
+# Linux/Mac/Git Bash
+sha256sum supabase-backup-{project_ref}-{timestamp}.tar.gz > checksums.txt</code></pre>
+
+            <h4>🔒 Encrypt Backup with GPG</h4>
+            <p><strong>Symmetric encryption</strong> (password-based):</p>
+            <pre><code>gpg --symmetric --cipher-algo AES256 supabase-backup-{project_ref}-{timestamp}.tar.gz</code></pre>
+            <p>This creates: <code>supabase-backup-{project_ref}-{timestamp}.tar.gz.gpg</code></p>
+            <p>💡 You'll be prompted to enter a passphrase. <strong>Store this securely!</strong></p>
+
+            <p><strong>Public key encryption</strong> (for team sharing):</p>
+            <pre><code># Encrypt for specific recipient
+gpg --encrypt --recipient your-email@example.com supabase-backup-{project_ref}-{timestamp}.tar.gz
+
+# Encrypt for multiple recipients
+gpg --encrypt --recipient admin1@example.com --recipient admin2@example.com backup.tar.gz</code></pre>
+
+            <h4>🔓 Decrypt Backup</h4>
+            <p><strong>Decrypt symmetric (password-based):</strong></p>
+            <pre><code>gpg --decrypt supabase-backup-{project_ref}-{timestamp}.tar.gz.gpg > backup-decrypted.tar.gz</code></pre>
+            <p>Enter the passphrase when prompted.</p>
+
+            <p><strong>Decrypt with private key:</strong></p>
+            <pre><code>gpg --decrypt supabase-backup-{project_ref}-{timestamp}.tar.gz.gpg > backup-decrypted.tar.gz</code></pre>
+            <p>GPG will automatically use your private key if available.</p>
+
+            <h4>✅ Verify Checksum</h4>
+            <p>Before restoring, verify backup integrity:</p>
+            <pre><code># Windows (PowerShell)
+$expected = "22e97632fe2c975474e5f08021754d0911f58023ecc7eba5b8c7c97a565c4140"
+$actual = (Get-FileHash backup.tar.gz -Algorithm SHA256).Hash.ToLower()
+if ($actual -eq $expected) { Write-Host "✅ Checksum verified!" } else { Write-Host "❌ Checksum mismatch!" }
+
+# Linux/Mac/Git Bash
+sha256sum -c checksums.txt</code></pre>
+
+            <h4>📂 Extract Archive</h4>
+            <pre><code># Extract to current directory
+tar -xzf supabase-backup-{project_ref}-{timestamp}.tar.gz
+
+# Extract to specific directory
+tar -xzf supabase-backup-{project_ref}-{timestamp}.tar.gz -C /path/to/destination/</code></pre>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">⚠️ Security Best Practices:</div>
+                <ul>
+                    <li>🔐 Always use AES256 cipher for encryption</li>
+                    <li>🔑 Use strong passphrases (16+ characters, mixed case, numbers, symbols)</li>
+                    <li>💾 Store passphrases in password manager (1Password, Bitwarden, etc.)</li>
+                    <li>✅ Verify checksums after file transfers</li>
+                    <li>🗑️ Securely delete unencrypted backups after encryption: <code>shred -u backup.tar.gz</code>
+                        (Linux) or delete permanently</li>
+                    <li>☁️ Store encrypted backups off-site (separate cloud storage, different region)</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section id="restore">
+        <h2>🔄 Restoring to a New Project</h2>
+
+        <div class="step">
+            <h3>1️⃣ Create New Supabase Project</h3>
+            <ol>
+                <li>🌐 Log into Supabase Dashboard (can be different account)</li>
+                <li>➕ Create new project</li>
+                <li>⏳ Wait for project to be fully provisioned</li>
+                <li>📋 Note the <strong>Project Reference ID</strong></li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>2️⃣ Get Target Project Credentials</h3>
+            <p>From Dashboard → Settings → Database:</p>
+            <ul>
+                <li>🔌 Connection pooler hostname: <code>aws-1-{region}.pooler.supabase.com</code></li>
+                <li>🔢 Port: <code>5432</code></li>
+                <li>💾 Database: <code>postgres</code></li>
+                <li>👤 User: <code>postgres.{new_project_ref}</code></li>
+                <li>🔑 Password: (copy from dashboard)</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>3️⃣ Update .env with Target Project</h3>
+            <p>Add to your <code>.env</code> file:</p>
+            <pre><code># 🎯 Target Project Details (for restore)
+NEW_PROJECT_REF=new_project_ref_here
+NEW_PG_HOST=aws-1-region.pooler.supabase.com
+NEW_PG_PORT=5432
+NEW_PG_DATABASE=postgres
+NEW_PG_USER=postgres.new_project_ref
+NEW_PG_PASSWORD=new_db_password_here</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>4️⃣ Fix Known Issues in Backup</h3>
+            <div class="callout callout-warning">
+                <div class="callout-title">⚠️ If you encounter JSON parsing errors</div>
+            </div>
+            <pre><code>cd backups/backup-{project_ref}-{timestamp}
+nano backups/project-config.json</code></pre>
+            <p>Look for malformed JSON like:</p>
+            <pre><code>"source_project": ,</code></pre>
+            <p>Change to:</p>
+            <pre><code>"source_project": {},</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>5️⃣ Manual Database Restore (Recommended)</h3>
+            <p>Navigate to extracted backup directory:</p>
+            <pre><code>cd scripts/supabase-backup/backups/backup-{project_ref}-{timestamp}
+source ../../.env
+export PGPASSWORD="$NEW_PG_PASSWORD"
+
+# Run restore
+pg_restore --clean --if-exists --no-owner --no-privileges \
+  --dbname="postgresql://${NEW_PG_USER}:${NEW_PG_PASSWORD}@${NEW_PG_HOST}:${NEW_PG_PORT}/${NEW_PG_DATABASE}" \
+  db-full.dump</code></pre>
+
+            <div class="callout callout-info">
+                <div class="callout-title">💡 Expected Errors (NORMAL):</div>
+                <pre><code>❌ ERROR: must be owner of table {auth/storage/realtime tables}
+❌ ERROR: permission denied for schema {auth/storage/realtime}
+❌ ERROR: must be owner of event trigger {system triggers}</code></pre>
+                <p>ℹ️ These errors are for <strong>Supabase system-managed</strong> schemas that cannot be modified.
+                    Your <code>public</code> schema tables will restore successfully.</p>
+                <p>📊 <strong>Total errors:</strong> ~712 (all normal and expected)</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>6️⃣ Verify Tables Restored</h3>
+            <pre><code>psql -h "$NEW_PG_HOST" -p "$NEW_PG_PORT" -U "$NEW_PG_USER" -d "$NEW_PG_DATABASE" -c "\dt public.*"</code></pre>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Success:</div>
+                You should see all your tables listed.
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>7️⃣ Verify Data</h3>
+            <pre><code>psql -h "$NEW_PG_HOST" -p "$NEW_PG_PORT" -U "$NEW_PG_USER" -d "$NEW_PG_DATABASE" \
+  -c "SELECT schemaname, relname as tablename, n_live_tup as row_count 
+      FROM pg_stat_user_tables 
+      WHERE schemaname = 'public' 
+      ORDER BY n_live_tup DESC 
+      LIMIT 15;"</code></pre>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Verify:</div>
+                Row counts match your source data.
+            </div>
+        </div>
+    </section>
+
+    <section id="functions">
+        <h2>⚡ Migrating Edge Functions</h2>
+
+        <div class="step">
+            <h3>1️⃣ Generate Access Token for Target Account</h3>
+            <p>If target project is in a <strong>different Supabase account</strong>:</p>
+            <ol>
+                <li>🌐 Log into the <strong>target account</strong> at https://app.supabase.com</li>
+                <li>👤 Click profile icon → <strong>Access Tokens</strong></li>
+                <li>➕ Click <strong>Generate New Token</strong></li>
+                <li>📝 Name: "CLI Deployment" or similar</li>
+                <li>📋 Copy the token (format: <code>sbp_xxxxxxxxxxxxxxx</code>)</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>2️⃣ Authenticate and Link to Target Project</h3>
+            <pre><code>export SUPABASE_ACCESS_TOKEN="sbp_your_new_token_here"
+cd scripts/supabase-backup/backups/backup-{project_ref}-{timestamp}/functions
+supabase link --project-ref {new_project_ref}</code></pre>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Expected output:</div>
+                <code>Finished supabase link.</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>3️⃣ Deploy All Edge Functions</h3>
+            <pre><code>supabase functions deploy --project-ref {new_project_ref}</code></pre>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Expected output:</div>
+                <code>Deployed Functions on project {new_project_ref}: function-1, function-2, function-3, ...</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>4️⃣ Verify in Dashboard</h3>
+            <p>🌐 Open: <code>https://supabase.com/dashboard/project/{new_project_ref}/functions</code></p>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ All functions should be listed and show as deployed.</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="secrets">
+        <h2>🔐 Migrating Secrets</h2>
+
+        <div class="step">
+            <h3>1️⃣ List Secrets from Source Project</h3>
+            <pre><code># Switch to source project authentication
+unset SUPABASE_ACCESS_TOKEN
+cd /path/to/your/project
+supabase link --project-ref {source_project_ref}
+supabase secrets list --project-ref {source_project_ref}</code></pre>
+            <p>📋 This shows <strong>secret names only</strong> (values are never exposed by CLI for security).</p>
+        </div>
+
+        <div class="step">
+            <h3>2️⃣ Create Secrets Migration File</h3>
+            <p>Create a template file <code>secrets-to-migrate.txt</code>:</p>
+            <pre><code>TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+RESEND_API_KEY=
+ZOOM_CLIENT_ID=
+ZOOM_CLIENT_SECRET=
+# ... add all your secrets</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>3️⃣ Fill in Secret Values</h3>
+            <div class="callout callout-info">
+                <div class="callout-title">📝 Option A: Edit file manually</div>
+                <pre><code>nano scripts/supabase-backup/secrets-to-migrate.txt</code></pre>
+                <p>Copy values from source project dashboard:<br>
+                    <code>https://supabase.com/dashboard/project/{source_ref}/settings/functions</code>
+                </p>
+            </div>
+
+            <div class="callout callout-success">
+                <div class="callout-title">🌐 Option B: Use Dashboard directly (easier)</div>
+                <ol>
+                    <li>Open source project secrets page</li>
+                    <li>📋 Copy each value</li>
+                    <li>Open target project secrets page</li>
+                    <li>➕ Click "Add new secret" and paste each one</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>4️⃣ Bulk Set Secrets via CLI (if using Option A)</h3>
+            <pre><code>export SUPABASE_ACCESS_TOKEN="sbp_your_target_token"
+cd /path/to/your/project
+supabase link --project-ref {new_project_ref}
+supabase secrets set --project-ref {new_project_ref} --env-file scripts/supabase-backup/secrets-to-migrate.txt</code></pre>
+            <div class="callout callout-warning">
+                <div class="callout-title">⚠️ Note:</div>
+                Secret names cannot contain special characters like <code>@</code> or <code>.</code> for CLI method. Use
+                Dashboard for those.
+            </div>
+        </div>
+    </section>
+
+    <section id="verification">
+        <h2>✔️ Verification</h2>
+
+        <div class="step">
+            <h3>🔍 Run Verification Script</h3>
+            <pre><code>cd scripts/supabase-backup
+./verify_restore.sh</code></pre>
+            <p>The script checks:</p>
+            <ul>
+                <li>✅ Database connectivity</li>
+                <li>✅ Schema count</li>
+                <li>✅ Table count</li>
+                <li>✅ Row counts</li>
+                <li>✅ RLS policies</li>
+                <li>✅ Database functions</li>
+                <li>✅ Triggers</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>✓ Manual Verification Checklist</h3>
+
+            <h4>💾 Database:</h4>
+            <pre><code># Count tables
+psql ... -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';"
+
+# Count RLS policies
+psql ... -c "SELECT COUNT(*) FROM pg_policies WHERE schemaname = 'public';"
+
+# Count functions
+psql ... -c "SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public';"</code></pre>
+
+            <h4>⚡ Edge Functions:</h4>
+            <ul>
+                <li>✅ Check Dashboard: All functions should be visible</li>
+                <li>✅ Test invocations: Try calling a function</li>
+            </ul>
+
+            <h4>🔐 Secrets:</h4>
+            <ul>
+                <li>✅ Test functions that require secrets</li>
+                <li>✅ Check logs for "missing secret" errors</li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="troubleshooting">
+        <h2>🔧 Troubleshooting</h2>
+
+        <h3>🔍 Common Issues and Solutions</h3>
+
+        <div class="step">
+            <h4>1️⃣ DNS Resolution Failed</h4>
+            <div class="callout callout-error">
+                <div class="callout-title">❌ ERROR:</div>
+                <code>could not translate host name db.*.supabase.co to address</code>
+            </div>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Solution:</div>
+                Use connection pooler instead of direct connection. Change <code>db.{project}.supabase.co</code> to
+                <code>aws-0-{region}.pooler.supabase.com</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <h4>2️⃣ Authentication Failed</h4>
+            <div class="callout callout-error">
+                <div class="callout-title">❌ ERROR:</div>
+                <code>Tenant or user not found</code>
+            </div>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Solution:</div>
+                Use fully qualified username. Change <code>postgres</code> to <code>postgres.{project_ref}</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <h4>3️⃣ JSON Parsing Error</h4>
+            <div class="callout callout-error">
+                <div class="callout-title">❌ ERROR:</div>
+                <code>Failed to parse JSON</code>
+            </div>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Solution:</div>
+                Fix malformed JSON in <code>project-config.json</code>
+                <pre><code>nano backups/project-config.json
+# Change: "source_project": ,
+# To: "source_project": {},</code></pre>
+            </div>
+        </div>
+
+        <div class="step">
+            <h4>4️⃣ pg_restore Errors for auth/storage/realtime</h4>
+            <div class="callout callout-error">
+                <div class="callout-title">❌ ERROR:</div>
+                <pre><code>must be owner of table users
+permission denied for schema auth</code></pre>
+            </div>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Solution:</div>
+                These are <strong>expected and normal</strong>. Supabase system tables cannot be modified. Your
+                <code>public</code> schema restores successfully.
+            </div>
+        </div>
+
+        <div class="step">
+            <h4>5️⃣ Edge Functions Deployment Fails</h4>
+            <div class="callout callout-error">
+                <div class="callout-title">❌ ERROR:</div>
+                <code>Your account does not have the necessary privileges</code>
+            </div>
+            <div class="callout callout-success">
+                <div class="callout-title">✅ Solution:</div>
+                Generate an access token for the target account and use <code>SUPABASE_ACCESS_TOKEN</code> environment
+                variable.
+            </div>
+        </div>
+    </section>
+
+    <section id="best-practices">
+        <h2>📚 Best Practices</h2>
+
+        <div class="step">
+            <h3>🔄 Regular Backups</h3>
+            <ul>
+                <li>⏰ Schedule weekly backups: <code>cron: 0 2 * * 0</code></li>
+                <li>📅 Keep 7-30 days of retention</li>
+                <li>☁️ Store encrypted backups off-site</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>🧪 Testing Restores</h3>
+            <ul>
+                <li>🔬 Test restore process quarterly</li>
+                <li>✅ Verify data integrity</li>
+                <li>📝 Document any manual steps required</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>🔒 Security</h3>
+            <ul>
+                <li>🚫 Never commit <code>.env</code> to git (already in .gitignore)</li>
+                <li>🔐 Use GPG encryption for backup archives</li>
+                <li>🔄 Rotate access tokens regularly</li>
+                <li>🗝️ Store secrets securely (use password manager)</li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="checklist">
+        <h2>✅ Migration Checklist</h2>
+
+        <div class="checklist">
+            <p>Use this checklist for complete migration:</p>
+            <ul>
+                <li><input type="checkbox"> 💾 Create backup of source project</li>
+                <li><input type="checkbox"> ✅ Verify backup completed successfully</li>
+                <li><input type="checkbox"> ➕ Create new target project in Supabase</li>
+                <li><input type="checkbox"> ⚙️ Configure target credentials in .env</li>
+                <li><input type="checkbox"> 🔧 Fix project-config.json if needed</li>
+                <li><input type="checkbox"> 🔄 Run database restore (pg_restore)</li>
+                <li><input type="checkbox"> 📊 Verify all tables restored</li>
+                <li><input type="checkbox"> 🔢 Verify data row counts</li>
+                <li><input type="checkbox"> 🔑 Generate access token for target account</li>
+                <li><input type="checkbox"> ⚡ Deploy Edge Functions</li>
+                <li><input type="checkbox"> ✅ Verify functions in dashboard</li>
+                <li><input type="checkbox"> 🔐 Migrate secrets (CLI or Dashboard)</li>
+                <li><input type="checkbox"> 🧪 Test function invocations</li>
+                <li><input type="checkbox"> ✔️ Run verification script</li>
+                <li><input type="checkbox"> 🔗 Update application config (API URL, keys)</li>
+                <li><input type="checkbox"> 🧪 Test application with new project</li>
+                <li><input type="checkbox"> 🌐 Update DNS/webhooks if applicable</li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="quick-reference">
+        <h2>⚡ Quick Reference Commands</h2>
+
+        <div class="step">
+            <h3>💾 Backup</h3>
+            <pre><code>cd scripts/supabase-backup
+./backup_supabase.sh</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>🔄 Restore</h3>
+            <pre><code>cd scripts/supabase-backup/backups/backup-{ref}-{timestamp}
+source ../../.env
+export PGPASSWORD="$NEW_PG_PASSWORD"
+pg_restore --clean --if-exists --no-owner --no-privileges \
+  --dbname="postgresql://${NEW_PG_USER}:${NEW_PG_PASSWORD}@${NEW_PG_HOST}:${NEW_PG_PORT}/${NEW_PG_DATABASE}" \
+  db-full.dump</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>⚡ Deploy Functions</h3>
+            <pre><code>export SUPABASE_ACCESS_TOKEN="sbp_your_token"
+cd scripts/supabase-backup/backups/backup-{ref}-{timestamp}/functions
+supabase link --project-ref {new_ref}
+supabase functions deploy --project-ref {new_ref}</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>✅ Verify</h3>
+            <pre><code>cd scripts/supabase-backup
+./verify_restore.sh</code></pre>
+        </div>
+    </section>
+
+    <footer
+        style="margin-top: 4rem; padding: 2rem 0; border-top: 2px solid var(--border); text-align: center; color: var(--text-muted);">
+        <p><strong>📅 Last Updated:</strong> December 12, 2025</p>
+        <p><strong>✨ Created with:</strong> Supabase Backup & Restore Toolset</p>
+        <p style="margin-top: 1rem;">
+            <strong>💡 Pro Tip:</strong> To print this as PDF, press <kbd>Ctrl+P</kbd> and select "Save as PDF" in your
+            browser
+        </p>
+    </footer>
+
+    <script>
+        // Collapsible sections
+        document.addEventListener('DOMContentLoaded', function () {
+            var collapsibles = document.getElementsByClassName("collapsible");
+            for (var i = 0; i < collapsibles.length; i++) {
+                collapsibles[i].addEventListener("click", function () {
+                    this.classList.toggle("active");
+                    var content = this.nextElementSibling;
+                    content.classList.toggle("active");
+                });
+            }
+
+            // Copy to clipboard functionality
+            var copyButtons = document.getElementsByClassName("copy-button");
+            for (var i = 0; i < copyButtons.length; i++) {
+                copyButtons[i].addEventListener("click", function () {
+                    var codeBlock = this.previousElementSibling;
+                    var code = codeBlock.textContent;
+                    navigator.clipboard.writeText(code).then(function () {
+                        alert('✅ Copied to clipboard!');
+                    }).catch(function (err) {
+                        alert('❌ Failed to copy: ' + err);
+                    });
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

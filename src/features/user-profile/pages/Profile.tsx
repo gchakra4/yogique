@@ -91,7 +91,7 @@ export function Profile() {
   const resendIntervalRef = useRef<number | null>(null)
   const [phoneConflictMessage, setPhoneConflictMessage] = useState<string | null>(null)
   const [otpError, setOtpError] = useState<string | null>(null)
-  
+
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User },
@@ -621,7 +621,7 @@ export function Profile() {
 
       // Normalize edge function response: it may return JSON string or object
       let data: any = resp?.data ?? resp
-      
+
       if (typeof data === 'string') {
         try {
           data = JSON.parse(data)
@@ -740,7 +740,7 @@ export function Profile() {
       setOtpError('Unable to verify OTP at this time. Please try again later.')
     } catch (err: any) {
       console.error('Error verifying OTP:', err)
-      
+
       const msg = String(err?.message || err || '')
       // If the network/server returned HTTP 409 or a Conflict, treat as phone-in-use
       if (err?.status === 409 || err?.statusCode === 409 || err?.response?.status === 409 || /\b409\b/.test(msg) || /conflict/i.test(msg)) {
