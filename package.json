@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "generate-config": "node devtools/scripts/generate-config.js",
+    "build": "npm run generate-config && tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "jest --config jest.config.cjs --transformIgnorePatterns \"node_modules/(?!@babel)\""
@@ -51,7 +52,7 @@
     "postcss": "^8.4.32",
     "supabase": "^2.58.5",
     "tailwindcss": "^3.3.6",
-    "typescript": "^5.6.3",
+    "typescript": "^5.9.3",
     "vite": "^5.2.0"
   }
 }
