@@ -1,10 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-
-const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL as string,
-    import.meta.env.VITE_SUPABASE_ANON_KEY as string
-)
+import submitRequest from '../services/submitRequest'
+import { supabase } from '../shared/lib/supabase'
 
 export default function RequestAccess() {
     const [status, setStatus] = useState<'unknown' | 'approved' | 'pending' | 'none'>('unknown')
@@ -45,12 +41,19 @@ export default function RequestAccess() {
 
     const request = async () => {
         setError(null)
-        const { data: sessionData } = await supabase.auth.getSession()
-        const uid = sessionData.session?.user?.id
-        if (!uid) { setError('No session'); return }
-        const { error } = await supabase.from('devtools_requests').upsert({ user_id: uid, status: 'pending' })
-        if (error) setError(error.message)
-        else setStatus('pending')
+        try {
+            await submitRequest({ message: 'Requested via UI' })
+            setStatus('pending')
+        } catch (err: any) {
+            console.error('Error requesting access:', err)
+            // Surface friendly RLS hint if present
+            const msg = err?.message || String(err)
+            if (msg.includes('row-level security')) {
+                setError('Request failed due to row-level security. The client cannot write directly; ensure the submit-request function is deployed and its URL is configured.')
+            } else {
+                setError(msg)
+            }
+        }
     }
 
     return (

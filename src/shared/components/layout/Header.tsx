@@ -10,8 +10,6 @@ import { ThemeToggle } from '../ui/ThemeToggle';
 import logoOrange from '/images/Brand-orange.png';
 
 export function Header() {
-  const SHOW_DEV_HEADER = import.meta.env.VITE_SHOW_DEV_HEADER === 'true'
-  if (!SHOW_DEV_HEADER) return null
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { user, signOut } = useAuth();
