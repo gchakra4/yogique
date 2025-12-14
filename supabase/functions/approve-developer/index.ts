@@ -58,12 +58,13 @@ serve(async (req) => {
 
     const jwt = authHeader.split(" ")[1];
 
-    // A lightweight client using anon key isn't suitable server-side; use service role client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: `Bearer ${jwt}` } },
-    });
+    // Create an admin client using the service role key. Do NOT attach the user's
+    // JWT as a global Authorization header — that would make subsequent DB writes
+    // run under the user's identity and trigger RLS. Use the admin client to
+    // validate the token and perform privileged writes.
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get the user and claims from JWT
+    // Get the user and claims from JWT using admin client
     const { data: userData, error: userError } = await supabase.auth.getUser(jwt);
     if (userError || !userData?.user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
