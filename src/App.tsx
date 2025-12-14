@@ -17,7 +17,6 @@ import UniversalDashboard from './features/dashboard/components/UniversalDashboa
 // Page imports - updated paths
 import { Navigate } from 'react-router-dom';
 import NewArticlePage from './features/articles/pages/NewArticlePage';
-import AdminApprovals from './pages/AdminApprovals';
 import { AuthCallback } from './features/auth/components/AuthCallback';
 import { Login } from './features/auth/pages/Login';
 import { ResetPassword } from './features/auth/pages/ResetPassword';
@@ -40,10 +39,15 @@ import CancelBookingPage from './features/scheduling/pages/CancelBookingPage';
 import InstructorProfile from './features/scheduling/pages/InstructorProfile';
 import { Schedule } from './features/scheduling/pages/Schedule';
 import { Profile } from './features/user-profile/pages/Profile';
+import AdminApprovals from './pages/AdminApprovals';
 import { NotFound } from './pages/NotFound';
 
 function App() {
-  const SHOW_DEV_HEADER = import.meta.env.VITE_SHOW_DEV_HEADER === 'true'
+  const SHOW_DEV_HEADER = typeof window !== 'undefined' && (
+    window.location.hostname === 'dev.yogique.life' ||
+    (window as any).DEVTOOLS_CONFIG?.SHOW_DEV_HEADER === 'true' ||
+    import.meta.env.VITE_SHOW_DEV_HEADER === 'true'
+  )
   return (
     <ThemeProvider>
       <Router>
