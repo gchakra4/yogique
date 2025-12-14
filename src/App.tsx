@@ -48,16 +48,7 @@ function App() {
         <ScrollToTop />
         <AuthProvider>
           <NotificationProvider>
-            <div style={{ padding: 16 }}>
-              <header style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                <h1 style={{ marginRight: 'auto' }}>DevTools Hub</h1>
-                <nav style={{ display: 'flex', gap: 12 }}>
-                  <Link to="/">Home</Link>
-                  <Link to="/admin/approvals">Admin Approvals</Link>
-                </nav>
-              </header>
-              <AppRoutes />
-            </div>
+            <AppRoutes />
           </NotificationProvider>
         </AuthProvider>
       </Router>
