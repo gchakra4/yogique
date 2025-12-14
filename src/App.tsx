@@ -1,4 +1,4 @@
-import { Route, BrowserRouter as Router, Routes, Link } from 'react-router-dom';
+import { Link, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import RequestAccess from './pages/RequestAccess';
 import { ScrollToTop } from './shared/components/ScrollToTop';
 import { UserRole } from './shared/config/roleConfig';
@@ -42,13 +42,25 @@ import { Profile } from './features/user-profile/pages/Profile';
 import { NotFound } from './pages/NotFound';
 
 function App() {
+  const SHOW_DEV_HEADER = import.meta.env.VITE_SHOW_DEV_HEADER === 'true'
   return (
     <ThemeProvider>
       <Router>
         <ScrollToTop />
         <AuthProvider>
           <NotificationProvider>
-            <AppRoutes />
+            <div style={{ padding: 16 }}>
+              {SHOW_DEV_HEADER && (
+                <header style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                  <h1 style={{ marginRight: 'auto' }}>DevTools Hub</h1>
+                  <nav style={{ display: 'flex', gap: 12 }}>
+                    <Link to="/">Home</Link>
+                    <Link to="/admin/approvals">Admin Approvals</Link>
+                  </nav>
+                </header>
+              )}
+              <AppRoutes />
+            </div>
           </NotificationProvider>
         </AuthProvider>
       </Router>
@@ -112,7 +124,9 @@ function AppRoutes() {
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/services" element={<Navigate to="/yogique-for-you" replace />} />
-              <Route path="/request-access" element={<RequestAccess />} />
+              {import.meta.env.VITE_ENABLE_REQUEST_ACCESS === 'true' && (
+                <Route path="/request-access" element={<RequestAccess />} />
+              )}
               <Route path="/yogique-for-you" element={<YogaForYou />} />
               <Route path="/book" element={<BookLanding />} />
               <Route path="/schedule" element={<Schedule />} />
