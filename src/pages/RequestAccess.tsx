@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../shared/lib/supabase'
 import submitRequest from '../services/submitRequest'
+import { supabase } from '../shared/lib/supabase'
 
 export default function RequestAccess() {
     const [status, setStatus] = useState<'unknown' | 'approved' | 'pending' | 'none'>('unknown')
