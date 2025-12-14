@@ -70,6 +70,12 @@ function App() {
 
 function AppRoutes() {
   const { user, userRoles } = useAuth() // Get current user from auth context
+  const ENABLE_REQUEST_ACCESS = (import.meta.env.VITE_ENABLE_REQUEST_ACCESS === 'true') || (
+    typeof window !== 'undefined' && (
+      window.location?.hostname === 'dev.yogique.life' ||
+      Boolean((window as any).DEVTOOLS_CONFIG?.ENABLE_REQUEST_ACCESS === 'true')
+    )
+  )
 
   // Compose a dashboardUser with a role property for UniversalDashboard
   const dashboardUser: CustomUserType | null = user && userRoles.length > 0
@@ -124,7 +130,7 @@ function AppRoutes() {
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/services" element={<Navigate to="/yogique-for-you" replace />} />
-              {import.meta.env.VITE_ENABLE_REQUEST_ACCESS === 'true' && (
+              {ENABLE_REQUEST_ACCESS && (
                 <Route path="/request-access" element={<RequestAccess />} />
               )}
               <Route path="/yogique-for-you" element={<YogaForYou />} />
