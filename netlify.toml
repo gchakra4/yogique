@@ -6,14 +6,22 @@
   VITE_ENABLE_REQUEST_ACCESS = "false"
   VITE_REQUEST_ACCESS_URL = "https://yogique.life/request-access"
 
+  # Ensure dev header is hidden in production
+  VITE_SHOW_DEV_HEADER = "false"
+
 [context.branch-deploy.environment]
 # Generic branch deploys enable the internal route by default
   VITE_ENABLE_REQUEST_ACCESS = "true"
+
+  # Show dev header on branch deploys
+  VITE_SHOW_DEV_HEADER = "true"
 
 # If you use a specific branch name for dev (e.g. `dev`), Netlify supports
 # a per-branch context. Uncomment and set if needed.
 [context.dev.environment]
   VITE_ENABLE_REQUEST_ACCESS = "true"
+
+  VITE_SHOW_DEV_HEADER = "true"
 
 [build]
   publish = "dist"
