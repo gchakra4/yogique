@@ -43,9 +43,27 @@ export default function RequestAccess() {
         const { data: sessionData } = await supabase.auth.getSession()
         const uid = sessionData.session?.user?.id
         if (!uid) { setError('No session'); return }
-        const { error } = await supabase.from('devtools_requests').upsert({ user_id: uid, status: 'pending' })
-        if (error) setError(error.message)
-        else setStatus('pending')
+
+        try {
+            // Use insert to avoid triggering update policies (upsert may perform UPDATE which is admin-only)
+            const { error } = await supabase.from('devtools_requests').insert({ user_id: uid, status: 'pending' })
+            if (error) {
+                // Detect RLS failure and provide actionable message
+                if (error.message && error.message.includes('row-level security')) {
+                    setError('Request failed due to row-level security. Ensure you are signed in and your session is valid. If the problem persists, contact an admin.')
+                } else if (error.code === '23505') {
+                    // unique violation - request already exists
+                    setStatus('pending')
+                } else {
+                    setError(error.message)
+                }
+                return
+            }
+            setStatus('pending')
+        } catch (err: any) {
+            console.error('Error requesting access:', err)
+            setError(err?.message || String(err))
+        }
     }
 
     return (
