@@ -54,11 +54,13 @@ serve(async (req) => {
 
     const jwt = authHeader.split(" ")[1];
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: `Bearer ${jwt}` } },
-    });
+    // Create an admin client using the service role key (do NOT attach the user's JWT
+    // as an Authorization header — that would cause DB requests to run as the user
+    // and RLS would apply). Use the admin client to validate the token and perform
+    // privileged writes.
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Resolve the user from the JWT
+    // Resolve the user from the JWT using the admin client
     const { data: userData, error: userError } = await supabase.auth.getUser(jwt);
     if (userError || !userData?.user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
