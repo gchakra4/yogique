@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../shared/lib/supabase'
+import submitRequest from '../services/submitRequest'
 
 export default function RequestAccess() {
     const [status, setStatus] = useState<'unknown' | 'approved' | 'pending' | 'none'>('unknown')
@@ -40,29 +41,18 @@ export default function RequestAccess() {
 
     const request = async () => {
         setError(null)
-        const { data: sessionData } = await supabase.auth.getSession()
-        const uid = sessionData.session?.user?.id
-        if (!uid) { setError('No session'); return }
-
         try {
-            // Use insert to avoid triggering update policies (upsert may perform UPDATE which is admin-only)
-            const { error } = await supabase.from('devtools_requests').insert({ user_id: uid, status: 'pending' })
-            if (error) {
-                // Detect RLS failure and provide actionable message
-                if (error.message && error.message.includes('row-level security')) {
-                    setError('Request failed due to row-level security. Ensure you are signed in and your session is valid. If the problem persists, contact an admin.')
-                } else if (error.code === '23505') {
-                    // unique violation - request already exists
-                    setStatus('pending')
-                } else {
-                    setError(error.message)
-                }
-                return
-            }
+            await submitRequest({ message: 'Requested via UI' })
             setStatus('pending')
         } catch (err: any) {
             console.error('Error requesting access:', err)
-            setError(err?.message || String(err))
+            // Surface friendly RLS hint if present
+            const msg = err?.message || String(err)
+            if (msg.includes('row-level security')) {
+                setError('Request failed due to row-level security. The client cannot write directly; ensure the submit-request function is deployed and its URL is configured.')
+            } else {
+                setError(msg)
+            }
         }
     }
 
