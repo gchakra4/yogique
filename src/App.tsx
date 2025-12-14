@@ -17,6 +17,7 @@ import UniversalDashboard from './features/dashboard/components/UniversalDashboa
 // Page imports - updated paths
 import { Navigate } from 'react-router-dom';
 import NewArticlePage from './features/articles/pages/NewArticlePage';
+import AdminApprovals from './pages/AdminApprovals';
 import { AuthCallback } from './features/auth/components/AuthCallback';
 import { Login } from './features/auth/pages/Login';
 import { ResetPassword } from './features/auth/pages/ResetPassword';
@@ -162,6 +163,11 @@ function AppRoutes() {
               <Route path="/book/corporate" element={<BookCorporate />} />
               <Route path="/achievements" element={<Achievements />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/admin/approvals" element={
+                <ProtectedRoute>
+                  <AdminApprovals />
+                </ProtectedRoute>
+              } />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
             </Routes>
           </main>
