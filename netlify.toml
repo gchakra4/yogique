@@ -1,0 +1,20 @@
+# Netlify context-specific environment variables
+# - Production: disable internal `/request-access`, point to external URL
+# - Branch deploys: enable `/request-access` (dev branch)
+
+[context.production.environment]
+  VITE_ENABLE_REQUEST_ACCESS = "false"
+  VITE_REQUEST_ACCESS_URL = "https://yogique.life/request-access"
+
+[context.branch-deploy.environment]
+# Generic branch deploys enable the internal route by default
+  VITE_ENABLE_REQUEST_ACCESS = "true"
+
+# If you use a specific branch name for dev (e.g. `dev`), Netlify supports
+# a per-branch context. Uncomment and set if needed.
+[context.dev.environment]
+  VITE_ENABLE_REQUEST_ACCESS = "true"
+
+[build]
+  publish = "dist"
+  command = "npm run build"
