@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Prefer runtime-injected config (from /config.js) when present, otherwise use build-time Vite envs
+const runtimeConfig = typeof window !== 'undefined' ? (window as any).DEVTOOLS_CONFIG || {} : {}
+const supabaseUrl = (typeof window !== 'undefined' && ((window as any).SUPABASE_URL || runtimeConfig.SUPABASE_URL)) || import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = (typeof window !== 'undefined' && ((window as any).SUPABASE_ANON_KEY || runtimeConfig.SUPABASE_ANON_KEY)) || import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // Runtime guard to surface the misconfiguration causing 404 on /auth/v1/authorize
 if (!supabaseUrl || !supabaseUrl.includes('.supabase.co')) {
