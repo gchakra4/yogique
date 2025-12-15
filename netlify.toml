@@ -8,6 +8,8 @@
 
   # Ensure dev header is hidden in production
   VITE_SHOW_DEV_HEADER = "false"
+  # Production should not point to the submit-request function
+  VITE_SUBMIT_REQUEST_URL = ""
 
 [context.branch-deploy.environment]
 # Generic branch deploys enable the internal route by default
@@ -15,6 +17,8 @@
 
   # Show dev header on branch deploys
   VITE_SHOW_DEV_HEADER = "true"
+  # Use the submit-request Edge Function for branch/dev previews
+  VITE_SUBMIT_REQUEST_URL = "https://iddvvefpwgwmgpyelzcv.functions.supabase.co/submit-request"
 
 # If you use a specific branch name for dev (e.g. `dev`), Netlify supports
 # a per-branch context. Uncomment and set if needed.
@@ -22,6 +26,7 @@
   VITE_ENABLE_REQUEST_ACCESS = "true"
 
   VITE_SHOW_DEV_HEADER = "true"
+  VITE_SUBMIT_REQUEST_URL = "https://iddvvefpwgwmgpyelzcv.functions.supabase.co/submit-request"
 
 [build]
   publish = "dist"
