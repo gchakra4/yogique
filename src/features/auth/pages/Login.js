@@ -3,7 +3,7 @@ import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../../shared/components/ui/Button';
-import { supabase } from '../../../shared/lib/supabase';
+import { supabase, SUPABASE_URL } from '../../../shared/lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 export function Login() {
     const [isSignUp, setIsSignUp] = useState(false);
@@ -62,7 +62,7 @@ export function Login() {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
+                    redirectTo: `${window.DEVTOOLS_AUTH_CALLBACK_URL || window.location.origin}/auth/callback`,
                     queryParams: {
                         access_type: 'offline',
                         prompt: 'consent',
@@ -98,7 +98,7 @@ export function Login() {
                 // Get user_id from session
                 const user_id = sessionData.session?.user?.id;
                 if (user_id && jwt) {
-                    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assign_default_user_role`, {
+                    await fetch(`${SUPABASE_URL}/functions/v1/assign_default_user_role`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${jwt}`,

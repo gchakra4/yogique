@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import IconCircleButton from '../../../../shared/components/ui/IconCircleButton'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
 import ResponsiveActionButton from '../../../../shared/components/ui/ResponsiveActionButton'
-import { supabase } from '../../../../shared/lib/supabase'
+import { supabase, SUPABASE_URL } from '../../../../shared/lib/supabase'
 import { useUserProfiles } from '../../../user-profile/hooks/useUserProfiles'
 import { UserRoleManagement } from './UserRoleManagement'
 
@@ -50,7 +50,7 @@ export function UserManagement() {
       }
 
       // Call the secure Edge Function instead of direct admin API
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`
+      const apiUrl = `${SUPABASE_URL}/functions/v1/admin-users`
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -85,7 +85,7 @@ export function UserManagement() {
       if (!session) throw new Error('No active session')
 
       // Call your Edge Function to update roles
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-user-roles`
+      const apiUrl = `${SUPABASE_URL}/functions/v1/admin-update-user-roles`
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {

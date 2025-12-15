@@ -3,7 +3,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner';
-import { supabase } from '../../../shared/lib/supabase';
+import { supabase, SUPABASE_URL } from '../../../shared/lib/supabase';
 export function AuthCallback() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -56,7 +56,7 @@ export function AuthCallback() {
                         // Assign default user role
                         try {
                             const jwt = data.session.access_token;
-                            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assign_default_user_role`, {
+                            await fetch(`${SUPABASE_URL}/functions/v1/assign_default_user_role`, {
                                 method: 'POST',
                                 headers: {
                                     'Authorization': `Bearer ${jwt}`,
