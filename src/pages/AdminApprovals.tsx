@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import { supabase, SUPABASE_URL } from '../shared/lib/supabase'
 
 type RequestRow = {
     user_id: string
@@ -7,10 +7,6 @@ type RequestRow = {
     requested_at: string
 }
 
-const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL as string,
-    import.meta.env.VITE_SUPABASE_ANON_KEY as string
-)
 
 export default function AdminApprovals() {
     const [requests, setRequests] = useState<RequestRow[]>([])
@@ -30,7 +26,7 @@ export default function AdminApprovals() {
             }
 
             try {
-                const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-requests`, {
+                const res = await fetch(`${SUPABASE_URL}/functions/v1/list-requests`, {
                     method: 'GET',
                     headers: { authorization: `Bearer ${token}` },
                 })
@@ -62,7 +58,7 @@ export default function AdminApprovals() {
             setError('No admin session')
             return
         }
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/approve-developer`, {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/approve-developer`, {
             method: 'POST',
             headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
             body: JSON.stringify({ user_id: userId })
@@ -74,7 +70,7 @@ export default function AdminApprovals() {
         }
         // Refresh list via admin function using the same token
         if (token) {
-            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-requests`, {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/list-requests`, {
                 method: 'GET',
                 headers: { authorization: `Bearer ${token}` },
             })

@@ -4,7 +4,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { useEffect, useState } from 'react';
 import EmailService from '../../../../services/emailService';
 import { ResponsiveActionButton } from '../../../../shared/components/ui/ResponsiveActionButton';
-import { supabase } from '../../../../shared/lib/supabase';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../../shared/lib/supabase';
 import { renderEmailTemplate } from '../../../../shared/utils/emailTemplates';
 import logoImage from '/images/Brand.png';
 const humanPlanType = (p) => {
@@ -46,9 +46,9 @@ const TransactionManagement = () => {
         }
         setUserSearchLoading(true);
         try {
-            const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-users?q=${encodeURIComponent(q)}&limit=10`;
+            const url = `${SUPABASE_URL}/functions/v1/search-users?q=${encodeURIComponent(q)}&limit=10`;
             const res = await fetch(url, {
-                headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '' }
+                headers: { apikey: SUPABASE_ANON_KEY || '' }
             });
             if (res.ok) {
                 const data = await res.json();
@@ -1042,7 +1042,7 @@ const TransactionManagement = () => {
                                                         if (!ok)
                                                             return;
                                                         try {
-                                                            const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`;
+                                                            const url = `${SUPABASE_URL}/functions/v1/create-user`;
                                                             try {
                                                                 const { data: sessionData } = await supabase.auth.getSession();
                                                                 const jwt = sessionData?.session?.access_token;

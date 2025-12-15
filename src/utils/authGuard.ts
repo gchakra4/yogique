@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL as string,
-  import.meta.env.VITE_SUPABASE_ANON_KEY as string
-)
+import { supabase } from '../shared/lib/supabase'
 
 export async function isApprovedDeveloper(): Promise<boolean> {
   const { data: sessionData } = await supabase.auth.getSession()
