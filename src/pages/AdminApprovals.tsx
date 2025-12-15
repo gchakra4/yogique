@@ -72,9 +72,7 @@ export default function AdminApprovals() {
             setError(txt)
             return
         }
-        // Refresh list via admin function
-        const { data: sessionData } = await supabase.auth.getSession()
-        const token = sessionData.session?.access_token
+        // Refresh list via admin function using the same token
         if (token) {
             const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-requests`, {
                 method: 'GET',
