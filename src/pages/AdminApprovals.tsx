@@ -21,15 +21,36 @@ export default function AdminApprovals() {
         const fetchRequests = async () => {
             setLoading(true)
             setError(null)
-            const { data, error } = await supabase
-                .from('devtools_requests')
-                .select('*')
-                .eq('status', 'pending')
-                .order('requested_at', { ascending: false })
-            if (error) setError(error.message)
-            setRequests(data || [])
+            const { data: sessionData } = await supabase.auth.getSession()
+            const token = sessionData.session?.access_token
+            if (!token) {
+                setError('No admin session')
+                setLoading(false)
+                return
+            }
+
+            try {
+                const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-requests`, {
+                    method: 'GET',
+                    headers: { authorization: `Bearer ${token}` },
+                })
+                if (!res.ok) {
+                    const txt = await res.text()
+                    setError(txt)
+                    setRequests([])
+                    setLoading(false)
+                    return
+                }
+                const body = await res.json()
+                setRequests(body.data || [])
+            } catch (err: any) {
+                setError(String(err))
+                setRequests([])
+            }
+
             setLoading(false)
         }
+
         fetchRequests()
     }, [])
 
@@ -51,13 +72,19 @@ export default function AdminApprovals() {
             setError(txt)
             return
         }
-        // Refresh list
-        const { data } = await supabase
-            .from('devtools_requests')
-            .select('*')
-            .eq('status', 'pending')
-            .order('requested_at', { ascending: false })
-        setRequests(data || [])
+        // Refresh list via admin function
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        if (token) {
+            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-requests`, {
+                method: 'GET',
+                headers: { authorization: `Bearer ${token}` },
+            })
+            if (res.ok) {
+                const body = await res.json()
+                setRequests(body.data || [])
+            }
+        }
     }
 
     return (
