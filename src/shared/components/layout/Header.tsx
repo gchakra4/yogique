@@ -106,8 +106,8 @@ export function Header() {
 
             {/* Brand name + tagline: hidden on small screens */}
             <div className="hidden sm:flex flex-col leading-tight">
-              <span className="text-xl font-bold text-gray-800 dark:text-white">Yogique</span>
-              <span className="text-xs text-gray-500 dark:text-slate-400">yoga beyond asanas</span>
+              <span className="text-xl font-bold text-gray-800 dark:text-white brand-samarkan">Yogique</span>
+              <span className="text-xs text-gray-500 dark:text-slate-400 tagline-cursive">yoga beyond asanas</span>
             </div>
           </Link>
 
