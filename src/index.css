@@ -1,4 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
+/* Samarkan (local) */
+@font-face {
+  font-family: 'Samarkan';
+  src: url('/fonts/samarkan/SAMAN.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Utility font classes for brand */
+.brand-samarkan {
+  font-family: 'Samarkan', serif;
+}
+.tagline-cursive {
+  font-family: 'Great Vibes', cursive;
+}
 
 
 @tailwind base;

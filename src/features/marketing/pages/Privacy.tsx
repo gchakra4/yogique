@@ -41,6 +41,8 @@ export function Privacy(): JSX.Element {
                                     <li><a href="#sharing" className="text-emerald-600 dark:text-emerald-400 hover:underline">Sharing & Transfers</a></li>
                                     <li><a href="#retention" className="text-emerald-600 dark:text-emerald-400 hover:underline">Retention & Deletion</a></li>
                                     <li><a href="#security" className="text-emerald-600 dark:text-emerald-400 hover:underline">Security</a></li>
+                                        <li><a href="#cancellations" className="text-emerald-600 dark:text-emerald-400 hover:underline">Cancellation & Refunds</a></li>
+                                        <li><a href="#shipping" className="text-emerald-600 dark:text-emerald-400 hover:underline">Shipping</a></li>
                                     <li><a href="#user-rights" className="text-emerald-600 dark:text-emerald-400 hover:underline">Your Rights & Data Control</a></li>
                                     <li><a href="#contact" className="text-emerald-600 dark:text-emerald-400 hover:underline">Contact</a></li>
                                 </ul>
@@ -222,6 +224,18 @@ export function Privacy(): JSX.Element {
                                 <p className="mt-3">
                                     <strong>Google Account Data:</strong> If you signed in using Google OAuth, you can also manage your data through your Google account settings and revoke our app's access at any time through your Google Account permissions.
                                 </p>
+                            </section>
+
+                            <section id="cancellations" className="mt-8">
+                                <h2>Cancellation &amp; Refunds (Data Handling)</h2>
+                                <p className="text-sm text-gray-600 dark:text-slate-400">If you request a cancellation or refund for a purchase, we will process the request and use the personal information associated with the order (name, email, payment metadata, and order details) to validate and complete the refund. Refunds may require temporary retention of transaction records for reconciliation and fraud prevention.</p>
+                                <p className="mt-2 text-sm text-gray-600 dark:text-slate-400">We will only retain payment or transaction details for as long as necessary to process refunds, comply with legal obligations, and to maintain accurate financial records. For questions about refunds please contact <a href="mailto:namaste@yogique.life" className="text-emerald-600 dark:text-emerald-400 hover:underline">namaste@yogique.life</a>.</p>
+                            </section>
+
+                            <section id="shipping" className="mt-8">
+                                <h2>Shipping (Data Handling)</h2>
+                                <p className="text-sm text-gray-600 dark:text-slate-400">When you place an order that requires physical delivery, we collect your shipping address, phone number and any necessary contact details to fulfill and track the shipment. This information is shared with our shipping partners and carriers solely for the purpose of delivery.</p>
+                                <p className="mt-2 text-sm text-gray-600 dark:text-slate-400">We retain shipping and order information for the period needed to track deliveries, handle returns, or resolve disputes and to satisfy legal or accounting requirements. If you wish to update or remove shipping information, contact us and we will assist where feasible while preserving necessary transactional records.</p>
                             </section>
 
                             <section id="children" className="mt-8">

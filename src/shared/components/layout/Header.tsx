@@ -7,7 +7,7 @@ import { NotificationDropdown } from '../../../features/notifications/components
 import { supabase } from '../../../shared/lib/supabase';
 import { Button } from '../ui/Button';
 import { ThemeToggle } from '../ui/ThemeToggle';
-import logoOrange from '/images/Brand-orange.png';
+// use public Brand.png for the site logo (responsive text shown on >= sm)
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -93,16 +93,26 @@ export function Header() {
         </div>
       )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center">
-          {/* Logo */}
-          <Link to="/" className="flex items-center h-12">
-            <div className="w-12 h-12 sm:w-12 sm:h-12 overflow-visible rounded-full flex items-center justify-center relative">
-              <img
-                src={logoOrange}
-                alt="Yogique Logo"
-                className="logo-zoom w-auto object-contain block"
-                style={{ height: '40px', width: '40px' }}
-              />
+        <div className="relative flex justify-between items-center">
+          {/* Logo + Brand */}
+          <Link
+            to="/"
+            className="flex items-center h-12 space-x-3 z-10 absolute left-1/2 transform -translate-x-1/2 lg:static lg:transform-none"
+          >
+            <div className="flex items-center justify-center w-10 h-10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/Brand.png" alt="Yogique Logo" className="h-10 w-auto object-contain" />
+            </div>
+
+            {/* Brand name + tagline: hidden on small screens */}
+            <div className="hidden sm:flex flex-col leading-tight">
+              <span
+                className="text-xl font-bold text-gray-800 dark:text-white brand-samarkan"
+                style={{ fontFamily: 'Samarkan, serif' }}
+              >
+                Yogique
+              </span>
+              <span className="text-xs text-gray-500 dark:text-slate-400 tagline-cursive">yoga beyond asanas</span>
             </div>
           </Link>
 
