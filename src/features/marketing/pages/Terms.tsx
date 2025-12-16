@@ -103,7 +103,18 @@ export function Terms(): JSX.Element {
                     </section>
 
                     <section className="mt-6">
-                        <h2>9. Contact</h2>
+                        <h2>9. Shipping</h2>
+                        <p className="mt-2 text-sm text-gray-700 dark:text-slate-300">
+                            For physical products or materials ordered through Yogique, we ship via third-party carriers. Shipping times, costs, and available destinations depend on the product and your selected shipping method at checkout. Estimated delivery times are provided during purchase and are subject to carrier delays beyond our control.
+                        </p>
+                        <div className="mt-2 text-sm text-gray-700 dark:text-slate-300">
+                            <p>We may collect your shipping address and contact number to deliver orders and provide tracking information. By placing an order you authorize Yogique to share necessary order and contact details with delivery partners to fulfill the shipment.</p>
+                            <p className="mt-2">If a shipment is returned or undeliverable due to incorrect address information provided by you, additional shipping or handling fees may apply before reshipment. For shipping-specific questions, contact us at <a href="mailto:namaste@yogique.life" className="text-emerald-600 dark:text-emerald-400 hover:underline">namaste@yogique.life</a>.</p>
+                        </div>
+                    </section>
+
+                    <section className="mt-6">
+                        <h2>10. Contact</h2>
                         <p className="mt-2 text-sm text-gray-700 dark:text-slate-300">
                             For questions about these Terms, contact us at <a href="mailto:namaste@yogique.life" className="text-emerald-600 dark:text-emerald-400 hover:underline">namaste@yogique.life</a>.
                         </p>
