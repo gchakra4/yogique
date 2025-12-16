@@ -93,9 +93,12 @@ export function Header() {
         </div>
       )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center">
+        <div className="relative flex justify-between items-center">
           {/* Logo + Brand */}
-          <Link to="/" className="flex items-center h-12 space-x-3">
+          <Link
+            to="/"
+            className="flex items-center h-12 space-x-3 z-10 absolute left-1/2 transform -translate-x-1/2 lg:static lg:transform-none"
+          >
             <div className="flex items-center justify-center w-10 h-10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/images/Brand.png" alt="Yogique Logo" className="h-10 w-auto object-contain" />
