@@ -1,10 +1,10 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { AlertCircle, Clock, DollarSign, Download, Edit3, Eye, Plus, Search, TrendingDown, TrendingUp, X } from 'lucide-react';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { useEffect, useState } from 'react';
 import EmailService from '../../../../services/emailService';
 import { ResponsiveActionButton } from '../../../../shared/components/ui/ResponsiveActionButton';
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../../shared/lib/supabase';
+import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from '../../../../shared/lib/supabase';
 import { renderEmailTemplate } from '../../../../shared/utils/emailTemplates';
 import logoImage from '/images/Brand.png';
 const humanPlanType = (p) => {
