@@ -23,3 +23,5 @@ scripts/supabase-backup/secrets/
 !scripts/supabase-backup/storage/.gitkeep
 !scripts/supabase-backup/secrets/.gitkeep
 secrets/
+
+src/**/*.js
