@@ -24,41 +24,82 @@ const RegionToggle: React.FC<{ region: 'IN' | 'INTL'; onChange: (r: 'IN' | 'INTL
     );
 };
 
-const PriceCard: React.FC<{ title: string; priceLabel: string; ctaHref: string; ctaText?: string }> = ({ title, priceLabel, ctaHref, ctaText = 'Book' }) => (
-    <article className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 flex flex-col justify-between border border-slate-200 dark:border-slate-700">
-        <div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
-            <div className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">{priceLabel}</div>
-        </div>
-        <div className="mt-6">
-            <a href={ctaHref} className="inline-block w-full text-center bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                {ctaText}
-            </a>
+const PriceCard: React.FC<{ title: string; priceLabel: string; ctaHref: string; ctaText?: string; image?: string }> = ({ title, priceLabel, ctaHref, ctaText = 'Book', image }) => (
+    <article className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+        {image && (
+            <div className="h-40 overflow-hidden bg-slate-100 dark:bg-slate-700">
+                <img src={image} alt={title} className="w-full h-full object-cover" />
+            </div>
+        )}
+        <div className="p-6 flex flex-col flex-grow">
+            <div className="flex-grow">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
+                <div className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">{priceLabel}</div>
+            </div>
+            <div className="mt-6">
+                <a href={ctaHref} className="inline-block w-full text-center bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    {ctaText}
+                </a>
+            </div>
         </div>
     </article>
 );
 
-const PrivateGroupCard: React.FC<{ symbol: string; price2: number | string; price3Plus: number | string; ctaHref: string }> = ({ symbol, price2, price3Plus, ctaHref }) => (
-    <article className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border border-slate-200 dark:border-slate-700">
-        <div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Private Group</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Per person • Max 5 people</p>
+const PrivateGroupCard: React.FC<{ symbol: string; price2: number | string; price3Plus: number | string; ctaHref: string; image?: string }> = ({ symbol, price2, price3Plus, ctaHref, image }) => (
+    <article className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+        {image && (
+            <div className="h-40 overflow-hidden bg-slate-100 dark:bg-slate-700">
+                <img src={image} alt="Private Group" className="w-full h-full object-cover" />
+            </div>
+        )}
+        <div className="p-6 flex flex-col flex-grow">
+            <div className="flex-grow">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Private Group</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Per person • Max 5 people</p>
 
-            <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">2 people</span>
-                    <span className="text-xl font-bold text-slate-900 dark:text-white">{symbol}{price2}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">3-5 people</span>
-                    <span className="text-xl font-bold text-emerald-900 dark:text-emerald-100">{symbol}{price3Plus}</span>
+                <div className="mt-4 space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">2 people</span>
+                        <span className="text-xl font-bold text-slate-900 dark:text-white">{symbol}{price2}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">3-5 people</span>
+                        <span className="text-xl font-bold text-emerald-900 dark:text-emerald-100">{symbol}{price3Plus}</span>
+                    </div>
                 </div>
             </div>
+            <div className="mt-6">
+                <a href={ctaHref} className="inline-block w-full text-center bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    Book Private
+                </a>
+            </div>
         </div>
-        <div className="mt-6">
-            <a href={ctaHref} className="inline-block w-full text-center bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                Book Private
-            </a>
+    </article>
+);
+
+const CorporateCard: React.FC<{ image?: string }> = ({ image }) => (
+    <article className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-md overflow-hidden border-2 border-blue-200 dark:border-blue-800 flex flex-col">
+        {image && (
+            <div className="h-40 overflow-hidden bg-blue-100 dark:bg-slate-700">
+                <img src={image} alt="Corporate Wellness" className="w-full h-full object-cover" />
+            </div>
+        )}
+        <div className="p-6 flex flex-col flex-grow">
+            <div className="flex-grow">
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">Corporate Wellness</h3>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">Team programs • On-site or Virtual</p>
+                <div className="mt-4 text-2xl font-bold text-blue-900 dark:text-blue-100">Custom Pricing</div>
+                <ul className="mt-3 space-y-1 text-xs text-slate-700 dark:text-slate-300">
+                    <li>• Flexible scheduling</li>
+                    <li>• Employee wellness programs</li>
+                    <li>• Team building sessions</li>
+                </ul>
+            </div>
+            <div className="mt-6">
+                <a href="/book/corporate" className="inline-block w-full text-center bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    Request Quote
+                </a>
+            </div>
         </div>
     </article>
 );
@@ -97,10 +138,31 @@ const PricingPage: React.FC = () => {
                     </p>
                 </header>
 
-                <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <PriceCard title="Public Group Classes" priceLabel={`${cfg.symbol}${cfg.groupMonthly}`} ctaHref="/book/group" ctaText="Book Group" />
-                    <PriceCard title="Individual (1-on-1)" priceLabel={`From ${cfg.symbol}${cfg.individualStarting}`} ctaHref="/book/individual" ctaText="Book 1-on-1" />
-                    <PrivateGroupCard symbol={cfg.symbol} price2={cfg.privateGroup2People} price3Plus={cfg.privateGroup3Plus} ctaHref="/book/private-group" />
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <PriceCard
+                        title="Public Group Classes"
+                        priceLabel={`${cfg.symbol}${cfg.groupMonthly}`}
+                        ctaHref="/book/group"
+                        ctaText="Book Group"
+                        image="/images/Virbhadrasana.png"
+                    />
+                    <PriceCard
+                        title="Individual (1-on-1)"
+                        priceLabel={`From ${cfg.symbol}${cfg.individualStarting}`}
+                        ctaHref="/book/individual"
+                        ctaText="Book 1-on-1"
+                        image="/images/vriksasana.png"
+                    />
+                    <PrivateGroupCard
+                        symbol={cfg.symbol}
+                        price2={cfg.privateGroup2People}
+                        price3Plus={cfg.privateGroup3Plus}
+                        ctaHref="/book/private-group"
+                        image="/images/PrivateClass.png"
+                    />
+                    <CorporateCard
+                        image="/images/Garudasana.png"
+                    />
                 </section>
 
                 <section className="mt-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6">
