@@ -35,6 +35,8 @@ import Unsubscribe from './features/marketing/pages/Unsubscribe';
 import { YogaForYou } from './features/marketing/pages/YogaForYou';
 import { BookCorporate } from './features/scheduling/pages/BookCorporate';
 import { BookOneOnOne } from './features/scheduling/pages/BookOneOnOne';
+import PricingPage from './components/PricingPage';
+import { getRegionFromCookie } from './utils/region';
 import CancelBookingPage from './features/scheduling/pages/CancelBookingPage';
 import InstructorProfile from './features/scheduling/pages/InstructorProfile';
 import { Schedule } from './features/scheduling/pages/Schedule';
@@ -164,6 +166,7 @@ function AppRoutes() {
               <Route path="/bookings/:bookingId/cancel" element={<CancelBookingPage />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/book/individual" element={<BookOneOnOne />} />
+              <Route path="/pricing" element={<PricingPage region={getRegionFromCookie()} />} />
               <Route path="/book/corporate" element={<BookCorporate />} />
               <Route path="/achievements" element={<Achievements />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
