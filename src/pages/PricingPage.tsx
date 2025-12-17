@@ -66,7 +66,7 @@ const PricingPage: React.FC = () => {
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Pricing</h1>
                         {canToggleRegion && <RegionToggle region={region} onChange={handleToggle} />}
                     </div>
-                    <p className="mt-3 text-slate-600 dark:text-slate-400">Transparent pricing for classes — displayed for {region === 'IN' ? 'India' : 'International'} visitors.</p>
+                    <p className="mt-3 text-slate-600 dark:text-slate-400">Transparent pricing for classes. All prices shown in {region === 'IN' ? 'INR (₹)' : 'USD ($)'}.</p>
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 italic">
                         * These are starting prices. Customized packages are available. Reach out to us for personalized pricing.
                     </p>
@@ -90,7 +90,7 @@ const PricingPage: React.FC = () => {
 
                 <section className="mt-6 bg-white dark:bg-slate-800 rounded-lg p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">How pricing works</h2>
-                    <p className="mt-2 text-slate-600 dark:text-slate-400">Prices shown are for information only. Final pricing, taxes and any applicable fees are calculated at booking/checkout. Packages, discounts and scheduling options are managed via our dashboard and selected during booking.</p>
+                    <p className="mt-2 text-slate-600 dark:text-slate-400">Prices shown are for information only. Final pricing is confirmed at booking/checkout based on your selected package and any applicable discounts. All packages, discounts and scheduling options are managed via our dashboard and selected during booking.</p>
                 </section>
 
                 <section className="mt-6 bg-white dark:bg-slate-800 rounded-lg p-6 shadow-sm border border-slate-200 dark:border-slate-700">
