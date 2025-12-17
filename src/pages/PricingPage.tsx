@@ -158,7 +158,7 @@ const PricingPage: React.FC = () => {
                         priceLabel={`${cfg.symbol}${cfg.groupMonthly}`}
                         ctaHref="/book/group"
                         ctaText="Book Group"
-                        image="/images/Virbhadrasana3.png"
+                        image="/images/public_group.png"
                         bullets={["Drop-in friendly", "All levels welcome", "Weekly schedules available"]}
                     />
                     <PriceCard
@@ -166,7 +166,7 @@ const PricingPage: React.FC = () => {
                         priceLabel={`From ${cfg.symbol}${cfg.individualStarting}`}
                         ctaHref="/book/individual"
                         ctaText="Book 1-on-1"
-                        image="/images/Instructor_Sima.jpg"
+                        image="/images/individual.png"
                         bullets={["Personalized plans", "Dedicated instructor", "Flexible timing"]}
                     />
                     <PrivateGroupCard
@@ -174,11 +174,11 @@ const PricingPage: React.FC = () => {
                         price2={cfg.privateGroup2People}
                         price3Plus={cfg.privateGroup3Plus}
                         ctaHref="/book/private-group"
-                        image="/images/PrivateClass.png"
+                        image="/images/private_group.png"
                         bullets={["Small group coaching", "Customized sequences", "Max 5 participants"]}
                     />
                     <CorporateCard
-                        image="/images/Garudasana1.png"
+                        image="/images/corporate.png"
                     />
                 </section>
 
