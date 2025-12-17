@@ -23,6 +23,7 @@ export function Header() {
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
     { name: 'Yogique for You', href: '/yogique-for-you' },
+    { name: 'Pricing', href: '/pricing' },
     { name: 'Schedule', href: '/schedule' },
     { name: 'Learning', href: '/learning' },
     { name: 'Contact', href: '/contact' },
