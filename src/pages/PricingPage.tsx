@@ -38,6 +38,31 @@ const PriceCard: React.FC<{ title: string; priceLabel: string; ctaHref: string; 
     </article>
 );
 
+const PrivateGroupCard: React.FC<{ symbol: string; price2: number | string; price3Plus: number | string; ctaHref: string }> = ({ symbol, price2, price3Plus, ctaHref }) => (
+    <article className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border border-slate-200 dark:border-slate-700">
+        <div>
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Private Group</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Per person • Max 5 people</p>
+
+            <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">2 people</span>
+                    <span className="text-xl font-bold text-slate-900 dark:text-white">{symbol}{price2}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">3-5 people</span>
+                    <span className="text-xl font-bold text-emerald-900 dark:text-emerald-100">{symbol}{price3Plus}</span>
+                </div>
+            </div>
+        </div>
+        <div className="mt-6">
+            <a href={ctaHref} className="inline-block w-full text-center bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                Book Private
+            </a>
+        </div>
+    </article>
+);
+
 const PricingPage: React.FC = () => {
     const [region, setRegionState] = useState<'IN' | 'INTL'>(() => getRegion());
     const { userRoles } = useAuth();
@@ -75,7 +100,7 @@ const PricingPage: React.FC = () => {
                 <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <PriceCard title="Public Group Classes" priceLabel={`${cfg.symbol}${cfg.groupMonthly}`} ctaHref="/book/group" ctaText="Book Group" />
                     <PriceCard title="Individual (1-on-1)" priceLabel={`From ${cfg.symbol}${cfg.individualStarting}`} ctaHref="/book/individual" ctaText="Book 1-on-1" />
-                    <PriceCard title="Private Group (per person)" priceLabel={`From ${cfg.symbol}${cfg.privateGroupStarting}`} ctaHref="/book/private-group" ctaText="Book Private" />
+                    <PrivateGroupCard symbol={cfg.symbol} price2={cfg.privateGroup2People} price3Plus={cfg.privateGroup3Plus} ctaHref="/book/private-group" />
                 </section>
 
                 <section className="mt-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6">
