@@ -24,7 +24,7 @@ const RegionToggle: React.FC<{ region: 'IN' | 'INTL'; onChange: (r: 'IN' | 'INTL
     );
 };
 
-const PriceCard: React.FC<{ title: string; priceLabel: string; ctaHref: string; ctaText?: string; image?: string }> = ({ title, priceLabel, ctaHref, ctaText = 'Book', image }) => (
+const PriceCard: React.FC<{ title: string; priceLabel: string; ctaHref: string; ctaText?: string; image?: string; bullets?: string[] }> = ({ title, priceLabel, ctaHref, ctaText = 'Book', image, bullets }) => (
     <article className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
         {image && (
             <div className="h-40 overflow-hidden bg-slate-100 dark:bg-slate-700">
@@ -35,6 +35,13 @@ const PriceCard: React.FC<{ title: string; priceLabel: string; ctaHref: string; 
             <div className="flex-grow">
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
                 <div className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">{priceLabel}</div>
+                {bullets && bullets.length > 0 && (
+                    <ul className="mt-4 space-y-1 text-sm text-slate-600 dark:text-slate-400">
+                        {bullets.map((b, i) => (
+                            <li key={i}>• {b}</li>
+                        ))}
+                    </ul>
+                )}
             </div>
             <div className="mt-6">
                 <a href={ctaHref} className="inline-block w-full text-center bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400">
@@ -45,7 +52,7 @@ const PriceCard: React.FC<{ title: string; priceLabel: string; ctaHref: string; 
     </article>
 );
 
-const PrivateGroupCard: React.FC<{ symbol: string; price2: number | string; price3Plus: number | string; ctaHref: string; image?: string }> = ({ symbol, price2, price3Plus, ctaHref, image }) => (
+const PrivateGroupCard: React.FC<{ symbol: string; price2: number | string; price3Plus: number | string; ctaHref: string; image?: string; bullets?: string[] }> = ({ symbol, price2, price3Plus, ctaHref, image, bullets }) => (
     <article className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
         {image && (
             <div className="h-40 overflow-hidden bg-slate-100 dark:bg-slate-700">
@@ -67,6 +74,13 @@ const PrivateGroupCard: React.FC<{ symbol: string; price2: number | string; pric
                         <span className="text-xl font-bold text-emerald-900 dark:text-emerald-100">{symbol}{price3Plus}</span>
                     </div>
                 </div>
+                {bullets && bullets.length > 0 && (
+                    <ul className="mt-4 space-y-1 text-sm text-slate-600 dark:text-slate-400">
+                        {bullets.map((b, i) => (
+                            <li key={i}>• {b}</li>
+                        ))}
+                    </ul>
+                )}
             </div>
             <div className="mt-6">
                 <a href={ctaHref} className="inline-block w-full text-center bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-400">
@@ -144,14 +158,16 @@ const PricingPage: React.FC = () => {
                         priceLabel={`${cfg.symbol}${cfg.groupMonthly}`}
                         ctaHref="/book/group"
                         ctaText="Book Group"
-                        image="/images/Virbhadrasana.png"
+                        image="/images/Virbhadrasana3.png"
+                        bullets={["Drop-in friendly", "All levels welcome", "Weekly schedules available"]}
                     />
                     <PriceCard
                         title="Individual (1-on-1)"
                         priceLabel={`From ${cfg.symbol}${cfg.individualStarting}`}
                         ctaHref="/book/individual"
                         ctaText="Book 1-on-1"
-                        image="/images/vriksasana.png"
+                        image="/images/Instructor_Sima.jpg"
+                        bullets={["Personalized plans", "Dedicated instructor", "Flexible timing"]}
                     />
                     <PrivateGroupCard
                         symbol={cfg.symbol}
@@ -159,9 +175,10 @@ const PricingPage: React.FC = () => {
                         price3Plus={cfg.privateGroup3Plus}
                         ctaHref="/book/private-group"
                         image="/images/PrivateClass.png"
+                        bullets={["Small group coaching", "Customized sequences", "Max 5 participants"]}
                     />
                     <CorporateCard
-                        image="/images/Garudasana.png"
+                        image="/images/Garudasana1.png"
                     />
                 </section>
 
