@@ -41,8 +41,8 @@ export function Privacy(): JSX.Element {
                                     <li><a href="#sharing" className="text-emerald-600 dark:text-emerald-400 hover:underline">Sharing & Transfers</a></li>
                                     <li><a href="#retention" className="text-emerald-600 dark:text-emerald-400 hover:underline">Retention & Deletion</a></li>
                                     <li><a href="#security" className="text-emerald-600 dark:text-emerald-400 hover:underline">Security</a></li>
-                                        <li><a href="#cancellations" className="text-emerald-600 dark:text-emerald-400 hover:underline">Cancellation & Refunds</a></li>
-                                        <li><a href="#shipping" className="text-emerald-600 dark:text-emerald-400 hover:underline">Shipping</a></li>
+                                    <li><a href="#cancellations" className="text-emerald-600 dark:text-emerald-400 hover:underline">Cancellation & Refunds</a></li>
+                                    <li><a href="#shipping" className="text-emerald-600 dark:text-emerald-400 hover:underline">Shipping</a></li>
                                     <li><a href="#user-rights" className="text-emerald-600 dark:text-emerald-400 hover:underline">Your Rights & Data Control</a></li>
                                     <li><a href="#contact" className="text-emerald-600 dark:text-emerald-400 hover:underline">Contact</a></li>
                                 </ul>

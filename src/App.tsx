@@ -16,6 +16,7 @@ import { ProtectedRoute } from './features/auth/components/ProtectedRoute';
 import UniversalDashboard from './features/dashboard/components/UniversalDashboard';
 // Page imports - updated paths
 import { Navigate } from 'react-router-dom';
+import PricingPage from './pages/PricingPage';
 import NewArticlePage from './features/articles/pages/NewArticlePage';
 import { AuthCallback } from './features/auth/components/AuthCallback';
 import { Login } from './features/auth/pages/Login';
@@ -164,6 +165,7 @@ function AppRoutes() {
               <Route path="/bookings/:bookingId/cancel" element={<CancelBookingPage />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/book/individual" element={<BookOneOnOne />} />
+              <Route path="/pricing" element={<PricingPage />} />
               <Route path="/book/corporate" element={<BookCorporate />} />
               <Route path="/achievements" element={<Achievements />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
