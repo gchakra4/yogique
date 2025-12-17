@@ -16,6 +16,7 @@ import { ProtectedRoute } from './features/auth/components/ProtectedRoute';
 import UniversalDashboard from './features/dashboard/components/UniversalDashboard';
 // Page imports - updated paths
 import { Navigate } from 'react-router-dom';
+import PricingDisplay from './components/PricingDisplay';
 import NewArticlePage from './features/articles/pages/NewArticlePage';
 import { AuthCallback } from './features/auth/components/AuthCallback';
 import { Login } from './features/auth/pages/Login';
@@ -35,14 +36,13 @@ import Unsubscribe from './features/marketing/pages/Unsubscribe';
 import { YogaForYou } from './features/marketing/pages/YogaForYou';
 import { BookCorporate } from './features/scheduling/pages/BookCorporate';
 import { BookOneOnOne } from './features/scheduling/pages/BookOneOnOne';
-import PricingPage from './components/PricingPage';
-import { getRegionFromCookie } from './utils/region';
 import CancelBookingPage from './features/scheduling/pages/CancelBookingPage';
 import InstructorProfile from './features/scheduling/pages/InstructorProfile';
 import { Schedule } from './features/scheduling/pages/Schedule';
 import { Profile } from './features/user-profile/pages/Profile';
 import AdminApprovals from './pages/AdminApprovals';
 import { NotFound } from './pages/NotFound';
+import { getRegionFromCookie } from './utils/region';
 
 function App() {
   const SHOW_DEV_HEADER = typeof window !== 'undefined' && (
@@ -166,7 +166,7 @@ function AppRoutes() {
               <Route path="/bookings/:bookingId/cancel" element={<CancelBookingPage />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/book/individual" element={<BookOneOnOne />} />
-              <Route path="/pricing" element={<PricingPage region={getRegionFromCookie()} />} />
+              <Route path="/pricing" element={<PricingDisplay />} />
               <Route path="/book/corporate" element={<BookCorporate />} />
               <Route path="/achievements" element={<Achievements />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
