@@ -16,7 +16,6 @@ import { ProtectedRoute } from './features/auth/components/ProtectedRoute';
 import UniversalDashboard from './features/dashboard/components/UniversalDashboard';
 // Page imports - updated paths
 import { Navigate } from 'react-router-dom';
-import PricingPage from './pages/PricingPage';
 import NewArticlePage from './features/articles/pages/NewArticlePage';
 import { AuthCallback } from './features/auth/components/AuthCallback';
 import { Login } from './features/auth/pages/Login';
@@ -42,12 +41,16 @@ import { Schedule } from './features/scheduling/pages/Schedule';
 import { Profile } from './features/user-profile/pages/Profile';
 import AdminApprovals from './pages/AdminApprovals';
 import { NotFound } from './pages/NotFound';
+import PricingPage from './pages/PricingPage';
 
 function App() {
+  const hostname = typeof window !== 'undefined' && window.location ? window.location.hostname : ''
+  const isProdHost = hostname === 'yogique.life' || (hostname.endsWith('.yogique.life') && !hostname.startsWith('dev.'))
   const SHOW_DEV_HEADER = typeof window !== 'undefined' && (
-    window.location.hostname === 'dev.yogique.life' ||
-    (window as any).DEVTOOLS_CONFIG?.SHOW_DEV_HEADER === 'true' ||
-    import.meta.env.VITE_SHOW_DEV_HEADER === 'true'
+    hostname === 'dev.yogique.life' ||
+    hostname === 'localhost' ||
+    import.meta.env.VITE_SHOW_DEV_HEADER === 'true' ||
+    (((window as any).DEVTOOLS_CONFIG?.SHOW_DEV_HEADER === 'true') && !isProdHost)
   )
   return (
     <ThemeProvider>
