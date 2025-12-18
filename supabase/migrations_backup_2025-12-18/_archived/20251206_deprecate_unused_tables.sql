@@ -1,0 +1,2 @@
+-- placeholder for remote migration 20251206_deprecate_unused_tables
+-- created 2025-12-18T15:40:25.409Z

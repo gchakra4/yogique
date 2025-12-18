@@ -1,0 +1,3 @@
+-- placeholder for remote migration version '000'
+-- maps to existing local file: 000_add_message_audit_table.sql
+-- created 2025-12-18T
