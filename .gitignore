@@ -24,4 +24,7 @@ scripts/supabase-backup/secrets/
 !scripts/supabase-backup/secrets/.gitkeep
 secrets/
 
+# Project secrets (local overrides)
+secrets/dev.env
+
 src/**/*.js
