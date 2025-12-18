@@ -49,11 +49,55 @@ Deno.serve(async (req) => {
 
     const results: any[] = [];
     for (const t of body) {
+      // compute proration if billing_cycle_anchor is provided and within the billing month
+      const billingPeriod = t.billing_period_month || null;
+      const billingCycleAnchor = t.billing_cycle_anchor ?? t.billing_cycle_anchor_date ?? null;
+
+      let prorated_amount = 0;
+      let proration_detail = null;
+      let due_date = billingPeriod;
+
+      const amountNum = Number(t.amount ?? 0);
+
+      // Prefer class-count proration when caller provides counts: scheduled vs total
+      const scheduledClasses = t.scheduled_classes ?? t.scheduledClasses ?? null;
+      const totalClasses = t.total_classes_in_month ?? t.totalClassesInMonth ?? t.total_classes ?? null;
+      if (scheduledClasses != null && totalClasses != null && Number(totalClasses) > 0) {
+        const sc = Number(scheduledClasses);
+        const tc = Number(totalClasses);
+        const ratio = Math.max(0, Math.min(1, sc / tc));
+        const prorate = Math.round((amountNum * ratio) * 100) / 100;
+        prorated_amount = prorate;
+        proration_detail = { method: 'pro-rata-classes', scheduled_classes: sc, total_classes_in_month: tc, ratio, prorated_amount: prorate };
+      } else if (billingPeriod && billingCycleAnchor) {
+        // fallback: prorate by remaining days in month (existing logic)
+        try {
+          const bp = new Date(billingPeriod);
+          const anchor = new Date(billingCycleAnchor);
+          // only prorate if anchor is within the billing period month and after the start
+          if (bp.getUTCFullYear() === anchor.getUTCFullYear() && bp.getUTCMonth() === anchor.getUTCMonth() && anchor.getUTCDate() > 1) {
+            const year = bp.getUTCFullYear();
+            const month = bp.getUTCMonth();
+            const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+            const remainingDays = daysInMonth - (anchor.getUTCDate() - 1);
+            const prorate = Math.round((amountNum * (remainingDays / daysInMonth)) * 100) / 100;
+            prorated_amount = prorate;
+            proration_detail = { billing_cycle_anchor: anchor.toISOString(), days_in_month: daysInMonth, remaining_days: remainingDays, prorated_amount: prorate, method: 'pro-rata-days' };
+          }
+        } catch (e) {
+          console.log('proration compute error', String(e));
+        }
+      }
+
       const payload: any = {
         booking_id: t.booking_id ?? null,
-        billing_period_month: t.billing_period_month ?? null,
-        amount: t.amount,
+        billing_period_month: billingPeriod,
+        billing_cycle_anchor: billingCycleAnchor ?? null,
+        amount: amountNum,
         currency: t.currency ?? 'INR',
+        prorated_amount,
+        proration_detail,
+        due_date: due_date,
         generated_at: new Date().toISOString(),
         invoice_status: 'pending',
         created_at: new Date().toISOString(),
