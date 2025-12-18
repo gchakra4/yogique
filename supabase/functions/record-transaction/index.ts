@@ -93,7 +93,6 @@ Deno.serve(async (req) => {
             user_email = null,
             user_full_name = null,
             subscription_id = null,
-            invoice_id = null,
             amount,
             currency = 'USD',
             status = 'pending',
@@ -159,7 +158,6 @@ Deno.serve(async (req) => {
             billing_period_month: billing_period_date ?? null,
             user_email: user_email ?? null,
             user_full_name: user_full_name ?? null,
-            invoice_id: invoice_id ?? null,
         };
 
         const { data: inserted, error: insertError } = await supabaseAdmin

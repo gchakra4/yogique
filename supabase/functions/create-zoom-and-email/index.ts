@@ -311,11 +311,9 @@ serve(async (req) => {
             return new Response(JSON.stringify({ error: updateErr.message }), { status: 500 });
         }
 
-        // 8) prepare email HTML - updated to use canonical Brand.png and include brand name/tagline
+        // 8) prepare email HTML - replace previous template with the provided yoga-themed builder
         const PUBLIC_SITE_URL = Deno.env.get('PUBLIC_SITE_URL') || Deno.env.get('SITE_URL') || null;
-        const LOGO_URL = PUBLIC_SITE_URL ? `${PUBLIC_SITE_URL.replace(/\/$/, '')}/images/Brand.png` : '/images/Brand.png';
-        const BRAND_NAME = Deno.env.get('BRAND_NAME') || 'Yogique';
-        const BRAND_TAGLINE = Deno.env.get('BRAND_TAGLINE') || 'Mindful movement for modern lives';
+        const LOGO_URL = PUBLIC_SITE_URL ? `${PUBLIC_SITE_URL.replace(/\/$/, '')}/images/Brand-orange.png` : '/images/Brand-orange.png';
 
         function buildEmailTemplate({
             recipientName,
@@ -345,13 +343,11 @@ serve(async (req) => {
             return `
     <div style="max-width:600px;margin:0 auto;padding:20px;font-family:Arial,Helvetica,sans-serif;color:#111;background:#f9fafb;border-radius:8px;">
 
-        <div style="text-align:center;margin-bottom:12px;">
-            ${LOGO_URL ? `<img src="${LOGO_URL}" alt="${BRAND_NAME} Logo" style="max-width:160px;height:auto;">` : ''}
-            <div style="font-size:18px;font-weight:700;color:#111;margin-top:10px;">${BRAND_NAME}</div>
-            <div style="font-size:13px;color:#6b7280;margin-top:4px;">${BRAND_TAGLINE}</div>
+        <div style="text-align:center;margin-bottom:20px;">
+            ${LOGO_URL ? `<img src="${LOGO_URL}" alt="Yoga Brand Logo" style="max-width:160px;height:auto;">` : ''}
         </div>
 
-        <h2 style="margin-top:8px;color:#d97706;text-align:center;">${classTitle}</h2>
+        <h2 style="margin-top:0;color:#d97706;text-align:center;">${classTitle}</h2>
 
         <p style="font-size:16px;">Namaste ${recipientName},</p>
         <p style="font-size:16px;">Your yoga class is scheduled at <strong>${classDisplay}</strong>.</p>
