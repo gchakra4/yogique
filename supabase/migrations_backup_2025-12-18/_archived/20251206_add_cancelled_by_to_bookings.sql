@@ -1,2 +1,0 @@
--- placeholder for remote migration 20251206_add_cancelled_by_to_bookings
--- created 2025-12-18T15:40:25.408Z

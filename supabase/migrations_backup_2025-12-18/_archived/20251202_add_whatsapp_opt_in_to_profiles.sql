@@ -1,2 +1,0 @@
--- placeholder for remote migration 20251202_add_whatsapp_opt_in_to_profiles
--- created 2025-12-18T15:40:25.408Z

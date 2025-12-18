@@ -1,3 +1,0 @@
--- placeholder for remote migration version '20251202'
--- maps to existing local files with that date (e.g. 20251202_add_whatsapp_opt_in_to_profiles.sql)
--- created 2025-12-18T

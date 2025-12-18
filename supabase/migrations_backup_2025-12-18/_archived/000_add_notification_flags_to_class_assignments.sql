@@ -1,2 +1,0 @@
--- placeholder for remote migration 000_add_notification_flags_to_class_assignments
--- created 2025-12-18T15:40:25.407Z

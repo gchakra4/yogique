@@ -1,3 +1,0 @@
--- placeholder for remote migration version '20251206'
--- maps to existing local files with that date (multiple 20251206_*.sql)
--- created 2025-12-18T
