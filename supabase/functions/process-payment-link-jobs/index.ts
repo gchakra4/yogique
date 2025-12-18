@@ -118,7 +118,8 @@ Deno.serve(async (req) => {
       // mark job done
       await supabaseAdmin.from('payment_link_jobs').update({ status: 'done', updated_at: new Date().toISOString(), processing_finished_at: new Date().toISOString() }).eq('id', j.id);
       // insert audit log row
-      await supabaseAdmin.from('audit_logs').insert([{
+      const { error: auditErr } = await supabaseAdmin.from('audit_logs').insert([{
+        event_type: 'invoice_send',
         audit_type: 'invoice_send',
         invoice_id: invoice_id,
         channel: 'razorpay_link',
@@ -127,9 +128,8 @@ Deno.serve(async (req) => {
         provider_response: JSON.stringify({ id: rz.id, url: rz.short_url ?? rz.long_url }),
         reminder_status: 'sent',
         sent_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }]).catch(() => null);
+      }]);
+      if (auditErr) console.log('audit insert err', auditErr);
 
       return new Response(JSON.stringify({ processed: 1, result: { job: j.id, status: 'done', link: rz.short_url ?? rz.long_url } }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     } else {
