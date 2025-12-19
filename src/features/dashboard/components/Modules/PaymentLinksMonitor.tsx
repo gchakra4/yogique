@@ -1,6 +1,6 @@
 import { Activity, AlertCircle, CheckCircle, Clock, ExternalLink, Link2, RefreshCw, Search, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { supabase } from '../../../../lib/supabase';
+import { supabase } from '../../../../shared/lib/supabase';
 import { Button } from '../../../../shared/components/ui/Button';
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner';
 
@@ -354,3 +354,5 @@ export function PaymentLinksMonitor() {
         </div>
     );
 }
+
+export default PaymentLinksMonitor;

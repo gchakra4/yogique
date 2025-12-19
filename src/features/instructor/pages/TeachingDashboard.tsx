@@ -94,22 +94,6 @@ export function TeachingDashboard() {
             </div>
             <div className="flex gap-3 flex-wrap">
               <Button
-                onClick={() => setShowEarnings(v => !v)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <DollarSign className="w-4 h-4" />
-                {showEarnings ? 'Hide' : 'Show'} Earnings
-              </Button>
-              <Button
-                onClick={() => setShowPayoutSummary(v => !v)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <DollarSign className="w-4 h-4" />
-                {showPayoutSummary ? 'Hide' : 'Show'} Payout Summary
-              </Button>
-              <Button
                 onClick={handleRefreshAll}
                 variant="outline"
                 className="flex items-center gap-2"

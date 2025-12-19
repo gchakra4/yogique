@@ -1,6 +1,6 @@
 import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, ExternalLink, RefreshCw, Search, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { supabase } from '../../../../lib/supabase';
+import { supabase } from '../../../../shared/lib/supabase';
 import { Button } from '../../../../shared/components/ui/Button';
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner';
 
@@ -63,7 +63,7 @@ export function InvoiceManagement() {
         try {
             setActionLoading(invoiceId);
 
-            const { data: functionData, error: functionError } = await supabase.functions.invoke(
+            const { error: functionError } = await supabase.functions.invoke(
                 'create-payment-link',
                 {
                     body: { invoice_id: invoiceId }
@@ -351,3 +351,5 @@ export function InvoiceManagement() {
         </div>
     );
 }
+
+export default InvoiceManagement;
