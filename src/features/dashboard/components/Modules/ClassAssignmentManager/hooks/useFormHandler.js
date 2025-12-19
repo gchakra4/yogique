@@ -52,6 +52,8 @@ const initialFormData = {
     client_email: '',
     // Multiple booking support
     booking_ids: [],
+    // UI flag to indicate whether booking linking is enabled
+    link_booking: false,
     // Weekly template assignment
     selected_template_id: '',
     // Package validity constraint

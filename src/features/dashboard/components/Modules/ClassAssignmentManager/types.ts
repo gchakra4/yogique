@@ -197,6 +197,9 @@ export interface FormData {
     // Multiple booking support
     booking_ids: string[]
 
+    // UI flag: whether to link bookings when creating assignment
+    link_booking?: boolean
+
     // Weekly template assignment
     selected_template_id: string
 

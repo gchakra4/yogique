@@ -188,13 +188,15 @@ serve(async (req) => {
     console.log('Razorpay payment link created:', razorpayData.id)
 
     // Store payment link in database
+    const computedExpiresAt = razorpayData.expire_by ? new Date(razorpayData.expire_by * 1000).toISOString() : null
+
     const { data: storedLink, error: storeError } = await supabase.rpc(
       'store_payment_link',
       {
         p_invoice_id: invoice_id,
         p_razorpay_link_id: razorpayData.id,
         p_short_url: razorpayData.short_url,
-        p_expires_at: new Date(razorpayData.expire_by * 1000).toISOString(),
+        p_expires_at: computedExpiresAt,
         p_razorpay_response: razorpayData
       }
     )
@@ -223,7 +225,7 @@ serve(async (req) => {
         invoice_number: invoice.invoice_number,
         razorpay_link_id: razorpayData.id,
         short_url: razorpayData.short_url,
-        expires_at: new Date(razorpayData.expire_by * 1000).toISOString(),
+        expires_at: computedExpiresAt,
         amount: invoice.total_amount,
         currency: invoice.currency
       }),

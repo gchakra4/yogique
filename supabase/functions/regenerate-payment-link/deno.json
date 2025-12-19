@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "jsxImportSource": "preact"
+    },
+    "deploy": {
+        "entrypoint": "./index.ts",
+        "noVerifyJWT": true
+    }
+}

@@ -14,6 +14,7 @@ import { Header } from './shared/components/layout/Header';
 import { ProtectedRoute } from './features/auth/components/ProtectedRoute';
 // Dashboard component - new import
 import UniversalDashboard from './features/dashboard/components/UniversalDashboard';
+import ClassAssignmentPage from './features/dashboard/pages/ClassAssignmentPage';
 // Page imports - updated paths
 import { Navigate } from 'react-router-dom';
 import NewArticlePage from './features/articles/pages/NewArticlePage';
@@ -103,6 +104,15 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Dedicated Class Assignment page (standalone) */}
+      <Route
+        path="/dashboard/class-assignments"
+        element={
+          <ProtectedRoute>
+            <ClassAssignmentPage />
+          </ProtectedRoute>
+        }
+      />
       {/* Universal Dashboard Route - New modular dashboard */}
       <Route
         path="/dashboard/*"

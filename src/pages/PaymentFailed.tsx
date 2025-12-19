@@ -8,6 +8,7 @@ function useQuery() {
 const PaymentFailed: React.FC = () => {
     const q = useQuery()
     const reason = q.get('reason') || q.get('status') || ''
+    const bookingId = q.get('booking_id') || q.get('bookingId') || ''
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100">
@@ -21,6 +22,16 @@ const PaymentFailed: React.FC = () => {
                     <Link to="/" className="px-4 py-2 bg-slate-800 text-white rounded">Go to Home</Link>
                     <Link to="/contact" className="px-4 py-2 border rounded">Contact Support</Link>
                 </div>
+                {bookingId && (
+                    <div className="mt-6 text-center">
+                        <button
+                            onClick={() => { window.location.href = `/functions/v1/regenerate-payment-link?booking_id=${bookingId}` }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded"
+                        >
+                            Get a new payment link
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     )

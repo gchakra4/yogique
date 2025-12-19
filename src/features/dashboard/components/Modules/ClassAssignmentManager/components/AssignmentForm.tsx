@@ -215,22 +215,57 @@ export const AssignmentForm = ({
 
                             {/* Booking Reference Selector */}
                             <div>
-                                <AdaptiveBookingSelector
-                                    bookings={bookings}
-                                    assignmentType={formData.assignment_type}
-                                    bookingType={formData.booking_type as any}
-                                    selectedBookingId={formData.booking_id || ''}
-                                    onBookingSelect={(bookingId, clientName, clientEmail) => {
-                                        onInputChange('booking_id', bookingId)
-                                        onInputChange('client_name', clientName)
-                                        onInputChange('client_email', clientEmail)
-                                    }}
-                                    selectedBookingIds={formData.booking_ids || []}
-                                    onBookingSelectionChange={(bookingIds) => {
-                                        onInputChange('booking_ids', bookingIds)
-                                    }}
-                                    bookingTypeFilter={formData.booking_type as any}
-                                />
+                                <div className="mb-2 flex items-center justify-between">
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Link booking (optional)</label>
+                                        <p className="text-xs text-gray-500">Link an existing booking to this assignment to auto-complete client info and optionally mark it recurring for billing.</p>
+                                    </div>
+                                    <div>
+                                        <label className="inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!formData.link_booking}
+                                                onChange={(e) => {
+                                                    const enabled = e.target.checked
+                                                    onInputChange('link_booking', enabled)
+                                                    if (!enabled) {
+                                                        // Clear any selected bookings when turning off
+                                                        onInputChange('booking_ids', [])
+                                                        onInputChange('booking_id', '')
+                                                        onInputChange('client_name', '')
+                                                        onInputChange('client_email', '')
+                                                    }
+                                                }}
+                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                                            />
+                                            <span className="ml-2 text-sm text-gray-700">Enable</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Show booking selector only when link_booking is enabled */}
+                                {formData.link_booking ? (
+                                    <AdaptiveBookingSelector
+                                        bookings={bookings}
+                                        assignmentType={formData.assignment_type}
+                                        bookingType={formData.booking_type as any}
+                                        selectedBookingId={formData.booking_id || ''}
+                                        onBookingSelect={(bookingId, clientName, clientEmail) => {
+                                            onInputChange('booking_id', bookingId)
+                                            onInputChange('client_name', clientName)
+                                            onInputChange('client_email', clientEmail)
+                                        }}
+                                        selectedBookingIds={formData.booking_ids || []}
+                                        onBookingSelectionChange={(bookingIds) => {
+                                            onInputChange('booking_ids', bookingIds)
+                                        }}
+                                        bookingTypeFilter={formData.booking_type as any}
+                                    />
+                                ) : (
+                                    <div className="p-3 bg-gray-50 border border-dashed border-gray-200 rounded text-sm text-gray-600">
+                                        Linking is disabled. Toggle "Enable" to link an existing booking.
+                                    </div>
+                                )}
                             </div>
 
                             {/* Timeline Description Display */}

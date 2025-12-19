@@ -611,7 +611,14 @@ export function ClassAssignmentManager() {
 
             const studentCount = calculateStudentCount();
 
-            const result = await AssignmentCreationService.createAssignment(formData, packages, studentCount)
+            // If linking bookings is disabled in the form, ensure we don't send booking IDs
+            const payloadFormData = { ...formData }
+            if (!payloadFormData.link_booking) {
+                payloadFormData.booking_ids = []
+                payloadFormData.booking_id = ''
+            }
+
+            const result = await AssignmentCreationService.createAssignment(payloadFormData, packages, studentCount)
 
             await fetchData()
             resetForm()
