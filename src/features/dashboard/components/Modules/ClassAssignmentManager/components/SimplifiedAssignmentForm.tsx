@@ -14,6 +14,7 @@ interface SimplifiedAssignmentFormProps {
     saving: boolean
     onClose: () => void
     onSubmit: (data: any) => void
+    onBookingCreated?: () => Promise<void> // Callback to refresh bookings list
 }
 
 export const SimplifiedAssignmentForm = ({
@@ -24,7 +25,8 @@ export const SimplifiedAssignmentForm = ({
     bookings,
     saving,
     onClose,
-    onSubmit
+    onSubmit,
+    onBookingCreated
 }: SimplifiedAssignmentFormProps) => {
     // Step 1: Booking selection (MANDATORY)
     const [selectedBookingId, setSelectedBookingId] = useState('')
@@ -99,10 +101,14 @@ export const SimplifiedAssignmentForm = ({
         }
     }, [selectedPackageId, packages])
 
-    const handleQuickBookingCreated = (bookingId: string) => {
+    const handleQuickBookingCreated = async (bookingId: string) => {
+        // Refresh bookings list from parent
+        if (onBookingCreated) {
+            await onBookingCreated()
+        }
+        // Now select the newly created booking
         setSelectedBookingId(bookingId)
         setShowQuickBooking(false)
-        // Refresh bookings list would happen in parent component
     }
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -113,7 +119,7 @@ export const SimplifiedAssignmentForm = ({
         if (!selectedBookingId) newErrors.booking = 'Booking is required'
         if (!instructorId) newErrors.instructor = 'Instructor is required'
         if (!startDate) newErrors.startDate = 'Start date is required'
-        
+
         if (assignmentType !== 'adhoc') {
             if (!selectedPackageId) newErrors.package = 'Package is required'
             if (selectedDays.length === 0) newErrors.days = 'Select at least one day'
@@ -170,7 +176,7 @@ export const SimplifiedAssignmentForm = ({
                                     <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">1</span>
                                     Select Booking (Required)
                                 </h3>
-                                
+
                                 {!showQuickBooking ? (
                                     <div className="space-y-3">
                                         <select
@@ -228,7 +234,7 @@ export const SimplifiedAssignmentForm = ({
                                         <span className="bg-gray-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">2</span>
                                         Assignment Type
                                     </h3>
-                                    
+
                                     <div className="grid grid-cols-3 gap-3">
                                         {[
                                             { value: 'monthly', label: 'Monthly Package', desc: 'Regular recurring classes' },
@@ -239,11 +245,10 @@ export const SimplifiedAssignmentForm = ({
                                                 key={type.value}
                                                 type="button"
                                                 onClick={() => setAssignmentType(type.value as any)}
-                                                className={`p-3 border rounded-lg text-left transition-colors ${
-                                                    assignmentType === type.value
+                                                className={`p-3 border rounded-lg text-left transition-colors ${assignmentType === type.value
                                                         ? 'border-blue-500 bg-blue-50 text-blue-900'
                                                         : 'border-gray-200 hover:border-gray-300'
-                                                }`}
+                                                    }`}
                                             >
                                                 <div className="font-medium text-sm">{type.label}</div>
                                                 <div className="text-xs text-gray-500 mt-1">{type.desc}</div>
@@ -332,18 +337,17 @@ export const SimplifiedAssignmentForm = ({
                                                                     : [...prev, index].sort()
                                                             )
                                                         }}
-                                                        className={`p-2 rounded-lg text-sm font-medium border transition-colors ${
-                                                            selectedDays.includes(index)
+                                                        className={`p-2 rounded-lg text-sm font-medium border transition-colors ${selectedDays.includes(index)
                                                                 ? 'bg-blue-500 text-white border-blue-500'
                                                                 : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {day}
                                                     </button>
                                                 ))}
                                             </div>
                                             {errors.days && <p className="text-red-600 text-sm mt-1">{errors.days}</p>}
-                                            
+
                                             <button
                                                 type="button"
                                                 onClick={() => setUseManualCalendar(!useManualCalendar)}

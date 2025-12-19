@@ -969,6 +969,7 @@ export function ClassAssignmentManager() {
                     saving={saving}
                     onClose={() => setShowAssignForm(false)}
                     onSubmit={createAssignmentSimplified}
+                    onBookingCreated={fetchData}
                 />
             ) : (
                 <AssignmentForm

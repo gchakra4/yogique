@@ -14,5 +14,6 @@ export { LoadingSpinner } from './LoadingSpinner'
 export { ManualCalendarSelector } from './ManualCalendarSelector'
 export { MultipleBookingSelector } from './MultipleBookingSelector'
 export { QuickBookingForm } from './QuickBookingForm'
-export { SimplifiedAssignmentForm } from './SimplifiedAssignmentForm'
 export { default as SimpleAssignmentList } from './SimpleAssignmentList'
+export { SimplifiedAssignmentForm } from './SimplifiedAssignmentForm'
+
