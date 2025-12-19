@@ -8,6 +8,8 @@ interface QuickBookingFormProps {
 }
 
 export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFormProps) => {
+    console.log('📦 QuickBookingForm component rendered')
+    
     const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
@@ -188,7 +190,10 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                 <div className="flex justify-end space-x-2 pt-2">
                     <button
                         type="button"
-                        onClick={onCancel}
+                        onClick={() => {
+                            console.log('❌ Cancel button clicked')
+                            onCancel()
+                        }}
                         className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
                         disabled={saving}
                     >
@@ -196,6 +201,11 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                     </button>
                     <button
                         type="submit"
+                        onClick={(e) => {
+                            console.log('🔘 Create Booking button clicked')
+                            console.log('Form data at click:', formData)
+                            console.log('Button type:', e.currentTarget.type)
+                        }}
                         className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 inline-flex items-center"
                         disabled={saving}
                     >
