@@ -8,8 +8,23 @@ interface QuickBookingFormProps {
 }
 
 export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFormProps) => {
-    console.log('📦 QuickBookingForm component rendered')
-    
+    // Helper: persistent debug log (stores logs in localStorage so they survive refresh)
+    const debugLog = (tag: string, payload?: any) => {
+        try {
+            const key = 'quickBookingLogs'
+            const existing = JSON.parse(localStorage.getItem(key) || '[]')
+            existing.push({ ts: new Date().toISOString(), tag, payload })
+            localStorage.setItem(key, JSON.stringify(existing.slice(-500)))
+        } catch (e) {
+            // ignore
+        }
+        // still print to console for convenience
+        // eslint-disable-next-line no-console
+        console.log(tag, payload)
+    }
+
+    debugLog('📦 QuickBookingForm component rendered')
+
     const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
@@ -23,8 +38,8 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        console.log('🚀 QuickBookingForm handleSubmit called')
-        console.log('Form data:', formData)
+        debugLog('🚀 QuickBookingForm handleSubmit called')
+        debugLog('Form data', formData)
         setError('')
         setSaving(true)
 
@@ -56,7 +71,7 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                 user_id: user?.id || null
             }
 
-            console.log('Creating booking with data:', bookingData)
+            debugLog('Creating booking with data', bookingData)
 
             const { data: insertedBooking, error: insertError } = await supabase
                 .from('bookings')
@@ -64,10 +79,10 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                 .select()
                 .single()
 
-            console.log('Insert result:', { insertedBooking, insertError })
+            debugLog('Insert result', { insertedBooking, insertError })
 
             if (insertError) {
-                console.error('Insert error details:', insertError)
+                debugLog('Insert error details', insertError)
                 throw insertError
             }
 
@@ -75,15 +90,15 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                 throw new Error('Booking was not created - no data returned')
             }
 
-            console.log('✅ Booking created successfully:', insertedBooking.id)
+            debugLog('✅ Booking created successfully', insertedBooking.id)
             onBookingCreated(booking_id)
         } catch (err: any) {
-            console.error('Failed to create booking:', err)
-            
+            debugLog('Failed to create booking', err)
+
             // Better error messages for common issues
             let errorMessage = 'Failed to create booking'
-            
-            if (err.message) {
+
+            if (err && err.message) {
                 if (err.message.includes('row-level security') || err.message.includes('RLS')) {
                     errorMessage = 'Permission denied. Please ensure you have admin access to create bookings.'
                 } else if (err.message.includes('duplicate') || err.message.includes('unique')) {
@@ -92,7 +107,7 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                     errorMessage = err.message
                 }
             }
-            
+
             setError(errorMessage)
         } finally {
             setSaving(false)
@@ -191,7 +206,7 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                     <button
                         type="button"
                         onClick={() => {
-                            console.log('❌ Cancel button clicked')
+                            debugLog('❌ Cancel button clicked')
                             onCancel()
                         }}
                         className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
@@ -202,9 +217,9 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                     <button
                         type="submit"
                         onClick={(e) => {
-                            console.log('🔘 Create Booking button clicked')
-                            console.log('Form data at click:', formData)
-                            console.log('Button type:', e.currentTarget.type)
+                            debugLog('🔘 Create Booking button clicked')
+                            debugLog('Form data at click', formData)
+                            debugLog('Button type', e.currentTarget.type)
                         }}
                         className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 inline-flex items-center"
                         disabled={saving}
