@@ -202,6 +202,10 @@ export interface FormData {
 
     // Package validity constraint
     validity_end_date: string
+    
+    // Recurrence metadata
+    recurrence_type?: 'single' | 'weekly' | 'monthly'
+    recurrence_interval?: number
 }
 
 export interface ValidationErrors {

@@ -98,6 +98,26 @@ export const AssignmentForm = ({
         }
     }, [rate])
 
+    // Ensure recurrence and duration defaults when assignment type changes
+    useEffect(() => {
+        if (formData.assignment_type === 'monthly') {
+            if (formData.course_duration_unit !== 'months') {
+                onInputChange('course_duration_unit', 'months')
+            }
+            if (formData.recurrence_type !== 'monthly') {
+                onInputChange('recurrence_type', 'monthly')
+            }
+        } else if (formData.assignment_type === 'weekly') {
+            if (formData.recurrence_type !== 'weekly') {
+                onInputChange('recurrence_type', 'weekly')
+            }
+        } else {
+            if (formData.recurrence_type !== 'single') {
+                onInputChange('recurrence_type', 'single')
+            }
+        }
+    }, [formData.assignment_type])
+
     if (!isVisible) return null
 
     const getFilteredPackages = () => {
@@ -411,6 +431,20 @@ export const AssignmentForm = ({
                                             </select>
                                         </div>
                                         {errors.course_duration_value && <p className="text-red-500 text-sm mt-1">{errors.course_duration_value}</p>}
+
+                                        {/* Recurrence Selector (persisted in formData) */}
+                                        <div className="mt-3">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Recurrence</label>
+                                            <select
+                                                value={formData.recurrence_type || (formData.assignment_type === 'monthly' ? 'monthly' : 'single')}
+                                                onChange={(e) => onInputChange('recurrence_type', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="single">Single / None</option>
+                                                <option value="weekly">Weekly</option>
+                                                <option value="monthly">Monthly</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -505,23 +539,7 @@ export const AssignmentForm = ({
                                 </div>
                             )}
 
-                            {/* Day Selection for Monthly */}
-                            {formData.assignment_type === 'monthly' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Day of Month <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="31"
-                                        value={formData.day_of_month}
-                                        onChange={(e) => onInputChange('day_of_month', parseInt(e.target.value) || 1)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                    {errors.day_of_month && <p className="text-red-500 text-sm mt-1">{errors.day_of_month}</p>}
-                                </div>
-                            )}
+                            {/* Day of Month removed from monthly flow — monthly recurrence uses start_date + recurrence logic */}
 
 
                             {/* Instructor Selection */}
