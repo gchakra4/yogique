@@ -36,8 +36,8 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleSubmit = async (e?: React.FormEvent) => {
+        e?.preventDefault()
         debugLog('🚀 QuickBookingForm handleSubmit called')
         debugLog('Form data', formData)
         setError('')
@@ -215,11 +215,12 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                         Cancel
                     </button>
                     <button
-                        type="submit"
-                        onClick={(e) => {
+                        type="button"
+                        onClick={async (e) => {
                             debugLog('🔘 Create Booking button clicked')
                             debugLog('Form data at click', formData)
-                            debugLog('Button type', e.currentTarget.type)
+                            debugLog('Button type', (e.currentTarget as HTMLButtonElement).type)
+                            await handleSubmit()
                         }}
                         className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 inline-flex items-center"
                         disabled={saving}
