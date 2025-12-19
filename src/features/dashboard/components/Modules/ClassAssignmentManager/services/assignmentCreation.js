@@ -730,6 +730,13 @@ export class AssignmentCreationService {
                         await this.updateBookingStatus(bookingId, 'completed');
                     }
                 }
+                // Mark linked bookings as recurring so invoice generator can pick them up
+                try {
+                    await this.markBookingsAsRecurring(bookingIds, formData.start_date, formData.package_id);
+                }
+                catch (recErr) {
+                    console.warn('Failed to mark bookings as recurring:', recErr);
+                }
             }
             catch (bookingError) {
                 console.error('Failed to associate bookings with monthly assignments:', bookingError);
@@ -738,6 +745,36 @@ export class AssignmentCreationService {
             }
         }
         return { success: true, count: assignments.length };
+    }
+    // Helper: mark bookings as recurring and set billing anchor
+    static async markBookingsAsRecurring(bookingIds, billingAnchorDate, packageId) {
+        if (!bookingIds || bookingIds.length === 0)
+            return;
+        const payload = { is_recurring: true };
+        if (billingAnchorDate)
+            payload.billing_cycle_anchor = billingAnchorDate;
+        if (packageId)
+            payload.class_package_id = packageId;
+        // Update by booking_id (external code) rather than internal id
+        for (const bookingCode of bookingIds) {
+            if (!bookingCode || bookingCode.trim() === '')
+                continue;
+            try {
+                const { error } = await supabase
+                    .from('bookings')
+                    .update(payload)
+                    .eq('booking_id', bookingCode.trim());
+                if (error) {
+                    console.warn('Failed to update booking recurrence for', bookingCode, error);
+                }
+                else {
+                    console.log('Marked booking as recurring:', bookingCode);
+                }
+            }
+            catch (err) {
+                console.warn('Exception while updating booking recurrence for', bookingCode, err);
+            }
+        }
     }
     static async generateWeeklyRecurrenceAssignments(formData, perClassAmount) {
         const currentUserId = await getCurrentUserId();

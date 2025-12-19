@@ -22,6 +22,105 @@ serve(async (req) => {
   }
 
   try {
+    // Handle GET requests (payment redirect callback from Razorpay)
+    if (req.method === 'GET') {
+      const url = new URL(req.url)
+      const razorpayPaymentId = url.searchParams.get('razorpay_payment_id')
+      const razorpayPaymentLinkId = url.searchParams.get('razorpay_payment_link_id')
+      const razorpayPaymentLinkReferenceId = url.searchParams.get('razorpay_payment_link_reference_id')
+      const razorpayPaymentLinkStatus = url.searchParams.get('razorpay_payment_link_status')
+      const razorpaySignature = url.searchParams.get('razorpay_signature')
+
+      console.log('Payment redirect received:', {
+        razorpayPaymentId,
+        razorpayPaymentLinkId,
+        razorpayPaymentLinkReferenceId,
+        razorpayPaymentLinkStatus
+      })
+
+      // Initialize Supabase client
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+      // Verify signature if provided
+      let signatureVerified = false
+      if (razorpaySignature && razorpayPaymentLinkId && razorpayPaymentLinkReferenceId && razorpayPaymentLinkStatus && razorpayPaymentId) {
+        const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET')
+        if (razorpayKeySecret) {
+          const message = `${razorpayPaymentLinkId}|${razorpayPaymentLinkReferenceId}|${razorpayPaymentLinkStatus}|${razorpayPaymentId}`
+          const computedSignature = createHmac('sha256', razorpayKeySecret)
+            .update(message)
+            .digest('hex')
+          signatureVerified = computedSignature === razorpaySignature
+          console.log('Signature verification:', signatureVerified)
+        }
+      }
+
+      // Update payment status based on redirect
+      if (razorpayPaymentLinkStatus === 'paid' && razorpayPaymentLinkReferenceId) {
+        try {
+          // Find and update the booking
+          const { data: booking, error: bookingError } = await supabase
+            .from('bookings')
+            .select('id, amount, status')
+            .eq('id', razorpayPaymentLinkReferenceId)
+            .single()
+
+          if (bookingError || !booking) {
+            console.error('Booking not found:', razorpayPaymentLinkReferenceId)
+            // Redirect to error page
+            return Response.redirect(`${supabaseUrl.replace('//', '//app.')}/payment-failed?reason=booking_not_found`, 302)
+          }
+
+          // Update booking payment status
+          const { error: updateError } = await supabase
+            .from('bookings')
+            .update({
+              razorpay_payment_id: razorpayPaymentId,
+              razorpay_payment_link_id: razorpayPaymentLinkId,
+              payment_status: 'completed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', razorpayPaymentLinkReferenceId)
+
+          if (updateError) {
+            console.error('Error updating booking:', updateError)
+          }
+
+          // Log the transaction
+          await supabase
+            .from('payment_webhook_logs')
+            .insert({
+              event_id: `redirect_${razorpayPaymentId}_${Date.now()}`,
+              event_type: 'payment.redirect.success',
+              payment_link_id: razorpayPaymentLinkId,
+              razorpay_payment_id: razorpayPaymentId,
+              amount: booking.amount,
+              currency: 'INR',
+              signature_verified: signatureVerified,
+              payload: {
+                razorpay_payment_id: razorpayPaymentId,
+                razorpay_payment_link_id: razorpayPaymentLinkId,
+                razorpay_payment_link_reference_id: razorpayPaymentLinkReferenceId,
+                razorpay_payment_link_status: razorpayPaymentLinkStatus,
+                razorpay_signature: razorpaySignature
+              }
+            })
+
+          // Redirect to success page
+          return Response.redirect(`${supabaseUrl.replace('//', '//app.')}/payment-success?booking_id=${razorpayPaymentLinkReferenceId}`, 302)
+        } catch (error) {
+          console.error('Error processing payment redirect:', error)
+          return Response.redirect(`${supabaseUrl.replace('//', '//app.')}/payment-failed?reason=processing_error`, 302)
+        }
+      }
+
+      // For non-paid status, redirect to failure page
+      return Response.redirect(`${supabaseUrl.replace('//', '//app.')}/payment-failed?status=${razorpayPaymentLinkStatus}`, 302)
+    }
+
+    // Handle POST requests (webhook from Razorpay server)
     // Get webhook secret
     const webhookSecret = Deno.env.get('RAZORPAY_WEBHOOK_SECRET')
     if (!webhookSecret) {

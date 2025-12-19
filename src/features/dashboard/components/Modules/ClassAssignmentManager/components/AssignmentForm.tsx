@@ -178,8 +178,8 @@ export const AssignmentForm = ({
                                             <label
                                                 htmlFor={type.value}
                                                 className={`block p-3 border rounded-lg cursor-pointer transition-colors ${formData.assignment_type === type.value
-                                                        ? 'border-blue-500 bg-blue-50 text-blue-900'
-                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-900'
+                                                    : 'border-gray-200 hover:border-gray-300'
                                                     }`}
                                             >
                                                 <div className="font-medium text-sm">{type.label}</div>
@@ -613,8 +613,8 @@ export const AssignmentForm = ({
                             {/* Conflict Warning */}
                             {conflictWarning && (
                                 <div className={`p-4 rounded-md border ${conflictWarning.severity === 'error'
-                                        ? 'bg-red-50 border-red-200'
-                                        : 'bg-yellow-50 border-yellow-200'
+                                    ? 'bg-red-50 border-red-200'
+                                    : 'bg-yellow-50 border-yellow-200'
                                     }`}>
                                     <div className="flex items-start">
                                         <AlertTriangle className={`w-5 h-5 mt-0.5 mr-3 ${conflictWarning.severity === 'error' ? 'text-red-500' : 'text-yellow-500'
@@ -880,8 +880,8 @@ export const AssignmentForm = ({
                                                                         className="sr-only"
                                                                     />
                                                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border ${formData.weekly_days.includes(index)
-                                                                            ? 'bg-blue-500 text-white border-blue-500'
-                                                                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                                                        ? 'bg-blue-500 text-white border-blue-500'
+                                                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                                                                         }`}>
                                                                         {day}
                                                                     </div>

@@ -29,6 +29,9 @@ const initialFormData = {
     course_duration_unit: 'weeks',
     class_frequency: 'weekly',
     specific_days: [],
+    // Recurrence metadata
+    recurrence_type: 'single',
+    recurrence_interval: 1,
     // Package fields
     package_id: '',
     booking_type: 'individual',

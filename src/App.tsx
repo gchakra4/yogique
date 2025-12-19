@@ -41,6 +41,8 @@ import { Schedule } from './features/scheduling/pages/Schedule';
 import { Profile } from './features/user-profile/pages/Profile';
 import AdminApprovals from './pages/AdminApprovals';
 import { NotFound } from './pages/NotFound';
+import PaymentFailed from './pages/PaymentFailed';
+import PaymentSuccess from './pages/PaymentSuccess';
 import PricingPage from './pages/PricingPage';
 
 function App() {
@@ -166,6 +168,8 @@ function AppRoutes() {
               />
               <Route path="/instructor/:instructorId" element={<InstructorProfile />} />
               <Route path="/bookings/:bookingId/cancel" element={<CancelBookingPage />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/payment-failed" element={<PaymentFailed />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/book/individual" element={<BookOneOnOne />} />
               <Route path="/pricing" element={<PricingPage />} />
