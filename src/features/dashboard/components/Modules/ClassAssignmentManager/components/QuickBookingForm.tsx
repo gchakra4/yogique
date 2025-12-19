@@ -21,6 +21,8 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        console.log('🚀 QuickBookingForm handleSubmit called')
+        console.log('Form data:', formData)
         setError('')
         setSaving(true)
 
