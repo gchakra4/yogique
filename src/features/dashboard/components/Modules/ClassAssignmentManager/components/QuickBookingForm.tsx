@@ -75,7 +75,21 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
             onBookingCreated(booking_id)
         } catch (err: any) {
             console.error('Failed to create booking:', err)
-            setError(err.message || 'Failed to create booking')
+            
+            // Better error messages for common issues
+            let errorMessage = 'Failed to create booking'
+            
+            if (err.message) {
+                if (err.message.includes('row-level security') || err.message.includes('RLS')) {
+                    errorMessage = 'Permission denied. Please ensure you have admin access to create bookings.'
+                } else if (err.message.includes('duplicate') || err.message.includes('unique')) {
+                    errorMessage = 'This booking ID already exists. Please try again.'
+                } else {
+                    errorMessage = err.message
+                }
+            }
+            
+            setError(errorMessage)
         } finally {
             setSaving(false)
         }
