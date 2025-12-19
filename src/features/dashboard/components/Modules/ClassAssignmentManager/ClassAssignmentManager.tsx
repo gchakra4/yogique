@@ -11,7 +11,8 @@ import {
     Button,
     CalendarView,
     ClassDetailsPopup,
-    EditAssignmentModal
+    EditAssignmentModal,
+    SimplifiedAssignmentForm
 } from './components'
 import { useClassAssignmentData, useFormHandler } from './hooks'
 import { AssignmentCreationService } from './services/assignmentCreation'
@@ -28,6 +29,9 @@ import {
 } from './utils'
 
 export function ClassAssignmentManager() {
+    // Feature flag: use simplified form (NEW UX)
+    const USE_SIMPLIFIED_FORM = true
+
     // Data fetching hook
     const {
         assignments,
@@ -634,6 +638,82 @@ export function ClassAssignmentManager() {
         }
     }
 
+    // Simplified form submission handler (NEW)
+    const createAssignmentSimplified = async (data: any) => {
+        try {
+            setSaving(true)
+            setLoadingStates(prev => ({ ...prev, creatingAssignment: true }))
+
+            // Convert simplified form data to service format
+            const formPayload: any = {
+                assignment_type: data.assignment_type,
+                booking_id: data.booking_id,
+                booking_ids: [data.booking_id],
+                package_id: data.package_id || '',
+                class_type_id: '',
+                instructor_id: data.instructor_id,
+                start_date: data.start_date,
+                date: data.start_date,
+                start_time: data.start_time,
+                end_time: data.end_time,
+                duration: 60,
+                end_date: '',
+                day_of_week: 0,
+                day_of_month: 1,
+                weekly_days: data.weekly_days || [],
+                payment_amount: data.payment_amount,
+                booking_type: data.booking_type,
+                notes: data.notes || '',
+                monthly_assignment_method: 'weekly_recurrence',
+                course_duration_value: 1,
+                course_duration_unit: 'months' as 'months',
+                payment_type: 'per_class' as any,
+                class_frequency: 'weekly' as any,
+                specific_days: [],
+                timeline_description: '',
+                total_classes: 1,
+                timezone: 'UTC+5:30',
+                manual_selections: [],
+                client_name: '',
+                client_email: '',
+                selected_template_id: '',
+                validity_end_date: '',
+                recurrence_type: 'monthly',
+                recurrence_interval: 1,
+                link_booking: true
+            }
+
+            const result = await AssignmentCreationService.createAssignment(formPayload, packages, 1)
+
+            // If mark_recurring flag, update booking
+            if (data.mark_recurring && data.booking_id) {
+                try {
+                    await supabase
+                        .from('bookings')
+                        .update({
+                            is_recurring: true,
+                            billing_cycle_anchor: data.start_date,
+                            class_package_id: data.package_id || null
+                        })
+                        .eq('booking_id', data.booking_id)
+                } catch (err) {
+                    console.warn('Failed to mark booking as recurring:', err)
+                }
+            }
+
+            await fetchData()
+            setShowAssignForm(false)
+
+            alert(`Successfully created ${result.count} assignment${result.count !== 1 ? 's' : ''}!`)
+        } catch (error) {
+            console.error('Error creating assignment:', error)
+            alert(`Failed to create assignment: ${error.message || 'Please try again.'}`)
+        } finally {
+            setSaving(false)
+            setLoadingStates(prev => ({ ...prev, creatingAssignment: false }))
+        }
+    }
+
     // Save assignment function
     const saveAssignment = async (assignmentId: string, updates: Partial<ClassAssignment>) => {
         try {
@@ -879,23 +959,36 @@ export function ClassAssignmentManager() {
             </div>
 
             {/* Assignment Form Modal */}
-            <AssignmentForm
-                isVisible={showAssignForm}
-                formData={formData}
-                errors={errors}
-                conflictWarning={conflictWarning}
-                classTypes={classTypes}
-                packages={packages}
-                instructors={instructors}
-                scheduleTemplates={scheduleTemplates}
-                bookings={bookings}
-                saving={saving}
-                onClose={() => setShowAssignForm(false)}
-                onSubmit={createAssignment}
-                onInputChange={handleInputChange}
-                onTimeChange={handleTimeChange}
-                onDurationChange={handleDurationChange}
-            />
+            {USE_SIMPLIFIED_FORM ? (
+                <SimplifiedAssignmentForm
+                    isVisible={showAssignForm}
+                    classTypes={classTypes}
+                    packages={packages}
+                    instructors={instructors}
+                    bookings={bookings}
+                    saving={saving}
+                    onClose={() => setShowAssignForm(false)}
+                    onSubmit={createAssignmentSimplified}
+                />
+            ) : (
+                <AssignmentForm
+                    isVisible={showAssignForm}
+                    formData={formData}
+                    errors={errors}
+                    conflictWarning={conflictWarning}
+                    classTypes={classTypes}
+                    packages={packages}
+                    instructors={instructors}
+                    scheduleTemplates={scheduleTemplates}
+                    bookings={bookings}
+                    saving={saving}
+                    onClose={() => setShowAssignForm(false)}
+                    onSubmit={createAssignment}
+                    onInputChange={handleInputChange}
+                    onTimeChange={handleTimeChange}
+                    onDurationChange={handleDurationChange}
+                />
+            )}
 
             {/* Advanced Filters Modal */}
             <AdvancedFilters
