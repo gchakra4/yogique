@@ -31,7 +31,10 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
             const random = Math.floor(1000 + Math.random() * 9000)
             const booking_id = `YOG-${dateStr}-${random}`
 
-            const bookingData = {
+            // Get current user
+            const { data: { user } } = await supabase.auth.getUser()
+            
+            const bookingData: any = {
                 booking_id,
                 first_name: formData.first_name,
                 last_name: formData.last_name,
@@ -42,24 +45,33 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
                 status: 'confirmed',
                 class_name: 'Quick Booking',
                 class_date: today.toISOString().split('T')[0],
-                class_time: '00:00',
-                instructor: 'TBD'
+                class_time: '09:00',
+                instructor: 'TBD',
+                experience_level: 'beginner',
+                payment_status: 'pending',
+                user_id: user?.id || null
             }
 
-            // Get current user
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                bookingData['user_id'] = user.id
-            }
+            console.log('Creating booking with data:', bookingData)
 
-            const { error: insertError } = await supabase
+            const { data: insertedBooking, error: insertError } = await supabase
                 .from('bookings')
                 .insert([bookingData])
                 .select()
                 .single()
 
-            if (insertError) throw insertError
+            console.log('Insert result:', { insertedBooking, insertError })
 
+            if (insertError) {
+                console.error('Insert error details:', insertError)
+                throw insertError
+            }
+
+            if (!insertedBooking) {
+                throw new Error('Booking was not created - no data returned')
+            }
+
+            console.log('✅ Booking created successfully:', insertedBooking.id)
             onBookingCreated(booking_id)
         } catch (err: any) {
             console.error('Failed to create booking:', err)
