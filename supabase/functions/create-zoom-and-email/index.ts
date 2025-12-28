@@ -589,7 +589,7 @@ serve(async (req) => {
                         ? { [SCHEDULER_SECRET_HEADER]: SCHEDULER_SECRET_TOKEN }
                         : {}),
                 },
-                body: JSON.stringify({ classId }),
+                body: JSON.stringify({ classId, activity: 'class_reminder' }),
             });
             const waText = await waResp.text().catch(() => "");
             try {

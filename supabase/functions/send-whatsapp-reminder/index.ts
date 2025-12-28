@@ -41,7 +41,7 @@ async function sendWithRetries(provider: any, message: any, maxAttempts = 3) {
       const ok = Boolean(res?.ok);
       const status = res?.status ?? (ok ? 200 : 500);
       // Light-weight logging: provider, recipient, attempt, and status only
-      try { console.log(`send attempt=${attempt} provider=${res?.provider||'unknown'} to=${message?.to} ok=${ok} status=${status}`); } catch (_) {}
+      try { console.log('send attempt=' + attempt + ' provider=' + (res?.provider || 'unknown') + ' to=' + (message?.to ?? '') + ' ok=' + ok + ' status=' + status); } catch (_) {}
 
       if (ok) {
         res.attempts = attempt;
@@ -61,7 +61,7 @@ async function sendWithRetries(provider: any, message: any, maxAttempts = 3) {
       return res;
     } catch (err) {
       lastErr = err;
-      try { console.warn(`send attempt=${attempt} provider=${provider?.name||'provider'} to=${message?.to} error=${String(err)}`); } catch (_) {}
+      try { console.warn('send attempt=' + attempt + ' provider=' + (provider?.name || 'provider') + ' to=' + (message?.to ?? '') + ' error=' + String(err)); } catch (_) {}
       const backoff = Math.min(2000, 500 * Math.pow(2, attempt - 1));
       await delay(backoff);
     }
@@ -100,18 +100,24 @@ serve(async (req) => {
 
     const payload = await req.json().catch(() => ({}));
     const classId = payload?.classId;
-    if (!classId) return new Response("missing classId", { status: 400 });
+    // Optional template/activity-based invocation
+    const templateKey = payload?.templateKey || payload?.template_key || null;
+    const activity = payload?.activity || null;
+    const templateData = payload?.data || payload?.vars || payload?.variables || payload?.variables_array || null;
+    const templateLanguage = payload?.templateLanguage || payload?.template_language || 'en';
+
+    if (!classId && !templateKey && !activity) return new Response("missing classId or templateKey/activity", { status: 400 });
 
     // No Twilio-specific preflight; provider adapter will validate/runtime fail if misconfigured
 
     // Fetch class details via Supabase REST (include notification flags)
     let cls: any = null;
     try {
-      const url = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/class_assignments?select=id,assignment_code,date,start_time,timezone,zoom_meeting,whatsapp_notified,email_notified&id=eq.${encodeURIComponent(classId)}`;
+      const url = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/class_assignments?select=id,assignment_code,date,start_time,timezone,zoom_meeting,whatsapp_notified,email_notified&id=eq.' + encodeURIComponent(classId);
       const resp = await fetch(url, {
         headers: {
           apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Authorization: 'Bearer ' + SUPABASE_KEY,
         },
       });
       if (!resp.ok) {
@@ -131,7 +137,7 @@ serve(async (req) => {
 
     // If WhatsApp notification already sent for this class, skip sending
     if (cls.whatsapp_notified) {
-      console.log(`Skipping class ${classId}: whatsapp_notified=true`);
+      console.log('Skipping class ' + classId + ': whatsapp_notified=true');
       return new Response(JSON.stringify({ ok: true, classId, sent: [], skipped: 'whatsapp_already_sent' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -142,9 +148,9 @@ serve(async (req) => {
     let participants: any[] = [];
     try {
       // 1) booking_ids for this assignment
-      const abUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/assignment_bookings?select=booking_id&assignment_id=eq.${classId}`;
+      const abUrl = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/assignment_bookings?select=booking_id&assignment_id=eq.' + classId;
       const abResp = await fetch(abUrl, {
-        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+        headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
       });
       if (!abResp.ok) {
         console.error('assignment_bookings fetch failed', abResp.status);
@@ -156,10 +162,10 @@ serve(async (req) => {
 
         if (bookingIds.length) {
           // 2) bookings -> user_id
-          const bq = bookingIds.map((id) => `"${id}"`).join(',');
-          const bUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/bookings?select=booking_id,user_id&booking_id=in.(${bq})`;
+          const bq = bookingIds.map((id) => '"' + id + '"').join(',');
+          const bUrl = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/bookings?select=booking_id,user_id&booking_id=in.(' + bq + ')';
           const bResp = await fetch(bUrl, {
-            headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+            headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
           });
           if (!bResp.ok) {
             console.error('bookings fetch failed', bResp.status);
@@ -170,11 +176,11 @@ serve(async (req) => {
               : [];
 
             if (userIds.length) {
-              const uq = userIds.map((id) => `"${id}"`).join(',');
+              const uq = userIds.map((id) => '"' + id + '"').join(',');
               // 3) profiles -> phone, whatsapp_opt_in
-              const pUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/profiles?select=id,user_id,email,full_name,phone,whatsapp_opt_in&user_id=in.(${uq})`;
+              const pUrl = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/profiles?select=id,user_id,email,full_name,phone,whatsapp_opt_in&user_id=in.(' + uq + ')';
               const pResp = await fetch(pUrl, {
-                headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+                headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
               });
               if (!pResp.ok) {
                 console.error('profiles fetch failed', pResp.status);
@@ -191,9 +197,37 @@ serve(async (req) => {
     }
 
     const zoomLink = cls.zoom_meeting?.join_url || "";
-    const classTime = `${cls.date} ${cls.start_time} (${cls.timezone || "UTC"})`;
+    const classTime = String(cls.date) + ' ' + String(cls.start_time) + ' (' + String(cls.timezone || 'UTC') + ')';
     const title = cls.assignment_code || cls.id;
-    const message = `Reminder: your class "${title}" starts at ${classTime}. Join: ${zoomLink}`;
+    const message = 'Reminder: your class "' + title + '" starts at ' + classTime + '. Join: ' + zoomLink;
+
+    // If an activity is provided without an explicit templateKey, resolve the templateKey from wa_templates
+    let resolvedTemplateKey: string | null = templateKey || null;
+    let resolvedDefaultVars: any = null;
+    let resolvedTemplateLanguage: string | null = null;
+    if (!resolvedTemplateKey && activity) {
+      try {
+        const url = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/wa_templates?select=key,language,default_vars,activities';
+        const resp = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY } });
+        if (resp.ok) {
+          const rows = await resp.json().catch(() => []);
+          for (const r of Array.isArray(rows) ? rows : []) {
+            const acts = r?.activities;
+            if (!acts) continue;
+            if (Array.isArray(acts)) {
+              if (acts.includes(activity) || acts.some((a: any) => (a && (a.activity === activity || a === activity)))) {
+                resolvedTemplateKey = r.key;
+                resolvedDefaultVars = r.default_vars || null;
+                resolvedTemplateLanguage = r.language || null;
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to resolve template for activity', activity, e);
+      }
+    }
 
     const results: any[] = [];
     for (const p of participants) {
@@ -216,45 +250,124 @@ serve(async (req) => {
       try {
         // Use provider adapter for sends
         const provider = getProvider();
+
+        // If a template is resolved or provided, use template send path
+        if (resolvedTemplateKey || templateKey) {
+          const useKey = resolvedTemplateKey || templateKey;
+          // Build template vars array (positional strings)
+          let varsArray: string[] = [];
+          try {
+            if (Array.isArray(templateData)) {
+              varsArray = templateData.map((v: any) => String(v ?? ''));
+            } else if (templateData && typeof templateData === 'object') {
+              // If template has default_vars mapping, preserve order of keys
+              const def = resolvedDefaultVars || {};
+              const keys = Array.isArray(def) ? def : Object.keys(def || {});
+              if (keys && keys.length) {
+                varsArray = keys.map((k: any) => String((templateData[k] ?? def[k] ?? '') || ''));
+              } else {
+                // fallback: take object values
+                varsArray = Object.values(templateData).map((v: any) => String(v ?? ''));
+              }
+            } else if (resolvedDefaultVars && typeof resolvedDefaultVars === 'object') {
+              varsArray = Object.values(resolvedDefaultVars).map((v: any) => String(v ?? ''));
+            } else {
+              // fallback to class-level message as single var
+              varsArray = [message];
+            }
+          } catch (e) {
+            varsArray = [message];
+          }
+
+          const sendResult = await provider.sendTemplate({
+            to: 'whatsapp:' + phone,
+            templateName: useKey,
+            templateLanguage: templateLanguage || resolvedTemplateLanguage || 'en',
+            templateParameters: varsArray,
+            metadata: { activity: activity || null, classId },
+          });
+
+          // normalize shape similar to sendWithRetries result
+          sendResult.attempts = 1;
+          sendResult.status = sendResult.status ?? (sendResult.ok ? 200 : 400);
+
+          // Map adapter response to legacy shape expected by downstream code
+          const r: any = {
+            ok: Boolean(sendResult.ok),
+            status: sendResult.status ?? (sendResult.ok ? 200 : 400),
+            body: null,
+          };
+          try {
+            r.body = (typeof sendResult.rawResponse === 'string') ? sendResult.rawResponse : JSON.stringify(sendResult.rawResponse || {});
+          } catch (e) { r.body = String(sendResult.rawResponse ?? ''); }
+
+          if (!r.ok && r.status === 400) {
+            try {
+              const parsed = JSON.parse(r.body || '{}');
+              if (parsed && parsed.code === 21910) {
+                results.push({ phone, ok: false, status: r.status, body: r.body, error: 'invalid_from_to_pair' });
+                continue;
+              }
+            } catch (e) {}
+          }
+
+          results.push({ phone, ok: r.ok, status: r.status, body: r.body, attempts: sendResult.attempts ?? 1 });
+
+          // Insert audit row for this WhatsApp send (best-effort)
+          try {
+            let sid: string | null = null;
+            try { sid = sendResult.provider_message_id ?? null; } catch (e) { sid = null; }
+            if (!sid) {
+              try { const parsed = JSON.parse(r.body || '{}'); sid = parsed?.sid || parsed?.message?.sid || parsed?.messages?.[0]?.id || null; } catch (e) { sid = null; }
+            }
+            const auditBody = [
+              {
+                class_id: classId,
+                user_id: p.user_id || p.id || null,
+                channel: 'whatsapp',
+                recipient: phone,
+                provider: (sendResult && sendResult.provider) ? sendResult.provider : 'meta',
+                provider_message_id: sid,
+                status: (r && r.ok) ? 'sent' : 'failed',
+                attempts: sendResult.attempts ?? 1,
+                metadata: { status: r?.status, body: r?.body, activity: activity || null },
+              },
+            ];
+            await fetch(SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/message_audit', {
+              method: 'POST',
+              headers: {
+                apikey: SUPABASE_KEY,
+                Authorization: 'Bearer ' + SUPABASE_KEY,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(auditBody),
+            });
+          } catch (e) { try { console.error('Failed to insert whatsapp audit row', e); } catch (_) {} }
+
+          continue;
+        }
+
+        // legacy text path
         const sendResult = await sendWithRetries(provider, {
-          to: `whatsapp:${phone}`,
+          to: 'whatsapp:' + phone,
           type: 'text',
           textBody: message,
         }, Number(Deno.env.get('WHATSAPP_SEND_MAX_ATTEMPTS') || '3'));
 
-        // Map adapter response to legacy shape expected by downstream code
-        const r: any = {
+        // Normalize and record result similar to template path
+        const rText: any = {
           ok: Boolean(sendResult.ok),
           status: sendResult.status ?? (sendResult.ok ? 200 : 400),
           body: null,
         };
-        try {
-          r.body = (typeof sendResult.rawResponse === 'string') ? sendResult.rawResponse : JSON.stringify(sendResult.rawResponse || {});
-        } catch (e) {
-          r.body = String(sendResult.rawResponse ?? '');
-        }
-        // Map some common provider error codes to user-friendly message
-        if (!r.ok && r.status === 400) {
-          try {
-            const parsed = JSON.parse(r.body || '{}');
-            if (parsed && parsed.code === 21910) {
-              results.push({ phone, ok: false, status: r.status, body: r.body, error: 'invalid_from_to_pair' });
-              continue;
-            }
-          } catch (e) {
-            // fallback to raw body
-          }
-        }
+        try { rText.body = (typeof sendResult.rawResponse === 'string') ? sendResult.rawResponse : JSON.stringify(sendResult.rawResponse || {}); } catch (e) { rText.body = String(sendResult.rawResponse ?? ''); }
 
-        results.push({ phone, ok: r.ok, status: r.status, body: r.body, attempts: sendResult.attempts ?? 1 });
-        // Insert audit row for this WhatsApp send (best-effort)
-          try {
+        results.push({ phone, ok: rText.ok, status: rText.status, body: rText.body, attempts: sendResult.attempts ?? 1 });
+
+        // Insert audit row for this text send (best-effort)
+        try {
           let sid: string | null = null;
-          // Prefer provider-specific message id returned by the adapter
           try { sid = sendResult.provider_message_id ?? null; } catch (e) { sid = null; }
-          if (!sid) {
-            try { const parsed = JSON.parse(r.body || '{}'); sid = parsed?.sid || parsed?.message?.sid || parsed?.messages?.[0]?.id || null; } catch (e) { sid = null; }
-          }
           const auditBody = [
             {
               class_id: classId,
@@ -263,62 +376,25 @@ serve(async (req) => {
               recipient: phone,
               provider: (sendResult && sendResult.provider) ? sendResult.provider : 'meta',
               provider_message_id: sid,
-              status: (r && r.ok) ? 'sent' : 'failed',
+              status: (rText && rText.ok) ? 'sent' : 'failed',
               attempts: sendResult.attempts ?? 1,
-              metadata: { status: r?.status, body: r?.body },
+              metadata: { status: rText?.status, body: rText?.body, activity: activity || null },
             },
           ];
-          await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/message_audit`, {
+          await fetch(SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/message_audit', {
             method: 'POST',
             headers: {
               apikey: SUPABASE_KEY,
-              Authorization: `Bearer ${SUPABASE_KEY}`,
+              Authorization: 'Bearer ' + SUPABASE_KEY,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(auditBody),
           });
+        } catch (e) { try { console.error('Failed to insert whatsapp audit row', e); } catch (_) {} }
 
-          // Dual-write: also create a canonical audit_logs entry (best-effort)
-          try {
-            const auditPayload = {
-              event_type: (r && r.ok) ? 'notification_sent' : 'notification_failed',
-              entity_type: 'class',
-              entity_id: String(classId),
-              action: 'send_notification',
-              actor_id: p.user_id || p.id || null,
-              actor_role: null,
-              metadata: {
-                channel: 'whatsapp',
-                recipient: phone,
-                provider: (sendResult && sendResult.provider) ? sendResult.provider : 'meta',
-                provider_message_id: sid,
-                status: (r && r.ok) ? 'sent' : 'failed',
-                attempts: sendResult.attempts ?? 1,
-                response_status: r?.status,
-                response_body: r?.body,
-                original_message_metadata: auditBody[0].metadata || null,
-              },
-              created_at: new Date().toISOString(),
-            };
-            await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/audit_logs?on_conflict=constraint:uniq_audit_logs_provider_message_id`, {
-              method: 'POST',
-              headers: {
-                apikey: SUPABASE_KEY,
-                Authorization: `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'resolution=ignore-duplicates'
-              },
-              body: JSON.stringify([auditPayload]),
-            });
-          } catch (e) {
-            try { console.error('Failed to insert audit_logs row (whatsapp)', e); } catch (_) {}
-          }
-        } catch (e) {
-          try { console.error('Failed to insert whatsapp audit row', e); } catch (_) {}
-        }
-      } catch (err) {
-        console.error("send error", phone, err);
-        results.push({ phone, error: String(err) });
+      } catch (e) {
+        try { console.error('WhatsApp send error for', phone, e); } catch (_) {}
+        results.push({ phone, ok: false, status: 500, error: String(e) });
       }
     }
 
@@ -326,12 +402,12 @@ serve(async (req) => {
     const anyOk = results.some((r) => r && r.ok === true);
     if (anyOk) {
       try {
-        const patchUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/class_assignments?id=eq.${encodeURIComponent(classId)}`;
+        const patchUrl = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/class_assignments?id=eq.' + encodeURIComponent(classId);
         const patchResp = await fetch(patchUrl, {
           method: 'PATCH',
           headers: {
             apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
+            Authorization: 'Bearer ' + SUPABASE_KEY,
             'Content-Type': 'application/json',
             Prefer: 'return=representation',
           },
