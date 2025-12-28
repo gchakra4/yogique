@@ -246,8 +246,8 @@ export const SimplifiedAssignmentForm = ({
                                                 type="button"
                                                 onClick={() => setAssignmentType(type.value as any)}
                                                 className={`p-3 border rounded-lg text-left transition-colors ${assignmentType === type.value
-                                                        ? 'border-blue-500 bg-blue-50 text-blue-900'
-                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-900'
+                                                    : 'border-gray-200 hover:border-gray-300'
                                                     }`}
                                             >
                                                 <div className="font-medium text-sm">{type.label}</div>
@@ -338,8 +338,8 @@ export const SimplifiedAssignmentForm = ({
                                                             )
                                                         }}
                                                         className={`p-2 rounded-lg text-sm font-medium border transition-colors ${selectedDays.includes(index)
-                                                                ? 'bg-blue-500 text-white border-blue-500'
-                                                                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                                            ? 'bg-blue-500 text-white border-blue-500'
+                                                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                                                             }`}
                                                     >
                                                         {day}

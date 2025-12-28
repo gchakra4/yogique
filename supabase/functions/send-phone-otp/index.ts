@@ -1,11 +1,9 @@
 import { serve } from "https://deno.land/std@0.201.0/http/server.ts";
+import { createOtp } from "../../../src/services/otpService.ts";
+import { getProvider } from "../providers/index.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const TWILIO_SID = Deno.env.get("TWILIO_ACCOUNT_SID") || null;
-const TWILIO_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN") || null;
-const TWILIO_SMS_FROM = Deno.env.get("TWILIO_SMS_FROM") || null; // e.g. "+123456789"
-
 // simple helper: SHA-256 hex digest
 async function sha256Hex(message: string) {
   const enc = new TextEncoder();
@@ -24,25 +22,6 @@ function isoMinusMinutes(minutes: number) {
   return d.toISOString();
 }
 
-async function sendSmsViaTwilio(to: string, body: string) {
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`;
-  const params = new URLSearchParams();
-  params.append('To', to);
-  params.append('From', TWILIO_SMS_FROM || '');
-  params.append('Body', body);
-  const auth = globalThis.btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: params.toString()
-  });
-  const text = await resp.text().catch(() => '');
-  return { ok: resp.ok, status: resp.status, body: text };
-}
-
 serve(async (req) => {
   // CORS headers for browser requests
   const CORS_HEADERS = {
@@ -58,21 +37,24 @@ serve(async (req) => {
   try {
     if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
 
-    // Basic env validation
+    // Basic env validation: only require Supabase envs here
     const missing: string[] = [];
     if (!SUPABASE_URL) missing.push('SUPABASE_URL');
     if (!SUPABASE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
-    if (!TWILIO_SID) missing.push('TWILIO_ACCOUNT_SID');
-    if (!TWILIO_TOKEN) missing.push('TWILIO_AUTH_TOKEN');
-    if (!TWILIO_SMS_FROM) missing.push('TWILIO_SMS_FROM');
     if (missing.length > 0) {
       console.error('Missing env vars:', missing.join(', '));
       return new Response(JSON.stringify({ ok: false, missing }), { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
     const payload = await req.json().catch(() => ({}));
-    const user_id = payload?.user_id || null;
+    const userId = payload?.user_id || null;
     let phone = payload?.phone || '';
+    if (!phone) {
+      try {
+        const urlObj = new URL(req.url);
+        phone = urlObj.searchParams.get('phone') || '';
+      } catch (_) {}
+    }
     if (!phone) return new Response(JSON.stringify({ ok: false, error: 'missing phone' }), { status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 
     // minimal phone normalization: remove spaces/paren/dashes
@@ -94,37 +76,87 @@ serve(async (req) => {
       }
     }
 
-    // Generate 6-digit code
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    const codeHash = await sha256Hex(code);
-
-    // expiry: 10 minutes
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-
-    // Insert OTP record
-    const insertUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/phone_otps`;
-    const insertBody = JSON.stringify([{ user_id, phone, code_hash: codeHash, attempts: 0, verified: false, created_at: nowIso(), expires_at: expiresAt }]);
-    const insertRes = await fetch(insertUrl, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-      body: insertBody,
-    });
-
-    if (!insertRes.ok) {
-      const text = await insertRes.text().catch(() => '');
-      console.error('Failed to insert OTP row', insertRes.status, text);
-      return new Response(JSON.stringify({ ok: false, error: 'otp_insert_failed' }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+    // Create OTP via otpService (stores hashed code and returns plain code)
+    const { ok: createOk, code, row } = await createOtp({ userId, phone, channel: 'whatsapp', ttlSeconds: 600, provider: (Deno.env.get('OTP_PROVIDER') || 'meta') });
+    if (!createOk) {
+      return new Response(JSON.stringify({ ok: false, error: 'otp_create_failed' }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
-    // Send SMS via Twilio
-    const twResp = await sendSmsViaTwilio(phone, `Your verification code is ${code}. It expires in 10 minutes.`);
-    if (!twResp.ok) {
-      console.error('Twilio send failed', twResp.status, twResp.body);
-      // don't return the code; but indicate failed to send
-      return new Response(JSON.stringify({ ok: false, error: 'sms_send_failed', details: twResp.body }), { status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+    // Send via configured provider (uses adapter; supports otp field)
+    const provider = getProvider();
+    try {
+      const sendResult = await provider.sendMessage({ to: `whatsapp:${phone}`, type: 'text', otp: code, textBody: `Your verification code is ${code}. It expires in 10 minutes.` });
+      if (!sendResult.ok) {
+        // best-effort: delete the OTP row we created to avoid unused codes lingering
+        try {
+          await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/otp_codes?id=eq.${encodeURIComponent(row?.id)}`, {
+            method: 'DELETE',
+            headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+          });
+        } catch (e) { console.warn('failed to delete otp row after send failure', e); }
+        return new Response(JSON.stringify({ ok: false, error: 'send_failed', details: sendResult.rawResponse }), { status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+      }
+      // Insert message_audit row linking provider_message_id to this OTP (best-effort)
+      try {
+        const sid = sendResult.provider_message_id ?? null;
+        const auditBody = [
+          {
+            class_id: null,
+            user_id: userId || null,
+            channel: 'whatsapp',
+            recipient: phone,
+            provider: (sendResult && sendResult.provider) ? sendResult.provider : 'meta',
+            provider_message_id: sid,
+            status: (sendResult && sendResult.ok) ? 'sent' : 'failed',
+            attempts: sendResult.attempts ?? 1,
+            metadata: { provider_payload: sendResult.rawResponse || null },
+          },
+        ];
+        await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/message_audit`, {
+          method: 'POST',
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(auditBody),
+        });
+
+        // Also write an audit_logs entry
+        try {
+          const auditPayload = {
+            event_type: 'notification_sent',
+            entity_type: 'otp',
+            entity_id: null,
+            action: 'send_otp',
+            actor_id: userId || null,
+            actor_role: null,
+            metadata: {
+              channel: 'whatsapp',
+              recipient: phone,
+              provider: (sendResult && sendResult.provider) ? sendResult.provider : 'meta',
+              provider_message_id: sid,
+              attempts: sendResult.attempts ?? 1,
+              response: sendResult.rawResponse || null,
+            },
+            created_at: new Date().toISOString(),
+          };
+          await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/audit_logs?on_conflict=constraint:uniq_audit_logs_provider_message_id`, {
+            method: 'POST',
+            headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=ignore-duplicates' },
+            body: JSON.stringify([auditPayload]),
+          });
+        } catch (e) { console.warn('failed to insert audit_logs for otp send', e); }
+      } catch (e) {
+        console.warn('failed to insert message_audit for otp send', e);
+      }
+    } catch (e) {
+      try {
+        await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/otp_codes?id=eq.${encodeURIComponent(row?.id)}`, {
+          method: 'DELETE',
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+        });
+      } catch (_) {}
+      console.error('provider send exception', e);
+      return new Response(JSON.stringify({ ok: false, error: 'send_exception', details: String(e) }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     }
 
-    // Success — do not include the code in response
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('unexpected error in send-phone-otp', err);

@@ -52,7 +52,7 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
 
             // Get current user
             const { data: { user } } = await supabase.auth.getUser()
-            
+
             const bookingData: any = {
                 booking_id,
                 first_name: formData.first_name,

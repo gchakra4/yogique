@@ -243,7 +243,7 @@ enabled = false
 account_sid = ""
 message_service_sid = ""
 # DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
-auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+auth_token = ""
 
 # Multi-factor-authentication is available to Supabase Pro plan.
 [auth.mfa]
@@ -342,6 +342,9 @@ enabled = true
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
+
+[functions.meta-webhook]
+verify_jwt = false
 
 # Experimental features may be deprecated any time
 [experimental]

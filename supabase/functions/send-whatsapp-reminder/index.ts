@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.201.0/http/server.ts";
+import { getProvider } from "../providers/index.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const TWILIO_SID = Deno.env.get("TWILIO_ACCOUNT_SID")!;
-const TWILIO_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN")!;
-const TWILIO_FROM = Deno.env.get("TWILIO_WHATSAPP_FROM")!; // e.g. "whatsapp:+14155238886"
 const SCHED_HEADER = Deno.env.get("SCHEDULER_SECRET_HEADER") || null;
 const SCHED_TOKEN = Deno.env.get("SCHEDULER_SECRET_TOKEN") || null;
 
@@ -13,60 +11,63 @@ try {
   console.log('Env presence:',
     'SUPABASE_URL=' + (!!SUPABASE_URL),
     'SUPABASE_KEY=' + (!!SUPABASE_KEY),
-    'TWILIO_SID=' + (!!TWILIO_SID),
-    'TWILIO_TOKEN=' + (!!TWILIO_TOKEN),
-    'TWILIO_FROM=' + (!!TWILIO_FROM),
     'SCHED_HEADER=' + (!!SCHED_HEADER),
     'SCHED_TOKEN=' + (!!SCHED_TOKEN)
   );
 } catch (e) { /* ignore logging errors */ }
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error("Missing Supabase env vars");
-}
-if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
-  console.error("Missing Twilio env vars (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM)");
-}
+// Log which provider will be used by default (env-driven)
+try {
+  console.log('WhatsApp Provider:', (Deno.env.get('MESSAGE_PROVIDER') || 'meta'));
+} catch (e) {}
 
-const supabaseFetch = async (urlPath: string) => {
-  const url = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/${urlPath}`;
-  const res = await fetch(url, {
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-    },
-  });
-  if (!res.ok) throw new Error(`Supabase REST fetch failed: ${res.status}`);
-  return res.json();
-};
+// Sends are performed by the provider adapter selected in `getProvider()`
 
 function looksLikeE164(phone: string) {
-  // Basic E.164 check: leading + and 6-15 digits (loose but practical)
+  // Basic E.164 check: leading + and 6-15 digits
   return /^\+\d{6,15}$/.test(phone);
 }
 
+function delay(ms: number) {
+  return new Promise((res) => setTimeout(res, ms));
+}
 
-async function sendWhatsApp(to: string, body: string) {
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`;
-  const params = new URLSearchParams();
-  // Twilio expects the To value to be "whatsapp:+{E.164 number}"
-  // `to` should already include the WhatsApp prefix (e.g. "whatsapp:+123...")
-  params.append("To", to);
-  params.append("From", TWILIO_FROM);
-  params.append("Body", body);
+// Wrapper that retries transient failures (5xx and 429) with exponential backoff.
+async function sendWithRetries(provider: any, message: any, maxAttempts = 3) {
+  let lastErr: any = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await provider.sendMessage(message);
+      const ok = Boolean(res?.ok);
+      const status = res?.status ?? (ok ? 200 : 500);
+      // Light-weight logging: provider, recipient, attempt, and status only
+      try { console.log(`send attempt=${attempt} provider=${res?.provider||'unknown'} to=${message?.to} ok=${ok} status=${status}`); } catch (_) {}
 
-  const auth = globalThis.btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Authorization": `Basic ${auth}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: params.toString(),
-  });
+      if (ok) {
+        res.attempts = attempt;
+        return res;
+      }
 
-  const text = await resp.text().catch(() => "");
-  return { ok: resp.ok, status: resp.status, body: text };
+      // Retry on server errors and rate limits
+      if (status >= 500 || status === 429) {
+        lastErr = res;
+        const backoff = Math.min(2000, 500 * Math.pow(2, attempt - 1));
+        await delay(backoff);
+        continue;
+      }
+
+      // Non-retryable (4xx other than 429) — return immediately
+      res.attempts = attempt;
+      return res;
+    } catch (err) {
+      lastErr = err;
+      try { console.warn(`send attempt=${attempt} provider=${provider?.name||'provider'} to=${message?.to} error=${String(err)}`); } catch (_) {}
+      const backoff = Math.min(2000, 500 * Math.pow(2, attempt - 1));
+      await delay(backoff);
+    }
+  }
+
+  return { ok: false, status: 500, rawResponse: String(lastErr ?? 'unknown'), provider_message_id: null, provider: (provider && provider.name) ? provider.name : 'unknown', attempts: maxAttempts };
 }
 
 serve(async (req) => {
@@ -78,9 +79,7 @@ serve(async (req) => {
     const missing: string[] = []
     if (!SUPABASE_URL) missing.push('SUPABASE_URL')
     if (!SUPABASE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY')
-    if (!TWILIO_SID) missing.push('TWILIO_ACCOUNT_SID')
-    if (!TWILIO_TOKEN) missing.push('TWILIO_AUTH_TOKEN')
-    if (!TWILIO_FROM) missing.push('TWILIO_WHATSAPP_FROM')
+    // Meta provider required envs will be checked by provider; warn if missing
 
     if (missing.length > 0) {
       console.error('Missing required env vars:', missing.join(', '))
@@ -103,14 +102,7 @@ serve(async (req) => {
     const classId = payload?.classId;
     if (!classId) return new Response("missing classId", { status: 400 });
 
-    // Preflight validation for Twilio WhatsApp sender
-    if (!TWILIO_FROM || !TWILIO_FROM.startsWith("whatsapp:")) {
-      console.error('TWILIO_WHATSAPP_FROM invalid or not a WhatsApp sender');
-      return new Response(JSON.stringify({ ok: false, error: 'TWILIO_WHATSAPP_FROM must be a WhatsApp-enabled sender string (e.g. "whatsapp:+1415...")' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    // No Twilio-specific preflight; provider adapter will validate/runtime fail if misconfigured
 
     // Fetch class details via Supabase REST (include notification flags)
     let cls: any = null;
@@ -222,14 +214,31 @@ serve(async (req) => {
         continue;
       }
       try {
-        // Pass the fully-prefixed WhatsApp recipient to the helper
-        const r = await sendWhatsApp(`whatsapp:${phone}`, message);
-        // Map common Twilio WhatsApp error 21910 to user-friendly message
+        // Use provider adapter for sends
+        const provider = getProvider();
+        const sendResult = await sendWithRetries(provider, {
+          to: `whatsapp:${phone}`,
+          type: 'text',
+          textBody: message,
+        }, Number(Deno.env.get('WHATSAPP_SEND_MAX_ATTEMPTS') || '3'));
+
+        // Map adapter response to legacy shape expected by downstream code
+        const r: any = {
+          ok: Boolean(sendResult.ok),
+          status: sendResult.status ?? (sendResult.ok ? 200 : 400),
+          body: null,
+        };
+        try {
+          r.body = (typeof sendResult.rawResponse === 'string') ? sendResult.rawResponse : JSON.stringify(sendResult.rawResponse || {});
+        } catch (e) {
+          r.body = String(sendResult.rawResponse ?? '');
+        }
+        // Map some common provider error codes to user-friendly message
         if (!r.ok && r.status === 400) {
           try {
             const parsed = JSON.parse(r.body || '{}');
             if (parsed && parsed.code === 21910) {
-              results.push({ phone, ok: false, status: r.status, body: r.body, error: 'twilio_21910_invalid_from_to_pair' });
+              results.push({ phone, ok: false, status: r.status, body: r.body, error: 'invalid_from_to_pair' });
               continue;
             }
           } catch (e) {
@@ -237,21 +246,25 @@ serve(async (req) => {
           }
         }
 
-        results.push({ phone, ok: r.ok, status: r.status, body: r.body });
+        results.push({ phone, ok: r.ok, status: r.status, body: r.body, attempts: sendResult.attempts ?? 1 });
         // Insert audit row for this WhatsApp send (best-effort)
-        try {
+          try {
           let sid: string | null = null;
-          try { const parsed = JSON.parse(r.body || '{}'); sid = parsed?.sid || parsed?.message?.sid || parsed?.sid || null; } catch (e) { sid = null; }
+          // Prefer provider-specific message id returned by the adapter
+          try { sid = sendResult.provider_message_id ?? null; } catch (e) { sid = null; }
+          if (!sid) {
+            try { const parsed = JSON.parse(r.body || '{}'); sid = parsed?.sid || parsed?.message?.sid || parsed?.messages?.[0]?.id || null; } catch (e) { sid = null; }
+          }
           const auditBody = [
             {
               class_id: classId,
               user_id: p.user_id || p.id || null,
               channel: 'whatsapp',
               recipient: phone,
-              provider: 'twilio',
+              provider: (sendResult && sendResult.provider) ? sendResult.provider : 'meta',
               provider_message_id: sid,
               status: (r && r.ok) ? 'sent' : 'failed',
-              attempts: 1,
+              attempts: sendResult.attempts ?? 1,
               metadata: { status: r?.status, body: r?.body },
             },
           ];
@@ -277,10 +290,10 @@ serve(async (req) => {
               metadata: {
                 channel: 'whatsapp',
                 recipient: phone,
-                provider: 'twilio',
+                provider: (sendResult && sendResult.provider) ? sendResult.provider : 'meta',
                 provider_message_id: sid,
                 status: (r && r.ok) ? 'sent' : 'failed',
-                attempts: 1,
+                attempts: sendResult.attempts ?? 1,
                 response_status: r?.status,
                 response_body: r?.body,
                 original_message_metadata: auditBody[0].metadata || null,
