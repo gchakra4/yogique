@@ -1,7 +1,10 @@
 // OTP service: generate, hash, store, and verify OTP codes
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const OTP_HASH_SECRET = Deno.env.get('OTP_HASH_SECRET') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// Use a platform-safe environment accessor so this file can compile under Node (Vite/tsc)
+const _global: any = globalThis as any;
+const getEnv = (key: string) => _global.Deno?.env?.get?.(key) ?? _global.process?.env?.[key];
+const SUPABASE_URL = getEnv('SUPABASE_URL')!;
+const SUPABASE_KEY = getEnv('SUPABASE_SERVICE_ROLE_KEY')!;
+const OTP_HASH_SECRET = getEnv('OTP_HASH_SECRET') || getEnv('SUPABASE_SERVICE_ROLE_KEY')!;
 
 function randomNumericCode(length = 6) {
   const digits = new Uint8Array(length);
@@ -59,7 +62,7 @@ export async function sendOtpWithProvider(row: any, sendFn: (opts: { to: string;
   return result;
 }
 
-export async function verifyOtp({ userId = null, phone, code, maxAttempts = 5 } : { userId?: string | null, phone: string, code: string, maxAttempts?: number }) {
+export async function verifyOtp({ userId: _userId = null, phone, code, maxAttempts = 5 } : { userId?: string | null, phone: string, code: string, maxAttempts?: number }) {
   // fetch the most recent unused OTP for this phone
   const url = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/otp_codes?select=*&phone=eq.${encodeURIComponent(phone)}&used=eq.false&order=created_at.desc&limit=1`;
   const resp = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
