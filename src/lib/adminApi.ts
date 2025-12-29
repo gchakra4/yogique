@@ -39,7 +39,8 @@ async function authHeader() {
   } catch (e) {
     // ignore
   }
-  return {}
+  // Make unauthenticated failures explicit so the client doesn't surface vague "Failed to fetch"
+  throw new Error('No active Supabase session found. Please sign in and retry the admin action.');
 }
 
 export async function getMappings() {
