@@ -385,11 +385,12 @@ serve(async (req) => {
             console.log(`Skipping email sends for class ${classId}: email_notified=true`);
         } else {
 
+        let hostEmailQueued = false;
         if (attendees.length) {
             for (const a of attendees) {
                 if (!a.email) continue; // skip malformed attendee rows
                 const toList = [a.email].filter(Boolean) as string[];
-                if (instructor?.email && !toList.includes(instructor.email)) toList.push(instructor.email);
+            // Do not CC the instructor on attendee emails; instructor receives a separate host email.
                 const bccList = ADMIN_EMAILS.length ? ADMIN_EMAILS : undefined;
                 // compute attendee local time.
                 // Prefer IANA tznames stored in booking_timezone (e.g. 'Asia/Kolkata').
@@ -544,10 +545,53 @@ serve(async (req) => {
                         attempts: 0
                     });
                     sendResults.push({ to: [FROM_EMAIL], bcc: ADMIN_EMAILS, result: { ok: true, status: 'queued' } });
+                    hostEmailQueued = true;
                 } catch (e) {
-                    console.error('Failed to queue admin email', e);
+                    console.error('Failed to queue admin notification email', e);
                     sendResults.push({ to: [FROM_EMAIL], bcc: ADMIN_EMAILS, result: { ok: false, error: e } });
                 }
+            }
+        }
+
+        // If there were attendees, send a single host email with start_url (if not already queued above)
+        if (attendees.length && instructor?.email && !hostEmailQueued) {
+            try {
+                const toList = [instructor.email];
+                const bccList = ADMIN_EMAILS.length ? ADMIN_EMAILS : undefined;
+                const hostHtml = buildEmailTemplate({
+                    recipientName: instructor.full_name || 'Instructor',
+                    isInstructor: true,
+                    classTitle: `${ct?.name || 'Class'} — Host join details`,
+                    classDisplay: classDisplay,
+                    localTime: null,
+                    zoomUrl: zoomData.start_url,
+                    assignmentCode: cls.assignment_code || cls.id,
+                    instructorName: instructor.full_name || 'Instructor',
+                    instructorEmail: instructor.email || '',
+                    meetingId: String(zoomData.id || ''),
+                    passcode: zoomData.password || undefined,
+                });
+
+                await supabase.from('notifications_queue').insert({
+                    channel: 'email',
+                    recipient: toList.join(','),
+                    subject: `${ct?.name || 'Class'} — Host join details`,
+                    html: hostHtml,
+                    bcc: bccList?.join(',') || null,
+                    from: FROM_EMAIL,
+                    metadata: {
+                        class_id: classId,
+                        user_id: instructor?.user_id || instructor?.id || null,
+                        type: 'host_join_details'
+                    },
+                    status: 'pending',
+                    attempts: 0
+                });
+                sendResults.push({ to: toList, bcc: bccList, result: { ok: true, status: 'queued' } });
+                hostEmailQueued = true;
+            } catch (e) {
+                console.error('Failed to queue host email', e);
+                sendResults.push({ to: [instructor.email], bcc: ADMIN_EMAILS, result: { ok: false, error: e } });
             }
         }
 
