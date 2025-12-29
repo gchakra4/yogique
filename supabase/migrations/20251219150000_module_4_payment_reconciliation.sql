@@ -169,6 +169,48 @@ BEGIN
             format('Payment for invoice %s', v_invoice_number)
         ) RETURNING id INTO v_transaction_id;
 
+        -- Enqueue a notification for this successful payment. Keep this best-effort
+        -- so a failure to enqueue doesn't break payment processing.
+        BEGIN
+            INSERT INTO public.notifications_queue (
+                channel,
+                recipient,
+                template_key,
+                template_language,
+                vars,
+                metadata,
+                status,
+                attempts,
+                run_after,
+                created_at,
+                updated_at
+            ) VALUES (
+                'whatsapp',
+                NULL,
+                'yogique_payment_due_reminder',
+                'en',
+                jsonb_build_object(
+                    'invoice_number', v_invoice_number,
+                    'amount', p_amount,
+                    'invoice_id', v_invoice_id,
+                    'booking_id', v_booking_id
+                ),
+                jsonb_build_object(
+                    'invoice_id', v_invoice_id,
+                    'invoice_number', v_invoice_number,
+                    'transaction_id', v_transaction_id
+                ),
+                'pending',
+                0,
+                NOW(),
+                NOW(),
+                NOW()
+            );
+        EXCEPTION WHEN OTHERS THEN
+            -- Swallow enqueue errors; payment processing must not fail because of notification
+            NULL;
+        END;
+
         RETURN json_build_object(
             'success', true,
             'message', 'Payment processed successfully',

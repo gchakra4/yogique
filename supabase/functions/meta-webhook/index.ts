@@ -111,14 +111,26 @@ serve(async (req) => {
 
     for (const u of updates) {
       const mapped = mapStatus(u.status);
-      // Update message_audit rows matching provider_message_id
       try {
         const patchBody: any = { status: mapped, metadata: { last_status: u.status, last_status_ts: u.timestamp || null, provider: 'meta', provider_payload: u.raw || null } };
+        // Update message_audit rows
         await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/message_audit?provider_message_id=eq.${encodeURIComponent(u.id)}`, {
           method: 'PATCH',
           headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(patchBody),
         });
+
+        // Also update notifications_queue rows that reference this provider_message_id in metadata
+        try {
+          const nqQ = '/rest/v1/notifications_queue?metadata->>provider_message_id=eq.' + encodeURIComponent(u.id);
+          const nqPatch: any = { updated_at: new Date().toISOString() };
+          if (mapped === 'sent' || mapped === 'delivered' || mapped === 'read') nqPatch.status = 'sent'; else nqPatch.status = 'failed';
+          await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}${nqQ}`, {
+            method: 'PATCH',
+            headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(nqPatch),
+          });
+        } catch (e) { /* best-effort */ }
 
         // Create audit_logs entry for status update
         const auditPayload = {

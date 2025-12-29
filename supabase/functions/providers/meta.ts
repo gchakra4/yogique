@@ -1,4 +1,4 @@
-import renderer from '../../../src/lib/waTemplateRenderer.ts';
+import renderer from '../shared/waTemplateRenderer.ts';
 import { WhatsAppProvider } from './adapter.ts';
 
 export const metaProvider: WhatsAppProvider = {

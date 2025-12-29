@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.201.0/http/server.ts";
 import { getProvider } from "../providers/index.ts";
+import { restPost } from '../shared/db.ts';
+import { mapNamedVars } from '../shared/namedVars.ts';
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -32,50 +34,10 @@ serve(async (req) => {
     // vars: { name, amount, period, invoiceId, urlToken }
     if (!Array.isArray(payload?.vars) && payload?.vars && typeof payload.vars === 'object') {
       const v: Record<string, any> = payload.vars;
-
-      // Back-compat explicit mapping for a known template.
-      if (templateKey === 'yogique_payment_due_reminder') {
-        const name = v.name ?? v.customerName ?? v.userName ?? '';
-        const period = v.period ?? v.month ?? v.billingPeriod ?? v.billing_period ?? '';
-        const invoiceId = v.invoiceId ?? v.invoiceNo ?? v.invoice_no ?? v.invoice_number ?? '';
-        const amount = v.amount ?? v.amt ?? v.total ?? '';
-        const urlToken = v.urlToken ?? v.token ?? v.url_param ?? '';
-        vars = [
-          String(name),
-          String(period),
-          String(invoiceId),
-          String(amount),
-          String(urlToken),
-        ];
-      } else {
-        // Generic mapping: look up default_vars ordering from wa_templates.
-        try {
-          const requestedLang = payload.language || 'en';
-          const tryLangs: string[] = [requestedLang];
-          const base = String(requestedLang).split(/[-_]/)[0];
-          if (base && base !== requestedLang) tryLangs.push(base);
-
-          let row: any = null;
-          for (const lang of tryLangs) {
-            const url = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/wa_templates?select=key,language,default_vars&key=eq.${encodeURIComponent(templateKey)}&language=eq.${encodeURIComponent(lang)}&limit=1`;
-            const resp = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
-            if (!resp.ok) continue;
-            const rows = await resp.json().catch(() => null);
-            row = Array.isArray(rows) && rows.length ? rows[0] : null;
-            if (row) break;
-          }
-
-          const def = row && typeof row.default_vars === 'object' ? row.default_vars : null;
-          const keys = def ? Object.keys(def) : [];
-          if (keys.length) {
-            vars = keys.map((k) => String((v[k] ?? def[k] ?? '') || ''));
-          } else {
-            // Fallback: take object values (stable only for caller-defined ordering).
-            vars = Object.values(v).map((val) => String(val ?? ''));
-          }
-        } catch (e) {
-          vars = Object.values(v).map((val) => String(val ?? ''));
-        }
+      try {
+        vars = await mapNamedVars(templateKey, payload.language || 'en', v as Record<string, any>);
+      } catch (e) {
+        vars = Object.keys(v).map((k) => String(v[k] ?? ''));
       }
     }
 
@@ -101,6 +63,27 @@ serve(async (req) => {
     }
 
     const res = await provider.sendTemplate({ to, templateName: templateKey, templateLanguage: payload.language || 'en', templateParameters: vars, metadata: payload.metadata || null });
+
+    // Best-effort: insert message_audit row so delivery callbacks can update status
+    try {
+      const providerMessageId = res && res.provider_message_id ? res.provider_message_id : null;
+      const recipient = String(to || '').replace(/^whatsapp:/, '');
+      const auditRow = [
+        {
+          class_id: null,
+          user_id: null,
+          channel: 'whatsapp',
+          recipient,
+          provider: res && res.provider ? res.provider : 'meta',
+          provider_message_id: providerMessageId,
+          status: res && res.ok ? 'sent' : 'failed',
+          attempts: res && (res as any).attempts ? (res as any).attempts : 1,
+          metadata: { template_key: templateKey, template_language: payload.language || 'en', raw: res && res.rawResponse ? res.rawResponse : null },
+        },
+      ];
+      await restPost('/rest/v1/message_audit', auditRow).catch((e) => { console.error('failed to insert message_audit', e); });
+    } catch (e) { console.error('send-template audit insert failed', e); }
+
     return new Response(JSON.stringify(res), { status: res.ok ? 200 : 502, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('send-template error', err);

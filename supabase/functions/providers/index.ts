@@ -1,5 +1,5 @@
+import { metaProvider } from '../shared/providers.ts';
 import { WhatsAppProvider } from './adapter.ts';
-import { metaProvider } from './meta.ts';
 
 export function getProvider(): WhatsAppProvider {
   const requested = (Deno.env.get('MESSAGE_PROVIDER') || 'meta').toLowerCase();

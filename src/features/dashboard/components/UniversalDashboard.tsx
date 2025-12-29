@@ -24,6 +24,7 @@ const NewsletterManagement = React.lazy(() => import('./Modules/NewsletterManage
 const TeachingDashboard = React.lazy(() => import('./Modules/TeachingDashboard'));
 const Overview = React.lazy(() => import('./Modules/OverView'));
 const AdminClassesOverview = React.lazy(() => import('./Modules/AdminClassesOverview'));
+const AdminTemplateMappings = React.lazy(() => import('../../../pages/admin-template-mappings'));
 
 interface User {
   id: string;
@@ -67,6 +68,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
     TeachingDashboard,
     Overview,
     AdminClassesOverview,
+    AdminTemplateMappings,
     AuditLogs: React.lazy(() => import('./Modules/AuditLogs')),
     InstructorRatesPage: React.lazy(() => import('../../instructor-rates/pages/InstructorRatesPage')),
   };

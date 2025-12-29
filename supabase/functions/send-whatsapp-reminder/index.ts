@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.201.0/http/server.ts";
 import { getProvider } from "../providers/index.ts";
+import { restGet, restPatch, restPost } from '../shared/db.ts';
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -113,22 +114,12 @@ serve(async (req) => {
     // Fetch class details via Supabase REST (include notification flags)
     let cls: any = null;
     try {
-      const url = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/class_assignments?select=id,assignment_code,date,start_time,timezone,zoom_meeting,whatsapp_notified,email_notified&id=eq.' + encodeURIComponent(classId);
-      const resp = await fetch(url, {
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: 'Bearer ' + SUPABASE_KEY,
-        },
-      });
-      if (!resp.ok) {
-        console.error("class fetch failed", resp.status);
-        return new Response(JSON.stringify({ error: "class fetch failed", status: resp.status }), { status: 502 });
-      }
-      const arr = await resp.json();
+      const q = '/rest/v1/class_assignments?select=id,assignment_code,date,start_time,timezone,zoom_meeting,whatsapp_notified,email_notified&id=eq.' + encodeURIComponent(classId);
+      const arr = await restGet(q).catch((e) => { throw new Error(String(e)); });
       cls = Array.isArray(arr) && arr.length ? arr[0] : null;
     } catch (errCls) {
-      console.error("class fetch error", errCls);
-      return new Response(JSON.stringify({ error: "class not found", details: String(errCls) }), { status: 500 });
+      console.error('class fetch error', errCls);
+      return new Response(JSON.stringify({ error: 'class not found', details: String(errCls) }), { status: 500 });
     }
 
     if (!cls) {
@@ -148,48 +139,19 @@ serve(async (req) => {
     let participants: any[] = [];
     try {
       // 1) booking_ids for this assignment
-      const abUrl = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/assignment_bookings?select=booking_id&assignment_id=eq.' + classId;
-      const abResp = await fetch(abUrl, {
-        headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
-      });
-      if (!abResp.ok) {
-        console.error('assignment_bookings fetch failed', abResp.status);
-      } else {
-        const abRows = await abResp.json();
-        const bookingIds: string[] = Array.isArray(abRows)
-          ? abRows.map((b: any) => b.booking_id).filter(Boolean)
-          : [];
-
-        if (bookingIds.length) {
-          // 2) bookings -> user_id
-          const bq = bookingIds.map((id) => '"' + id + '"').join(',');
-          const bUrl = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/bookings?select=booking_id,user_id&booking_id=in.(' + bq + ')';
-          const bResp = await fetch(bUrl, {
-            headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
-          });
-          if (!bResp.ok) {
-            console.error('bookings fetch failed', bResp.status);
-          } else {
-            const bRows = await bResp.json();
-            const userIds: string[] = Array.isArray(bRows)
-              ? bRows.map((r: any) => r.user_id).filter(Boolean)
-              : [];
-
-            if (userIds.length) {
-              const uq = userIds.map((id) => '"' + id + '"').join(',');
-              // 3) profiles -> phone, whatsapp_opt_in
-              const pUrl = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/profiles?select=id,user_id,email,full_name,phone,whatsapp_opt_in&user_id=in.(' + uq + ')';
-              const pResp = await fetch(pUrl, {
-                headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
-              });
-              if (!pResp.ok) {
-                console.error('profiles fetch failed', pResp.status);
-              } else {
-                const pRows = await pResp.json();
-                participants = Array.isArray(pRows) ? pRows : [];
-              }
-            }
-          }
+      const abQ = '/rest/v1/assignment_bookings?select=booking_id&assignment_id=eq.' + classId;
+      const abRows = await restGet(abQ).catch((e) => { console.error('assignment_bookings fetch failed', e); return []; });
+      const bookingIds: string[] = Array.isArray(abRows) ? abRows.map((b: any) => b.booking_id).filter(Boolean) : [];
+      if (bookingIds.length) {
+        const bq = bookingIds.map((id) => '"' + id + '"').join(',');
+        const bQ = '/rest/v1/bookings?select=booking_id,user_id&booking_id=in.(' + bq + ')';
+        const bRows = await restGet(bQ).catch((e) => { console.error('bookings fetch failed', e); return []; });
+        const userIds: string[] = Array.isArray(bRows) ? bRows.map((r: any) => r.user_id).filter(Boolean) : [];
+        if (userIds.length) {
+          const uq = userIds.map((id) => '"' + id + '"').join(',');
+          const pQ = '/rest/v1/profiles?select=id,user_id,email,full_name,phone,whatsapp_opt_in&user_id=in.(' + uq + ')';
+          const pRows = await restGet(pQ).catch((e) => { console.error('profiles fetch failed', e); return []; });
+          participants = Array.isArray(pRows) ? pRows : [];
         }
       }
     } catch (errParts) {
@@ -207,20 +169,17 @@ serve(async (req) => {
     let resolvedTemplateLanguage: string | null = null;
     if (!resolvedTemplateKey && activity) {
       try {
-        const url = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/wa_templates?select=key,language,default_vars,activities';
-        const resp = await fetch(url, { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY } });
-        if (resp.ok) {
-          const rows = await resp.json().catch(() => []);
-          for (const r of Array.isArray(rows) ? rows : []) {
-            const acts = r?.activities;
-            if (!acts) continue;
-            if (Array.isArray(acts)) {
-              if (acts.includes(activity) || acts.some((a: any) => (a && (a.activity === activity || a === activity)))) {
-                resolvedTemplateKey = r.key;
-                resolvedDefaultVars = r.default_vars || null;
-                resolvedTemplateLanguage = r.language || null;
-                break;
-              }
+        const q = '/rest/v1/wa_templates?select=key,language,default_vars,activities';
+        const rows = await restGet(q).catch(() => []);
+        for (const r of Array.isArray(rows) ? rows : []) {
+          const acts = r?.activities;
+          if (!acts) continue;
+          if (Array.isArray(acts)) {
+            if (acts.includes(activity) || acts.some((a: any) => (a && (a.activity === activity || a === activity)))) {
+              resolvedTemplateKey = r.key;
+              resolvedDefaultVars = r.default_vars || null;
+              resolvedTemplateLanguage = r.language || null;
+              break;
             }
           }
         }
@@ -333,15 +292,7 @@ serve(async (req) => {
                 metadata: { status: r?.status, body: r?.body, activity: activity || null },
               },
             ];
-            await fetch(SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/message_audit', {
-              method: 'POST',
-              headers: {
-                apikey: SUPABASE_KEY,
-                Authorization: 'Bearer ' + SUPABASE_KEY,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(auditBody),
-            });
+            await restPost('/rest/v1/message_audit', auditBody).catch((e) => { console.error('Failed to insert whatsapp audit row', e); });
           } catch (e) { try { console.error('Failed to insert whatsapp audit row', e); } catch (_) {} }
 
           continue;
@@ -381,15 +332,7 @@ serve(async (req) => {
               metadata: { status: rText?.status, body: rText?.body, activity: activity || null },
             },
           ];
-          await fetch(SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/message_audit', {
-            method: 'POST',
-            headers: {
-              apikey: SUPABASE_KEY,
-              Authorization: 'Bearer ' + SUPABASE_KEY,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(auditBody),
-          });
+          await restPost('/rest/v1/message_audit', auditBody).catch((e) => { console.error('Failed to insert whatsapp audit row', e); });
         } catch (e) { try { console.error('Failed to insert whatsapp audit row', e); } catch (_) {} }
 
       } catch (e) {
@@ -402,22 +345,8 @@ serve(async (req) => {
     const anyOk = results.some((r) => r && r.ok === true);
     if (anyOk) {
       try {
-        const patchUrl = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1/class_assignments?id=eq.' + encodeURIComponent(classId);
-        const patchResp = await fetch(patchUrl, {
-          method: 'PATCH',
-          headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: 'Bearer ' + SUPABASE_KEY,
-            'Content-Type': 'application/json',
-            Prefer: 'return=representation',
-          },
-          body: JSON.stringify({ whatsapp_notified: true }),
-        });
-        if (!patchResp.ok) {
-          console.error('Failed to patch class_assignments whatsapp_notified', patchResp.status);
-        } else {
-          console.log('Marked class_assignments.whatsapp_notified = true for', classId);
-        }
+        await restPatch('/rest/v1/class_assignments?id=eq.' + encodeURIComponent(classId), { whatsapp_notified: true }, true).catch((e) => { console.error('Failed to patch class_assignments whatsapp_notified', e); });
+        console.log('Marked class_assignments.whatsapp_notified = true for', classId);
       } catch (e) {
         console.error('Error patching whatsapp_notified flag', e);
       }
