@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import AdminTemplateMappings from '../../../pages/admin-template-mappings';
 import { Footer } from '../../../shared/components/layout/Footer';
 import { Header } from '../../../shared/components/layout/Header';
 import RoleBasedNavigation from '../../../shared/components/navigation/RoleBasedNavigation';
@@ -24,7 +25,6 @@ const NewsletterManagement = React.lazy(() => import('./Modules/NewsletterManage
 const TeachingDashboard = React.lazy(() => import('./Modules/TeachingDashboard'));
 const Overview = React.lazy(() => import('./Modules/OverView'));
 const AdminClassesOverview = React.lazy(() => import('./Modules/AdminClassesOverview'));
-const AdminTemplateMappings = React.lazy(() => import('../../../pages/admin-template-mappings'));
 
 interface User {
   id: string;
