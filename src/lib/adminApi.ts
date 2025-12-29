@@ -1,3 +1,5 @@
+import { supabase } from '../shared/lib/supabase'
+
 function functionsBase() {
   const base = (
     import.meta.env.VITE_SUPABASE_URL
@@ -29,19 +31,31 @@ async function parseResponse(res: Response) {
   return txt;
 }
 
+async function authHeader() {
+  try {
+    const { data } = await supabase.auth.getSession()
+    const token = data?.session?.access_token
+    if (token) return { Authorization: `Bearer ${token}` }
+  } catch (e) {
+    // ignore
+  }
+  return {}
+}
+
 export async function getMappings() {
-  const res = await fetch(functionsBase() + '/admin-proxy', { credentials: 'include' });
+  const headers = await authHeader()
+  const res = await fetch(functionsBase() + '/admin-proxy', { headers });
   const body = await parseResponse(res);
   if (!res.ok) throw new Error(`getMappings failed ${res.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
   return body;
 }
 
 export async function createMapping(payload: any) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, await authHeader())
   const res = await fetch(functionsBase() + '/admin-proxy', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    credentials: 'include'
+    headers,
+    body: JSON.stringify(payload)
   });
   const body = await parseResponse(res);
   if (!res.ok) throw new Error(`createMapping failed ${res.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
@@ -49,11 +63,11 @@ export async function createMapping(payload: any) {
 }
 
 export async function updateMapping(id: string, payload: any) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, await authHeader())
   const res = await fetch(functionsBase() + `/admin-proxy?id=${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    credentials: 'include'
+    headers,
+    body: JSON.stringify(payload)
   });
   const body = await parseResponse(res);
   if (!res.ok) throw new Error(`updateMapping failed ${res.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
@@ -61,9 +75,10 @@ export async function updateMapping(id: string, payload: any) {
 }
 
 export async function deleteMapping(id: string) {
+  const headers = await authHeader()
   const res = await fetch(functionsBase() + `/admin-proxy?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    credentials: 'include'
+    headers
   });
   const body = await parseResponse(res);
   if (!res.ok) throw new Error(`deleteMapping failed ${res.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
