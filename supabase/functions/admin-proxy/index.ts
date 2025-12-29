@@ -23,7 +23,7 @@ serve(async (req) => {
     if (!auth) return new Response(JSON.stringify({ error: 'missing auth' }), { status: 401, headers: corsHeaders() })
 
     // Validate token and fetch user info
-    const userResp = await fetch(baseUrl() + '/auth/v1/user', { headers: { Authorization: auth } })
+    const userResp = await fetch(baseUrl() + '/auth/v1/user', { headers: { Authorization: auth, apikey: SUPABASE_SERVICE_ROLE_KEY } })
     if (!userResp.ok) return new Response(JSON.stringify({ error: 'invalid token' }), { status: 401, headers: corsHeaders() })
     const user = await userResp.json()
     const userId = user?.id
