@@ -1,5 +1,11 @@
 function functionsBase() {
-  return (import.meta.env.VITE_SUPABASE_URL || '') + '/functions/v1';
+  const base = (
+    import.meta.env.VITE_SUPABASE_URL
+    || import.meta.env.VITE_SUPABASE_URL_DEV
+    || import.meta.env.VITE_SUPABASE_URL_PROD
+    || ''
+  );
+  return base.replace(/\/$/, '') + '/functions/v1';
 }
 
 async function parseResponse(res: Response) {
@@ -9,7 +15,16 @@ async function parseResponse(res: Response) {
     try { return JSON.parse(txt); } catch (e) { throw new Error('Invalid JSON response'); }
   }
   if (ct.includes('text/html')) {
-    throw new Error(`Unexpected HTML response from functions endpoint (status ${res.status}) - check VITE_SUPABASE_URL or dev proxy`);
+    // include a helpful diagnostic (functions base) when HTML is returned
+    const fb = functionsBase();
+    const sample = txt.slice(0, 300).replace(/\n/g, ' ');
+    throw new Error(
+      `Unexpected HTML response from functions endpoint (status ${res.status}).\n` +
+      `Functions base: ${fb}\n` +
+      `Response snippet: ${sample}\n` +
+      `Likely causes: VITE_SUPABASE_URL is not set in your Vite env, or the dev server is proxying the request to index.html.\n` +
+      `Fix: set VITE_SUPABASE_URL in a .env.local (e.g. VITE_SUPABASE_URL=https://<project>.supabase.co) or configure your dev proxy.`
+    );
   }
   return txt;
 }
