@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - Notification System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>Notification System</h2>
+            <p>Admin Guide</p>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="flow-diagram.html">Flow Diagram</a></li>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="configuration.html" class="active">Configuration</a></li>
+            <li><a href="queue-management.html">Queue Management</a></li>
+            <li><a href="troubleshooting.html">Troubleshooting</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <div class="container">
+            <h1>Configuration Guide</h1>
+
+            <section>
+                <h2>Environment Variables</h2>
+                <p>All configuration is done via environment variables set in the Supabase project settings.</p>
+
+                <h3>Email Configuration (Resend)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Required</th>
+                            <th>Example</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>RESEND_API_KEY</code></td>
+                            <td>✓</td>
+                            <td><code>re_XXXXXXXXXXXXXXXXXXXX</code></td>
+                            <td>API key from your Resend account (Settings → API Keys)</td>
+                        </tr>
+                        <tr>
+                            <td><code>CLASSES_FROM_EMAIL</code></td>
+                            <td>✓</td>
+                            <td><code>classes@yogique.life</code></td>
+                            <td>Default sender email for class notifications</td>
+                        </tr>
+                        <tr>
+                            <td><code>INVOICE_FROM_EMAIL</code></td>
+                            <td>✓</td>
+                            <td><code>invoices@yogique.life</code></td>
+                            <td>Default sender email for invoice notifications</td>
+                        </tr>
+                        <tr>
+                            <td><code>SUPPORT_EMAIL</code></td>
+                            <td>Optional</td>
+                            <td><code>support@yogique.life</code></td>
+                            <td>Support email for user replies (for email settings)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>WhatsApp Configuration (Meta)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Required</th>
+                            <th>Example</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>META_PHONE_NUMBER_ID</code></td>
+                            <td>✓</td>
+                            <td><code>102938456789012</code></td>
+                            <td>Your WhatsApp Business phone number ID (from Meta dashboard)</td>
+                        </tr>
+                        <tr>
+                            <td><code>META_ACCESS_TOKEN</code></td>
+                            <td>✓</td>
+                            <td><code>EAAB...XXXXXXXXXX</code></td>
+                            <td>Meta Business API access token (30+ characters)</td>
+                        </tr>
+                        <tr>
+                            <td><code>META_BUSINESS_ACCOUNT_ID</code></td>
+                            <td>Optional</td>
+                            <td><code>123456789012345</code></td>
+                            <td>Your Meta business account ID (used in some API calls)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Database Configuration</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Required</th>
+                            <th>Example</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>SUPABASE_URL</code></td>
+                            <td>✓</td>
+                            <td><code>https://xyzabc.supabase.co</code></td>
+                            <td>Your Supabase project URL</td>
+                        </tr>
+                        <tr>
+                            <td><code>SUPABASE_ANON_KEY</code></td>
+                            <td>✓ (some functions)</td>
+                            <td><code>eyJhbGc...</code></td>
+                            <td>Anonymous key (public, limited permissions)</td>
+                        </tr>
+                        <tr>
+                            <td><code>SUPABASE_SERVICE_ROLE_KEY</code></td>
+                            <td>✓ (most functions)</td>
+                            <td><code>eyJhbGc...</code></td>
+                            <td>Service role key (private, full permissions) - Keep secret!</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Scheduler Configuration</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Required</th>
+                            <th>Example</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>SCHEDULER_SECRET_HEADER</code></td>
+                            <td>✓</td>
+                            <td><code>X-SCHED-SECRET</code></td>
+                            <td>HTTP header name for scheduler authentication</td>
+                        </tr>
+                        <tr>
+                            <td><code>SCHEDULER_SECRET_TOKEN</code></td>
+                            <td>✓</td>
+                            <td><code>your-secret-token-12345</code></td>
+                            <td>Secret token for scheduler authentication - Keep secret!</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Worker Configuration</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Required</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>NOTIFICATION_WORKER_LIMIT</code></td>
+                            <td>Optional</td>
+                            <td>10</td>
+                            <td>Max notifications to process per run</td>
+                        </tr>
+                        <tr>
+                            <td><code>NOTIFICATION_MAX_ATTEMPTS</code></td>
+                            <td>Optional</td>
+                            <td>5</td>
+                            <td>Maximum retry attempts before giving up</td>
+                        </tr>
+                        <tr>
+                            <td><code>NOTIFICATION_BASE_BACKOFF_MS</code></td>
+                            <td>Optional</td>
+                            <td>1000</td>
+                            <td>Initial retry delay in milliseconds (1 second)</td>
+                        </tr>
+                        <tr>
+                            <td><code>NOTIFICATION_MAX_BACKOFF_MS</code></td>
+                            <td>Optional</td>
+                            <td>600000</td>
+                            <td>Max retry delay in milliseconds (10 minutes)</td>
+                        </tr>
+                        <tr>
+                            <td><code>MONITORING_WEBHOOK_URL</code></td>
+                            <td>Optional</td>
+                            <td>(empty)</td>
+                            <td>Webhook URL to alert on failures (e.g., Slack webhook)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2>How to Set Environment Variables in Supabase</h2>
+
+                <h3>Step 1: Access the Supabase Dashboard</h3>
+                <ol>
+                    <li>Go to <a href="https://app.supabase.com" target="_blank">https://app.supabase.com</a></li>
+                    <li>Select your project</li>
+                    <li>Click "Settings" in the bottom left sidebar</li>
+                </ol>
+
+                <h3>Step 2: Navigate to Edge Functions Settings</h3>
+                <ol>
+                    <li>In Settings, click "Edge Functions" in the left menu</li>
+                    <li>Or go to: Project Settings → Edge Functions → Secrets</li>
+                </ol>
+
+                <h3>Step 3: Add Secrets</h3>
+                <ol>
+                    <li>Click "New secret"</li>
+                    <li>Enter the name (e.g., <code>RESEND_API_KEY</code>)</li>
+                    <li>Enter the value (e.g., your actual API key)</li>
+                    <li>Click "Add secret"</li>
+                    <li>Repeat for all required variables</li>
+                </ol>
+
+                <h3>Step 4: Verify Variables are Set</h3>
+                <ol>
+                    <li>In the Edge Functions page, you should see a list of all secrets</li>
+                    <li>Values are hidden for security - you'll see only the names</li>
+                    <li>Click the variable name to see if it's set (values are masked)</li>
+                </ol>
+
+                <div class="info-box">
+                    <h4>💡 Pro Tip</h4>
+                    <p>After setting environment variables, redeploy or restart your edge functions for changes to take
+                        effect.</p>
+                </div>
+            </section>
+
+            <section>
+                <h2>Database Setup</h2>
+
+                <h3>Required Tables</h3>
+                <p>Ensure these tables exist in your Supabase database:</p>
+
+                <h4>1. notifications_queue</h4>
+                <pre><code>CREATE TABLE notifications_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  channel TEXT NOT NULL, -- 'email' or 'whatsapp'
+  recipient TEXT NOT NULL,
+  subject TEXT, -- for email
+  html TEXT, -- for email
+  bcc TEXT, -- for email
+  from TEXT, -- for email
+  template_key TEXT, -- for whatsapp
+  template_language TEXT DEFAULT 'en', -- for whatsapp
+  vars JSONB, -- for whatsapp
+  status TEXT DEFAULT 'pending',
+  attempts INTEGER DEFAULT 0,
+  last_error TEXT,
+  run_after TIMESTAMP DEFAULT NOW(),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  metadata JSONB
+);
+
+CREATE INDEX idx_notifications_queue_status_run_after 
+ON notifications_queue (status, run_after);</code></pre>
+
+                <h4>2. message_audit</h4>
+                <pre><code>CREATE TABLE message_audit (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id UUID,
+  user_id UUID,
+  channel TEXT NOT NULL,
+  recipient TEXT NOT NULL,
+  provider TEXT NOT NULL, -- 'resend' or 'meta'
+  provider_message_id TEXT NOT NULL,
+  status TEXT NOT NULL, -- 'sent' or 'failed'
+  attempts INTEGER DEFAULT 1,
+  created_at TIMESTAMP DEFAULT NOW()
+);</code></pre>
+
+                <h4>3. wa_templates (WhatsApp only)</h4>
+                <pre><code>CREATE TABLE wa_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_key TEXT NOT NULL UNIQUE,
+  language TEXT DEFAULT 'en',
+  name TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);</code></pre>
+
+                <h3>Row Level Security (RLS) Policies</h3>
+                <p>These tables typically have these RLS policies:</p>
+
+                <ul>
+                    <li><strong>notifications_queue:</strong> Service role read/write only</li>
+                    <li><strong>message_audit:</strong> Users can view their own audit logs</li>
+                    <li><strong>wa_templates:</strong> Public read, admin write only</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>Email Domain Setup (Resend)</h2>
+
+                <h3>Verify Your Domain</h3>
+                <ol>
+                    <li>Go to <a href="https://resend.com/domains" target="_blank">Resend Dashboard → Domains</a></li>
+                    <li>Click "Add Domain"</li>
+                    <li>Enter your domain (e.g., <code>yogique.life</code>)</li>
+                    <li>Resend will give you DNS records to add</li>
+                    <li>Add the CNAME and TXT records to your DNS provider</li>
+                    <li>Wait for verification (usually 5-30 minutes)</li>
+                </ol>
+
+                <h3>Create Sender Emails</h3>
+                <ol>
+                    <li>Once domain is verified, go to "From Addresses"</li>
+                    <li>Create addresses like:
+                        <ul>
+                            <li><code>classes@yogique.life</code> (for class notifications)</li>
+                            <li><code>invoices@yogique.life</code> (for invoice notifications)</li>
+                        </ul>
+                    </li>
+                    <li>Each may require verification</li>
+                </ol>
+
+                <h3>DNS Records Example</h3>
+                <pre><code>Type: CNAME
+Name: default._domainkey.yogique.life
+Value: default.resend.domains
+
+Type: MX
+Name: yogique.life
+Value: mx.resend.in (optional, Resend doesn't require this)</code></pre>
+            </section>
+
+            <section>
+                <h2>WhatsApp Template Setup (Meta)</h2>
+
+                <h3>Create WhatsApp Templates in Meta</h3>
+                <ol>
+                    <li>Go to <a href="https://business.facebook.com" target="_blank">Meta Business Suite</a></li>
+                    <li>Navigate to WhatsApp → Message Templates</li>
+                    <li>Click "Create Template"</li>
+                    <li>Fill in:
+                        <ul>
+                            <li>Template name (e.g., <code>class_reminder_zoom</code>)</li>
+                            <li>Category (e.g., "MARKETING" or "ALERT")</li>
+                            <li>Language (e.g., "English")</li>
+                            <li>Message body with variables like {{variable_name}}</li>
+                        </ul>
+                    </li>
+                    <li>Submit for Meta review</li>
+                </ol>
+
+                <h3>Add Templates to Your Database</h3>
+                <p>Once Meta approves, insert them into your <code>wa_templates</code> table:</p>
+
+                <pre><code>INSERT INTO wa_templates (template_key, language, name, body)
+VALUES (
+  'class_reminder_zoom',
+  'en',
+  'Class Reminder - Zoom',
+  'Hi {{recipient_name}}! Your class {{title}} starts at {{class_time}}. Join here: {{zoom_link}}'
+);
+
+INSERT INTO wa_templates (template_key, language, name, body)
+VALUES (
+  'class_reminder_physical',
+  'en',
+  'Class Reminder - Physical',
+  'Hi {{recipient_name}}! Your class {{title}} starts at {{class_time}} at {{location}}.'
+);</code></pre>
+
+                <h3>Template Variable Naming</h3>
+                <ul>
+                    <li>Use {{variable_name}} in templates</li>
+                    <li>Variables are case-insensitive but must match exactly</li>
+                    <li>Common variables:
+                        <ul>
+                            <li><code>{{recipient_name}}</code></li>
+                            <li><code>{{title}}</code></li>
+                            <li><code>{{class_time}}</code></li>
+                            <li><code>{{zoom_link}}</code></li>
+                            <li><code>{{location}}</code></li>
+                            <li><code>{{cost}}</code></li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>Monitoring Webhook Setup (Optional)</h2>
+
+                <h3>Purpose</h3>
+                <p>Get alerted when notifications fail to deliver.</p>
+
+                <h3>Slack Webhook Example</h3>
+                <ol>
+                    <li>Create a Slack app: <a href="https://api.slack.com/apps"
+                            target="_blank">https://api.slack.com/apps</a></li>
+                    <li>Enable "Incoming Webhooks"</li>
+                    <li>Add a new webhook to a channel (e.g., #notifications-alerts)</li>
+                    <li>Copy the webhook URL</li>
+                    <li>Set <code>MONITORING_WEBHOOK_URL</code> to that URL</li>
+                </ol>
+
+                <h3>Webhook Payload</h3>
+                <p>When a notification fails after max attempts, this is sent:</p>
+                <pre><code>{
+  "timestamp": "2025-12-29T10:15:05Z",
+  "event": "notification_failed",
+  "notification_id": "f561d2df-2735-4550-8489-eb70d909f2cc",
+  "channel": "email",
+  "recipient": "student@email.com",
+  "attempts": 5,
+  "last_error": "SMTP connection timeout"
+}</code></pre>
+            </section>
+
+            <section>
+                <h2>Checklist: Before Going Live</h2>
+                <div class="checklist">
+                    <label><input type="checkbox"> ✓ All environment variables are set in Supabase Edge
+                        Functions</label>
+                    <label><input type="checkbox"> ✓ Database tables (notifications_queue, message_audit, wa_templates)
+                        exist</label>
+                    <label><input type="checkbox"> ✓ Email domain is verified in Resend</label>
+                    <label><input type="checkbox"> ✓ From addresses are created and verified in Resend</label>
+                    <label><input type="checkbox"> ✓ WhatsApp Business Account is connected to Meta</label>
+                    <label><input type="checkbox"> ✓ WhatsApp templates are created and approved by Meta</label>
+                    <label><input type="checkbox"> ✓ Edge functions are deployed (notification-worker,
+                        notification-service, send-email, send-template)</label>
+                    <label><input type="checkbox"> ✓ Scheduler is configured to run notification-worker every 5
+                        minutes</label>
+                    <label><input type="checkbox"> ✓ Test sending both email and WhatsApp notifications</label>
+                    <label><input type="checkbox"> ✓ Monitor the notifications_queue table - should be empty or very
+                        small</label>
+                    <label><input type="checkbox"> ✓ Monitor message_audit for successful sends</label>
+                    <label><input type="checkbox"> ✓ Set up monitoring webhook (optional but recommended)</label>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <style>
+        .checklist {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .checklist label {
+            display: block;
+            margin: 10px 0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .checklist input {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-box h4 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+    </style>
+</body>
+
+</html>

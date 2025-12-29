@@ -1,0 +1,11 @@
+{
+    "to": "919088951685",
+    "templateKey": "class_reminder_zoom",
+    "language": "en",
+    "vars": {
+        "title": "Morning Flow",
+        "class_time": "2025-12-30 07:00",
+        "zoom_link": "https://zoom.us/j/123456789"
+    },
+    "dry_run": true
+}

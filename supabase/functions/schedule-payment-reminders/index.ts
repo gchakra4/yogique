@@ -21,45 +21,145 @@ serve(async (req) => {
       const userId = inv.user_id;
       if (!userId) { skipped.push({ invoice: inv.id, reason: 'no_user' }); continue; }
 
-      // Fetch profile for phone & consent
-      const pQ = '/rest/v1/profiles?select=phone,whatsapp_opt_in,full_name,user_id&user_id=eq.' + encodeURIComponent(userId) + '&limit=1';
+      // Fetch profile for phone, email & consent
+      const pQ = '/rest/v1/profiles?select=phone,email,whatsapp_opt_in,full_name,user_id&user_id=eq.' + encodeURIComponent(userId) + '&limit=1';
       const prow = await restGet(pQ).catch((e) => { console.error('profile fetch failed', e); return []; });
       const profile = Array.isArray(prow) && prow.length ? prow[0] : null;
       if (!profile) { skipped.push({ invoice: inv.id, reason: 'no_profile' }); continue; }
-      if (!profile.whatsapp_opt_in) { skipped.push({ invoice: inv.id, reason: 'opt_out' }); continue; }
-      const rawPhone = String(profile.phone || '').trim();
-      const phone = rawPhone.replace(/[\s()\-]/g, '');
-      if (!looksLikeE164(phone)) { skipped.push({ invoice: inv.id, reason: 'invalid_phone', phone }); continue; }
 
-      // Build vars object — send-template will map via default_vars when present
-      const vars = {
-        name: profile.full_name || '',
-        invoice_number: inv.invoice_number || '',
-        invoice_id: inv.id || '',
-        amount: inv.total_amount || '',
-        booking_id: inv.booking_id || null,
-      };
+      const userEmail = String(profile.email || '').trim();
+      const hasValidEmail = userEmail && userEmail.includes('@');
+      
+      // WhatsApp reminder
+      let whatsappQueued = false;
+      if (profile.whatsapp_opt_in) {
+        const rawPhone = String(profile.phone || '').trim();
+        const phone = rawPhone.replace(/[\s()\-]/g, '');
+        if (looksLikeE164(phone)) {
+          // Build vars object — send-template will map via default_vars when present
+          // Build positional vars array matching the template's expected order:
+          // [name, period, invoice_number, amount, url_token]
+          const periodStr = inv.billing_period_month
+            ? new Date(inv.billing_period_month).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })
+            : (inv.due_date ? new Date(inv.due_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) : '');
+          const amountStr = inv.total_amount ?? '';
+          const urlToken = String(inv.id || '');
 
-      const row = {
-        channel: 'whatsapp',
-        recipient: 'whatsapp:' + phone,
-        template_key: 'yogique_payment_due_reminder',
-        template_language: 'en',
-        vars: vars,
-        metadata: { invoice_id: inv.id, scheduled_by: 'schedule-payment-reminders' },
-        status: 'pending',
-        attempts: 0,
-        run_after: nowIso,
-        created_at: nowIso,
-        updated_at: nowIso,
-      };
+          const varsArr = [String(profile.full_name || ''), String(periodStr || ''), String(inv.invoice_number || ''), String(amountStr), urlToken];
 
-      try {
-        const res = await restPost('/rest/v1/notifications_queue', [row]).catch((e) => { throw e; });
-        inserted.push({ invoice: inv.id, result: res });
-      } catch (e) {
-        console.error('failed to enqueue for invoice', inv.id, e);
-        skipped.push({ invoice: inv.id, reason: 'enqueue_failed', error: String(e) });
+          const row = {
+            channel: 'whatsapp',
+            recipient: 'whatsapp:' + phone,
+            template_key: 'yogique_payment_due_reminder',
+            template_language: 'en',
+            vars: varsArr,
+            metadata: { invoice_id: inv.id, scheduled_by: 'schedule-payment-reminders' },
+            status: 'pending',
+            attempts: 0,
+            run_after: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso,
+          };
+
+          try {
+            const res = await restPost('/rest/v1/notifications_queue', [row]).catch((e) => { throw e; });
+            whatsappQueued = true;
+            inserted.push({ invoice: inv.id, channel: 'whatsapp', result: res });
+          } catch (e) {
+            console.error('failed to enqueue WhatsApp for invoice', inv.id, e);
+            skipped.push({ invoice: inv.id, channel: 'whatsapp', reason: 'enqueue_failed', error: String(e) });
+          }
+        } else {
+          skipped.push({ invoice: inv.id, channel: 'whatsapp', reason: 'invalid_phone', phone });
+        }
+      }
+
+      // Email reminder
+      let emailQueued = false;
+      if (hasValidEmail) {
+        const dueDate = inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A';
+        const invoiceAmount = inv.total_amount ? `₹${inv.total_amount}` : 'N/A';
+        
+        const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
+    .header { background: #6366f1; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { padding: 20px; }
+    .invoice-details { background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0; }
+    .detail-row { display: flex; justify-content: space-between; margin: 8px 0; }
+    .label { font-weight: bold; color: #6b7280; }
+    .value { color: #111827; }
+    .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin:0;">Payment Due Reminder</h1>
+    </div>
+    <div class="content">
+      <p>Namaste ${profile.full_name || 'Valued Customer'},</p>
+      <p>This is a friendly reminder that your payment is due.</p>
+      
+      <div class="invoice-details">
+        <div class="detail-row">
+          <span class="label">Invoice Number:</span>
+          <span class="value">${inv.invoice_number || inv.id}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Amount Due:</span>
+          <span class="value">${invoiceAmount}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Due Date:</span>
+          <span class="value">${dueDate}</span>
+        </div>
+      </div>
+      
+      <p>Please complete your payment at your earliest convenience to continue enjoying our services.</p>
+      <p>If you have already made the payment, please disregard this message.</p>
+      <p>Thank you for choosing Yogique! 🙏</p>
+    </div>
+    <div class="footer">
+      <p>Yogique - Yoga for Life</p>
+      <p>This is an automated reminder. Please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+        const emailRow = {
+          channel: 'email',
+          recipient: userEmail,
+          subject: `Payment Due - Invoice #${inv.invoice_number || inv.id}`,
+          html: emailHtml,
+          from: Deno.env.get('INVOICE_FROM_EMAIL') || Deno.env.get('CLASSES_FROM_EMAIL') || 'noreply@yogique.life',
+          metadata: { invoice_id: inv.id, scheduled_by: 'schedule-payment-reminders' },
+          status: 'pending',
+          attempts: 0,
+          run_after: nowIso,
+          created_at: nowIso,
+          updated_at: nowIso,
+        };
+
+        try {
+          const res = await restPost('/rest/v1/notifications_queue', [emailRow]).catch((e) => { throw e; });
+          emailQueued = true;
+          inserted.push({ invoice: inv.id, channel: 'email', result: res });
+        } catch (e) {
+          console.error('failed to enqueue email for invoice', inv.id, e);
+          skipped.push({ invoice: inv.id, channel: 'email', reason: 'enqueue_failed', error: String(e) });
+        }
+      }
+
+      // If neither channel was queued, mark as skipped
+      if (!whatsappQueued && !emailQueued) {
+        skipped.push({ invoice: inv.id, reason: 'no_valid_channel', details: { whatsapp_opt_in: profile.whatsapp_opt_in, has_email: hasValidEmail } });
       }
     }
 

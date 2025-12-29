@@ -83,15 +83,27 @@ async function processRow(row: any) {
   const locked = await markProcessing(id);
   if (!locked) return { ok: false, error: 'failed to claim row' };
 
+  const channel = row.channel || 'whatsapp';
   const payload: any = {
     to: row.recipient || null,
-    channel: row.channel || 'whatsapp',
-    templateKey: row.template_key || null,
-    templateLanguage: row.template_language || 'en',
-    vars: row.vars || null,
+    channel,
     metadata: row.metadata || null,
     dry_run: false,
   };
+
+  // Add channel-specific fields
+  if (channel === 'email') {
+    // Use direct columns (preferred) or fallback to metadata.email (backward compatibility)
+    payload.subject = row.subject || row.metadata?.email?.subject || null;
+    payload.html = row.html || row.metadata?.email?.html || null;
+    payload.bcc = row.bcc || row.metadata?.email?.bcc || null;
+    payload.from = row.from || row.metadata?.email?.from || null;
+  } else {
+    // WhatsApp/SMS
+    payload.templateKey = row.template_key || null;
+    payload.templateLanguage = row.template_language || 'en';
+    payload.vars = row.vars || null;
+  }
 
   try {
     const result = await callFunction('notification-service', payload);

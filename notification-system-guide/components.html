@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Components - Notification System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>Notification System</h2>
+            <p>Admin Guide</p>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="flow-diagram.html">Flow Diagram</a></li>
+            <li><a href="components.html" class="active">Components</a></li>
+            <li><a href="configuration.html">Configuration</a></li>
+            <li><a href="queue-management.html">Queue Management</a></li>
+            <li><a href="troubleshooting.html">Troubleshooting</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <div class="container">
+            <h1>System Components</h1>
+
+            <section>
+                <h2>1. notifications_queue (Database Table)</h2>
+
+                <h3>Purpose</h3>
+                <p>Central storage for all notifications waiting to be processed. Acts as a reliable queue system.</p>
+
+                <h3>Table Schema</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Purpose</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td>UUID</td>
+                            <td>Unique notification ID</td>
+                            <td>f561d2df-2735-4550-8489-eb70d909f2cc</td>
+                        </tr>
+                        <tr>
+                            <td><code>channel</code></td>
+                            <td>TEXT</td>
+                            <td>'email' or 'whatsapp'</td>
+                            <td>email</td>
+                        </tr>
+                        <tr>
+                            <td><code>recipient</code></td>
+                            <td>TEXT</td>
+                            <td>Email or phone number (comma-separated for multiple)</td>
+                            <td>student@email.com,instructor@email.com</td>
+                        </tr>
+                        <tr>
+                            <td><code>subject</code></td>
+                            <td>TEXT</td>
+                            <td>Email subject (email only)</td>
+                            <td>Yoga Class — Join details</td>
+                        </tr>
+                        <tr>
+                            <td><code>html</code></td>
+                            <td>TEXT</td>
+                            <td>Email body HTML (email only)</td>
+                            <td>&lt;html&gt;&lt;body&gt;...&lt;/body&gt;&lt;/html&gt;</td>
+                        </tr>
+                        <tr>
+                            <td><code>bcc</code></td>
+                            <td>TEXT</td>
+                            <td>BCC recipients (email only)</td>
+                            <td>admin@yogique.life,support@yogique.life</td>
+                        </tr>
+                        <tr>
+                            <td><code>from</code></td>
+                            <td>TEXT</td>
+                            <td>From email address (email only)</td>
+                            <td>noreply@dev.yogique.life</td>
+                        </tr>
+                        <tr>
+                            <td><code>template_key</code></td>
+                            <td>TEXT</td>
+                            <td>WhatsApp template name (WhatsApp only)</td>
+                            <td>class_reminder_zoom</td>
+                        </tr>
+                        <tr>
+                            <td><code>template_language</code></td>
+                            <td>TEXT</td>
+                            <td>Template language code (WhatsApp only)</td>
+                            <td>en</td>
+                        </tr>
+                        <tr>
+                            <td><code>vars</code></td>
+                            <td>JSONB</td>
+                            <td>Template variables (WhatsApp only)</td>
+                            <td>{"title": "Yoga Class", "zoom_link": "https://..."}</td>
+                        </tr>
+                        <tr>
+                            <td><code>status</code></td>
+                            <td>TEXT</td>
+                            <td>pending | processing | sent | failed</td>
+                            <td>pending</td>
+                        </tr>
+                        <tr>
+                            <td><code>attempts</code></td>
+                            <td>INTEGER</td>
+                            <td>Number of delivery attempts</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td><code>last_error</code></td>
+                            <td>TEXT</td>
+                            <td>Last error message (if failed)</td>
+                            <td>Connection timeout after 30s</td>
+                        </tr>
+                        <tr>
+                            <td><code>run_after</code></td>
+                            <td>TIMESTAMP</td>
+                            <td>When to process (for retries)</td>
+                            <td>2025-12-29 10:15:05</td>
+                        </tr>
+                        <tr>
+                            <td><code>created_at</code></td>
+                            <td>TIMESTAMP</td>
+                            <td>When notification was created</td>
+                            <td>2025-12-29 10:00:00</td>
+                        </tr>
+                        <tr>
+                            <td><code>updated_at</code></td>
+                            <td>TIMESTAMP</td>
+                            <td>When notification was last updated</td>
+                            <td>2025-12-29 10:15:15</td>
+                        </tr>
+                        <tr>
+                            <td><code>metadata</code></td>
+                            <td>JSONB</td>
+                            <td>Additional context (class_id, user_id, etc.)</td>
+                            <td>{"class_id": "xyz", "user_id": "123"}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Key Indexes</h3>
+                <pre><code>CREATE INDEX idx_notifications_queue_status_run_after 
+ON notifications_queue (status, run_after);
+-- Used for: Fast lookup of pending notifications due for processing</code></pre>
+            </section>
+
+            <section>
+                <h2>2. notification-worker (Edge Function)</h2>
+
+                <h3>Purpose</h3>
+                <p>Background job processor that continuously polls the queue and sends notifications.</p>
+
+                <h3>How It Works</h3>
+                <ol>
+                    <li><strong>Trigger:</strong> Runs every 5 minutes (via cron scheduler)</li>
+                    <li><strong>Query:</strong> Fetches pending notifications:
+                        <code>WHERE status='pending' AND run_after ≤ NOW()</code></li>
+                    <li><strong>Limit:</strong> Processes max 10 notifications per run (NOTIFICATION_WORKER_LIMIT)</li>
+                    <li><strong>Lock:</strong> Marks each as 'processing' to prevent duplicate processing</li>
+                    <li><strong>Send:</strong> Calls notification-service for each notification</li>
+                    <li><strong>Update:</strong> Sets status to 'sent' or schedules retry</li>
+                </ol>
+
+                <h3>Configuration Variables</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Default</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>NOTIFICATION_WORKER_LIMIT</code></td>
+                            <td>10</td>
+                            <td>Max notifications to process per run</td>
+                        </tr>
+                        <tr>
+                            <td><code>NOTIFICATION_MAX_ATTEMPTS</code></td>
+                            <td>5</td>
+                            <td>Maximum retry attempts before giving up</td>
+                        </tr>
+                        <tr>
+                            <td><code>NOTIFICATION_BASE_BACKOFF_MS</code></td>
+                            <td>1000</td>
+                            <td>Initial retry delay in milliseconds (1 second)</td>
+                        </tr>
+                        <tr>
+                            <td><code>NOTIFICATION_MAX_BACKOFF_MS</code></td>
+                            <td>600000</td>
+                            <td>Max retry delay in milliseconds (10 minutes)</td>
+                        </tr>
+                        <tr>
+                            <td><code>MONITORING_WEBHOOK_URL</code></td>
+                            <td>(empty)</td>
+                            <td>Optional webhook to alert on failures</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Pseudocode</h3>
+                <pre><code>LOOP:
+  pending = SELECT * FROM notifications_queue 
+            WHERE status='pending' AND run_after ≤ NOW() 
+            LIMIT 10
+  
+  FOR EACH notification IN pending:
+    UPDATE queue SET status='processing' WHERE id=notification.id
+    
+    result = call notification-service(notification)
+    
+    IF result.ok:
+      UPDATE queue SET status='sent', attempts=attempts+1
+      INSERT message_audit (status='sent', provider_message_id=result.id)
+    ELSE:
+      IF notification.attempts < 5:
+        backoff = min(2^attempts seconds, 10 minutes)
+        UPDATE queue SET run_after=NOW()+backoff, status='pending'
+      ELSE:
+        UPDATE queue SET status='failed', last_error=result.error
+        SEND ALERT TO monitoring_webhook (if configured)
+  
+  SLEEP 5 minutes
+  REPEAT</code></pre>
+            </section>
+
+            <section>
+                <h2>3. notification-service (Edge Function)</h2>
+
+                <h3>Purpose</h3>
+                <p>Router that directs notifications to the correct sender based on channel type.</p>
+
+                <h3>Input</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Type</th>
+                            <th>Always Required?</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>channel</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>'email' or 'whatsapp' - determines routing</td>
+                        </tr>
+                        <tr>
+                            <td><code>to</code></td>
+                            <td>string</td>
+                            <td>✓</td>
+                            <td>Email or phone number</td>
+                        </tr>
+                        <tr>
+                            <td><code>subject</code></td>
+                            <td>string</td>
+                            <td>Only for email</td>
+                            <td>Email subject line</td>
+                        </tr>
+                        <tr>
+                            <td><code>html</code></td>
+                            <td>string</td>
+                            <td>Only for email</td>
+                            <td>Email HTML body</td>
+                        </tr>
+                        <tr>
+                            <td><code>bcc</code></td>
+                            <td>string</td>
+                            <td>Optional</td>
+                            <td>BCC recipients (comma-separated)</td>
+                        </tr>
+                        <tr>
+                            <td><code>from</code></td>
+                            <td>string</td>
+                            <td>Optional</td>
+                            <td>From email address</td>
+                        </tr>
+                        <tr>
+                            <td><code>templateKey</code></td>
+                            <td>string</td>
+                            <td>Only for WhatsApp</td>
+                            <td>Template name in wa_templates table</td>
+                        </tr>
+                        <tr>
+                            <td><code>vars</code></td>
+                            <td>object</td>
+                            <td>Optional (WhatsApp)</td>
+                            <td>Variables to render in template</td>
+                        </tr>
+                        <tr>
+                            <td><code>dry_run</code></td>
+                            <td>boolean</td>
+                            <td>Optional</td>
+                            <td>If true, don't actually send (testing only)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Routing Logic</h3>
+                <pre><code>IF channel === 'email':
+  // Email validation
+  IF !to || !subject || !html:
+    RETURN error("Email requires: to, subject, html")
+  
+  // Call send-email
+  PAYLOAD = {to, subject, html, bcc, from, dry_run}
+  RETURN call_function('send-email', PAYLOAD)
+
+ELSE IF channel === 'whatsapp':
+  // WhatsApp validation
+  IF !templateKey:
+    RETURN error("WhatsApp requires: templateKey")
+  
+  // Call send-template
+  PAYLOAD = {to, templateKey, vars, templateLanguage, dry_run}
+  RETURN call_function('send-template', PAYLOAD)
+
+ELSE:
+  RETURN error("Unknown channel")</code></pre>
+            </section>
+
+            <section>
+                <h2>4. send-email (Edge Function)</h2>
+
+                <h3>Purpose</h3>
+                <p>Sends emails via Resend API.</p>
+
+                <h3>Process</h3>
+                <ol>
+                    <li>Validate input (to, subject, html required)</li>
+                    <li>If <code>dry_run=true</code>, return success without sending</li>
+                    <li>POST to Resend API: <code>api.resend.com/emails</code></li>
+                    <li>Handle rate limiting (429 errors) with retry</li>
+                    <li>Return provider message ID on success</li>
+                </ol>
+
+                <h3>Required Environment Variables</h3>
+                <ul>
+                    <li><code>RESEND_API_KEY</code> - Your Resend API secret key</li>
+                    <li><code>CLASSES_FROM_EMAIL</code> or <code>INVOICE_FROM_EMAIL</code> - Default sender email</li>
+                    <li><code>SCHEDULER_SECRET_HEADER</code> - Header name for auth (X-SCHED-SECRET)</li>
+                    <li><code>SCHEDULER_SECRET_TOKEN</code> - Secret token value</li>
+                </ul>
+
+                <h3>Response</h3>
+                <pre><code>{
+  "ok": true,
+  "provider": "resend",
+  "provider_message_id": "038ae3ba-9f3f-495f-9ac9-de434fd6bbfe",
+  "status": 200,
+  "rawResponse": "{\"id\":\"038ae3ba-9f3f-495f-9ac9-de434fd6bbfe\"}"
+}</code></pre>
+            </section>
+
+            <section>
+                <h2>5. send-template (Edge Function)</h2>
+
+                <h3>Purpose</h3>
+                <p>Sends WhatsApp messages via Meta WhatsApp Business API using templated messages.</p>
+
+                <h3>Process</h3>
+                <ol>
+                    <li>Receive: template_key, vars, to (phone number)</li>
+                    <li>Query <code>wa_templates</code> table for template content</li>
+                    <li>Render template by replacing {{variable}} placeholders with values from vars</li>
+                    <li>If <code>dry_run=true</code>, return success without sending</li>
+                    <li>POST to Meta Graph API with rendered message</li>
+                    <li>Return provider message ID on success</li>
+                </ol>
+
+                <h3>Template Example</h3>
+                <pre><code>-- In wa_templates table:
+{
+  "template_key": "class_reminder_zoom",
+  "language": "en",
+  "body": "Hi {{recipient_name}}! Your class {{title}} starts at {{class_time}}. Join here: {{zoom_link}}"
+}
+
+-- With vars: {title: "Yoga", class_time: "10:00 AM", zoom_link: "https://zoom..."}
+
+-- Rendered: "Hi John! Your class Yoga starts at 10:00 AM. Join here: https://zoom..."</code></pre>
+
+                <h3>Required Environment Variables</h3>
+                <ul>
+                    <li><code>META_PHONE_NUMBER_ID</code> - Your WhatsApp Business phone number ID</li>
+                    <li><code>META_ACCESS_TOKEN</code> - Meta Business API access token</li>
+                    <li><code>SUPABASE_URL</code> - Supabase project URL</li>
+                    <li><code>SUPABASE_SERVICE_ROLE_KEY</code> - Supabase service role key</li>
+                </ul>
+
+                <h3>Response</h3>
+                <pre><code>{
+  "ok": true,
+  "provider": "meta",
+  "provider_message_id": "wamid.HBEUGVlpQkQDBAGo1ABC+",
+  "status": 200
+}</code></pre>
+            </section>
+
+            <section>
+                <h2>6. message_audit (Database Table)</h2>
+
+                <h3>Purpose</h3>
+                <p>Logs all notification delivery attempts for monitoring and debugging.</p>
+
+                <h3>Key Columns</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td>UUID</td>
+                            <td>Unique log entry ID</td>
+                        </tr>
+                        <tr>
+                            <td><code>class_id</code></td>
+                            <td>UUID</td>
+                            <td>Associated class (if applicable)</td>
+                        </tr>
+                        <tr>
+                            <td><code>user_id</code></td>
+                            <td>UUID</td>
+                            <td>User who received the notification</td>
+                        </tr>
+                        <tr>
+                            <td><code>channel</code></td>
+                            <td>TEXT</td>
+                            <td>'email' or 'whatsapp'</td>
+                        </tr>
+                        <tr>
+                            <td><code>recipient</code></td>
+                            <td>TEXT</td>
+                            <td>Email or phone that received it</td>
+                        </tr>
+                        <tr>
+                            <td><code>provider</code></td>
+                            <td>TEXT</td>
+                            <td>'resend' for email, 'meta' for WhatsApp</td>
+                        </tr>
+                        <tr>
+                            <td><code>provider_message_id</code></td>
+                            <td>TEXT</td>
+                            <td>ID from the provider's API response</td>
+                        </tr>
+                        <tr>
+                            <td><code>status</code></td>
+                            <td>TEXT</td>
+                            <td>'sent' or 'failed'</td>
+                        </tr>
+                        <tr>
+                            <td><code>attempts</code></td>
+                            <td>INTEGER</td>
+                            <td>Number of attempts it took</td>
+                        </tr>
+                        <tr>
+                            <td><code>created_at</code></td>
+                            <td>TIMESTAMP</td>
+                            <td>When logged</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
+</body>
+
+</html>

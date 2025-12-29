@@ -1,5 +1,5 @@
-import { serve } from 'std/server';
-import db from '../../shared/db.ts';
+import { serve } from "https://deno.land/std@0.201.0/http/server.ts";
+import { restDelete, restGet, restPatch, restPost } from '../shared/db.ts';
 
 const SUPERUSER_HEADER = 'x-superuser-token';
 const SUPERUSER_TOKEN = Deno.env.get('SUPERUSER_API_TOKEN') || '';
@@ -14,25 +14,25 @@ serve(async (req) => {
 
     if (req.method === 'GET') {
       const q = url.searchParams.toString() ? `?/` : '';
-      const resp = await db.restGet('/rest/v1/activity_template_mappings?select=*');
+      const resp = await restGet('/rest/v1/activity_template_mappings?select=*');
       return new Response(JSON.stringify(resp), { status: 200 });
     }
 
     if (req.method === 'POST') {
       const body = await req.json();
       if (!body.activity || !body.template_key) return new Response(JSON.stringify({ error: 'missing fields' }), { status: 400 });
-      const created = await db.restPost('/rest/v1/activity_template_mappings', body);
+      const created = await restPost('/rest/v1/activity_template_mappings', body);
       return new Response(JSON.stringify(created), { status: 201 });
     }
 
     if ((req.method === 'PATCH' || req.method === 'PUT') && id) {
       const body = await req.json();
-      const patched = await db.restPatch(`/rest/v1/activity_template_mappings?id=eq.${id}`, body, true);
+      const patched = await restPatch(`/rest/v1/activity_template_mappings?id=eq.${id}`, body, true);
       return new Response(JSON.stringify(patched), { status: 200 });
     }
 
     if (req.method === 'DELETE' && id) {
-      const deleted = await db.restDelete(`/rest/v1/activity_template_mappings?id=eq.${id}`);
+      const deleted = await restDelete(`/rest/v1/activity_template_mappings?id=eq.${id}`);
       return new Response(JSON.stringify(deleted), { status: 200 });
     }
 

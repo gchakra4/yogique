@@ -38,7 +38,11 @@ export async function restPost(pathAndQuery: string, body: any) {
 export async function callFunction(functionName: string, body: any) {
   if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
   const url = baseUrl() + '/functions/v1/' + functionName;
-  const resp = await fetch(url, { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
+  const SCHED_HEADER = Deno.env.get("SCHEDULER_SECRET_HEADER") || '';
+  const SCHED_TOKEN = Deno.env.get("SCHEDULER_SECRET_TOKEN") || '';
+  const extraHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (SCHED_HEADER && SCHED_TOKEN) extraHeaders[SCHED_HEADER] = SCHED_TOKEN;
+  const resp = await fetch(url, { method: 'POST', headers: authHeaders(extraHeaders), body: JSON.stringify(body) });
   const txt = await resp.text().catch(() => '');
   try { return { ok: resp.ok, status: resp.status, body: JSON.parse(txt) }; } catch { return { ok: resp.ok, status: resp.status, body: txt }; }
 }
