@@ -98,6 +98,26 @@ export const AssignmentForm = ({
         }
     }, [rate])
 
+    // Ensure recurrence and duration defaults when assignment type changes
+    useEffect(() => {
+        if (formData.assignment_type === 'monthly') {
+            if (formData.course_duration_unit !== 'months') {
+                onInputChange('course_duration_unit', 'months')
+            }
+            if (formData.recurrence_type !== 'monthly') {
+                onInputChange('recurrence_type', 'monthly')
+            }
+        } else if (formData.assignment_type === 'weekly') {
+            if (formData.recurrence_type !== 'weekly') {
+                onInputChange('recurrence_type', 'weekly')
+            }
+        } else {
+            if (formData.recurrence_type !== 'single') {
+                onInputChange('recurrence_type', 'single')
+            }
+        }
+    }, [formData.assignment_type])
+
     if (!isVisible) return null
 
     const getFilteredPackages = () => {
@@ -158,8 +178,8 @@ export const AssignmentForm = ({
                                             <label
                                                 htmlFor={type.value}
                                                 className={`block p-3 border rounded-lg cursor-pointer transition-colors ${formData.assignment_type === type.value
-                                                        ? 'border-blue-500 bg-blue-50 text-blue-900'
-                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-900'
+                                                    : 'border-gray-200 hover:border-gray-300'
                                                     }`}
                                             >
                                                 <div className="font-medium text-sm">{type.label}</div>
@@ -195,22 +215,57 @@ export const AssignmentForm = ({
 
                             {/* Booking Reference Selector */}
                             <div>
-                                <AdaptiveBookingSelector
-                                    bookings={bookings}
-                                    assignmentType={formData.assignment_type}
-                                    bookingType={formData.booking_type as any}
-                                    selectedBookingId={formData.booking_id || ''}
-                                    onBookingSelect={(bookingId, clientName, clientEmail) => {
-                                        onInputChange('booking_id', bookingId)
-                                        onInputChange('client_name', clientName)
-                                        onInputChange('client_email', clientEmail)
-                                    }}
-                                    selectedBookingIds={formData.booking_ids || []}
-                                    onBookingSelectionChange={(bookingIds) => {
-                                        onInputChange('booking_ids', bookingIds)
-                                    }}
-                                    bookingTypeFilter={formData.booking_type as any}
-                                />
+                                <div className="mb-2 flex items-center justify-between">
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Link booking (optional)</label>
+                                        <p className="text-xs text-gray-500">Link an existing booking to this assignment to auto-complete client info and optionally mark it recurring for billing.</p>
+                                    </div>
+                                    <div>
+                                        <label className="inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!formData.link_booking}
+                                                onChange={(e) => {
+                                                    const enabled = e.target.checked
+                                                    onInputChange('link_booking', enabled)
+                                                    if (!enabled) {
+                                                        // Clear any selected bookings when turning off
+                                                        onInputChange('booking_ids', [])
+                                                        onInputChange('booking_id', '')
+                                                        onInputChange('client_name', '')
+                                                        onInputChange('client_email', '')
+                                                    }
+                                                }}
+                                                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                                            />
+                                            <span className="ml-2 text-sm text-gray-700">Enable</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Show booking selector only when link_booking is enabled */}
+                                {formData.link_booking ? (
+                                    <AdaptiveBookingSelector
+                                        bookings={bookings}
+                                        assignmentType={formData.assignment_type}
+                                        bookingType={formData.booking_type as any}
+                                        selectedBookingId={formData.booking_id || ''}
+                                        onBookingSelect={(bookingId, clientName, clientEmail) => {
+                                            onInputChange('booking_id', bookingId)
+                                            onInputChange('client_name', clientName)
+                                            onInputChange('client_email', clientEmail)
+                                        }}
+                                        selectedBookingIds={formData.booking_ids || []}
+                                        onBookingSelectionChange={(bookingIds) => {
+                                            onInputChange('booking_ids', bookingIds)
+                                        }}
+                                        bookingTypeFilter={formData.booking_type as any}
+                                    />
+                                ) : (
+                                    <div className="p-3 bg-gray-50 border border-dashed border-gray-200 rounded text-sm text-gray-600">
+                                        Linking is disabled. Toggle "Enable" to link an existing booking.
+                                    </div>
+                                )}
                             </div>
 
                             {/* Timeline Description Display */}
@@ -411,6 +466,20 @@ export const AssignmentForm = ({
                                             </select>
                                         </div>
                                         {errors.course_duration_value && <p className="text-red-500 text-sm mt-1">{errors.course_duration_value}</p>}
+
+                                        {/* Recurrence Selector (persisted in formData) */}
+                                        <div className="mt-3">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Recurrence</label>
+                                            <select
+                                                value={formData.recurrence_type || (formData.assignment_type === 'monthly' ? 'monthly' : 'single')}
+                                                onChange={(e) => onInputChange('recurrence_type', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="single">Single / None</option>
+                                                <option value="weekly">Weekly</option>
+                                                <option value="monthly">Monthly</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -505,23 +574,7 @@ export const AssignmentForm = ({
                                 </div>
                             )}
 
-                            {/* Day Selection for Monthly */}
-                            {formData.assignment_type === 'monthly' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Day of Month <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="31"
-                                        value={formData.day_of_month}
-                                        onChange={(e) => onInputChange('day_of_month', parseInt(e.target.value) || 1)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                    {errors.day_of_month && <p className="text-red-500 text-sm mt-1">{errors.day_of_month}</p>}
-                                </div>
-                            )}
+                            {/* Day of Month removed from monthly flow — monthly recurrence uses start_date + recurrence logic */}
 
 
                             {/* Instructor Selection */}
@@ -595,8 +648,8 @@ export const AssignmentForm = ({
                             {/* Conflict Warning */}
                             {conflictWarning && (
                                 <div className={`p-4 rounded-md border ${conflictWarning.severity === 'error'
-                                        ? 'bg-red-50 border-red-200'
-                                        : 'bg-yellow-50 border-yellow-200'
+                                    ? 'bg-red-50 border-red-200'
+                                    : 'bg-yellow-50 border-yellow-200'
                                     }`}>
                                     <div className="flex items-start">
                                         <AlertTriangle className={`w-5 h-5 mt-0.5 mr-3 ${conflictWarning.severity === 'error' ? 'text-red-500' : 'text-yellow-500'
@@ -862,8 +915,8 @@ export const AssignmentForm = ({
                                                                         className="sr-only"
                                                                     />
                                                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border ${formData.weekly_days.includes(index)
-                                                                            ? 'bg-blue-500 text-white border-blue-500'
-                                                                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                                                        ? 'bg-blue-500 text-white border-blue-500'
+                                                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                                                                         }`}>
                                                                         {day}
                                                                     </div>

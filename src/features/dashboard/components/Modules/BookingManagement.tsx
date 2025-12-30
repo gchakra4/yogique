@@ -46,6 +46,9 @@ interface Booking {
   status: string
   created_at: string
   updated_at: string
+  access_status?: string
+  is_recurring?: boolean
+  billing_cycle_anchor?: string | null
   timezone?: string
   goals?: string
   preferred_days?: string[]
@@ -311,6 +314,24 @@ export function BookingManagement() {
     }
   }
 
+  const getAccessStatusBadge = (access_status?: string) => {
+    if (!access_status) return null
+
+    const config = {
+      active: { color: 'bg-green-100 text-green-800', label: 'Active', icon: '✓' },
+      overdue_grace: { color: 'bg-yellow-100 text-yellow-800', label: 'Grace Period', icon: '⚠' },
+      overdue_locked: { color: 'bg-red-100 text-red-800', label: 'Locked', icon: '🔒' }
+    }
+
+    const cfg = config[access_status as keyof typeof config] || config.active
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full font-medium ${cfg.color}`}>
+        <span>{cfg.icon}</span>
+        {cfg.label}
+      </span>
+    )
+  }
+
   // Filter bookings based on search term and filters
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = searchTerm === '' ||
@@ -455,6 +476,9 @@ export function BookingManagement() {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Access
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -483,6 +507,9 @@ export function BookingManagement() {
                       <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(booking.status)}`}>
                         {booking.status.replace('_', ' ')}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getAccessStatusBadge(booking.access_status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">

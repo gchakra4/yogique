@@ -1,6 +1,5 @@
 import {
   Calendar,
-  DollarSign,
   RefreshCw,
   TrendingUp
 } from 'lucide-react';
@@ -11,15 +10,12 @@ import { Button } from '../../../shared/components/ui/Button';
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner';
 import { useAuth } from '../../auth/contexts/AuthContext';
 
-// NEW hooks (upcoming classes / payout summary / earnings legacy)
-import { useInstructorEarnings } from '../hooks/useInstructorEarnings';
-import { usePayoutSummary } from '../hooks/usePayoutSummary';
+// NEW hooks (upcoming classes)
 import { useUpcomingInstructorClasses } from '../hooks/useUpcomingInstructorClasses';
 
 // NEW components
 import { AssignmentCreationService } from '../../dashboard/components/Modules/ClassAssignmentManager/services/assignmentCreation';
 import { AttendanceStatusBadge } from '../components/AttendanceStatusBadge';
-import { PaymentStatusBadge } from '../components/PaymentStatusBadge';
 import { RatingWidget } from '../components/RatingWidget';
 
 // Legacy (kept temporarily for any existing analytics – can be removed later)
@@ -35,8 +31,6 @@ export function TeachingDashboard() {
 
   // UI State
   const [filterStatus, setFilterStatus] = useState<ClassFilterStatus>('all');
-  const [showEarnings, setShowEarnings] = useState(false);
-  const [showPayoutSummary, setShowPayoutSummary] = useState(true);
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
@@ -60,27 +54,6 @@ export function TeachingDashboard() {
     class_status: 'all'
   });
 
-  // Earnings (legacy monthly/yearly)
-  const {
-    monthlyEarnings,
-    yearlyEarnings,
-    loading: earningsLoading
-  } = useInstructorEarnings(instructorId);
-
-  // Payout summary (payment status aggregation)
-  const {
-    summaries,
-    totalFinalAmount,
-    loading: payoutLoading,
-    error: payoutError,
-    refetch: refetchPayout
-  } = usePayoutSummary(instructorId);
-
-  // Derived stats
-  const thisMonthEarnings = monthlyEarnings?.find(
-    m => m.month === new Date().getMonth() + 1 && m.year === new Date().getFullYear()
-  );
-
   const filteredClasses = (classes || []).filter(c => {
     if (filterStatus === 'all') return true;
     if (filterStatus === 'canceled') return c.class_status === 'not_conducted';
@@ -95,7 +68,6 @@ export function TeachingDashboard() {
 
   const handleRefreshAll = () => {
     refetchUpcoming();
-    refetchPayout();
   };
 
   if (upcomingLoading && !classes) {
@@ -121,22 +93,6 @@ export function TeachingDashboard() {
               </p>
             </div>
             <div className="flex gap-3 flex-wrap">
-              <Button
-                onClick={() => setShowEarnings(v => !v)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <DollarSign className="w-4 h-4" />
-                {showEarnings ? 'Hide' : 'Show'} Earnings
-              </Button>
-              <Button
-                onClick={() => setShowPayoutSummary(v => !v)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <DollarSign className="w-4 h-4" />
-                {showPayoutSummary ? 'Hide' : 'Show'} Payout Summary
-              </Button>
               <Button
                 onClick={handleRefreshAll}
                 variant="outline"
@@ -165,24 +121,12 @@ export function TeachingDashboard() {
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400">This Month's Classes</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Completed</p>
                   <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                    {thisMonthEarnings?.total_classes || 0}
+                    {classes?.filter(c => c.class_status === 'completed').length || 0}
                   </p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400">This Month's Earnings</p>
-                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                    ₹{thisMonthEarnings?.total_earnings?.toLocaleString() || '0'}
-                  </p>
-                </div>
-                <DollarSign className="w-8 h-8 text-emerald-500 dark:text-emerald-400" />
               </div>
             </div>
 
@@ -199,84 +143,6 @@ export function TeachingDashboard() {
             </div>
           </div>
         </div>
-
-        {/* Earnings Overview (legacy) */}
-        {showEarnings && (
-          <div className="mb-8">
-            {/* Reusing existing component structure kept previously (if removed, replace with charts) */}
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Monthly & Yearly Earnings
-              </h2>
-              {earningsLoading && (
-                <div className="py-8 flex justify-center">
-                  <LoadingSpinner />
-                </div>
-              )}
-              {!earningsLoading && (
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-2">Recent Months</h3>
-                    <ul className="space-y-2 max-h-56 overflow-auto pr-1 text-sm">
-                      {monthlyEarnings.slice(0, 6).map(m => (
-                        <li key={`${m.year}-${m.month}`} className="flex justify-between">
-                          <span>{m.year}-{String(m.month).padStart(2, '0')}</span>
-                          <span className="font-medium text-emerald-600 dark:text-emerald-400">₹{m.total_earnings.toFixed(2)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-2">Yearly</h3>
-                    <ul className="space-y-2 text-sm">
-                      {yearlyEarnings.map(y => (
-                        <li key={y.year} className="flex justify-between">
-                          <span>{y.year}</span>
-                          <span className="font-medium text-emerald-600 dark:text-emerald-400">₹{y.total_earnings.toFixed(2)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Payout Summary */}
-        {showPayoutSummary && (
-          <div className="mb-8">
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Payout Summary (Window)
-                </h2>
-                {payoutLoading && <LoadingSpinner size="sm" />}
-              </div>
-              {payoutError && (
-                <div className="text-sm text-red-600 dark:text-red-400 mb-4">
-                  Error: {payoutError}
-                </div>
-              )}
-              <div className="flex flex-wrap gap-3">
-                {summaries.map(s => (
-                  <div
-                    key={s.payment_status}
-                    className="flex items-center gap-2 bg-gray-50 dark:bg-slate-700/40 border border-gray-200 dark:border-slate-600 rounded-lg px-4 py-2 text-sm"
-                  >
-                    <PaymentStatusBadge status={s.payment_status} showAmount amount={s.total_amount} />
-                    <span className="text-xs text-gray-600 dark:text-slate-400">
-                      {s.class_count} {s.class_count === 1 ? 'class' : 'classes'}
-                    </span>
-                  </div>
-                ))}
-                <div className="ml-auto flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-slate-300">
-                  Total: <span className="text-emerald-600 dark:text-emerald-400">₹{totalFinalAmount.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Filters */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 p-6 mb-8">
@@ -383,11 +249,6 @@ export function TeachingDashboard() {
                             status={c.class_status === 'completed' ? 'present' : c.class_status === 'canceled' ? 'canceled_by_instructor' : 'present'}
                             compact
                           />
-                          <PaymentStatusBadge
-                            status={c.payment_status}
-                            amount={c.final_payment_amount ?? c.override_payment_amount ?? c.payment_amount ?? 0}
-                            compact
-                          />
                           <span className="text-xs text-gray-500 dark:text-slate-400">
                             Present: {c.present_count} • No-Show: {c.no_show_count}
                           </span>
@@ -426,12 +287,6 @@ export function TeachingDashboard() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                          ₹{(c.final_payment_amount ??
-                            c.override_payment_amount ??
-                            c.payment_amount ??
-                            0).toFixed(2)}
-                        </div>
                         <RatingWidget
                           assignmentId={c.assignment_id}
                           size={18}

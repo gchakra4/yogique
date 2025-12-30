@@ -385,11 +385,12 @@ serve(async (req) => {
             console.log(`Skipping email sends for class ${classId}: email_notified=true`);
         } else {
 
+        let hostEmailQueued = false;
         if (attendees.length) {
             for (const a of attendees) {
                 if (!a.email) continue; // skip malformed attendee rows
                 const toList = [a.email].filter(Boolean) as string[];
-                if (instructor?.email && !toList.includes(instructor.email)) toList.push(instructor.email);
+            // Do not CC the instructor on attendee emails; instructor receives a separate host email.
                 const bccList = ADMIN_EMAILS.length ? ADMIN_EMAILS : undefined;
                 // compute attendee local time.
                 // Prefer IANA tznames stored in booking_timezone (e.g. 'Asia/Kolkata').
@@ -435,31 +436,27 @@ serve(async (req) => {
                     meetingId: String(zoomData.id || ''),
                     passcode: zoomData.password || undefined,
                 });
-                const res = await sendResendEmail(toList, `${ct?.name || 'Class'} — Join details`, bodyHtml, bccList);
-                sendResults.push({ to: toList, bcc: bccList, result: res });
-                // Insert audit rows per recipient for tracking delivery
+                // Queue email notification
                 try {
-                    let providerId: string | null = null;
-                    try {
-                        // Resend often returns JSON with an id; attempt parse
-                        const parsed = typeof res.body === 'string' ? JSON.parse(res.body || '{}') : res.body;
-                        providerId = parsed?.id || parsed?.message?.id || null;
-                    } catch (e) { providerId = null; }
-                    for (const rec of toList) {
-                        await supabase.from('message_audit').insert({
+                    await supabase.from('notifications_queue').insert({
+                        channel: 'email',
+                        recipient: toList.join(','), // Multiple recipients as comma-separated
+                        subject: `${ct?.name || 'Class'} — Join details`,
+                        html: bodyHtml,
+                        bcc: bccList?.join(',') || null,
+                        from: FROM_EMAIL,
+                        metadata: {
                             class_id: classId,
                             user_id: a.user_id || a.id || null,
-                            channel: 'email',
-                            recipient: rec,
-                            provider: 'resend',
-                            provider_message_id: providerId,
-                            status: (res && res.ok) ? 'sent' : 'failed',
-                            attempts: 1,
-                            metadata: { status: res?.status, body: res?.body },
-                        });
-                    }
+                            type: 'attendee_join_details'
+                        },
+                        status: 'pending',
+                        attempts: 0
+                    });
+                    sendResults.push({ to: toList, bcc: bccList, result: { ok: true, status: 'queued' } });
                 } catch (e) {
-                    console.error('Failed to insert message_audit rows for email', e);
+                    console.error('Failed to queue email notification', e);
+                    sendResults.push({ to: toList, bcc: bccList, result: { ok: false, error: e } });
                 }
             }
         } else if (instructor?.email) {
@@ -486,25 +483,28 @@ serve(async (req) => {
                 meetingId: String(zoomData.id || ''),
                 passcode: zoomData.password || undefined,
             });
-            const res = await sendResendEmail(toList, `${ct?.name || 'Class'} — Host join details`, hostHtml, bccList);
-            sendResults.push({ to: toList, bcc: bccList, result: res });
+            // Queue host email notification
             try {
-                let providerId: string | null = null;
-                try { const parsed = typeof res.body === 'string' ? JSON.parse(res.body || '{}') : res.body; providerId = parsed?.id || parsed?.message?.id || null; } catch (e) { providerId = null; }
-                for (const rec of toList) {
-                    await supabase.from('message_audit').insert({
+                await supabase.from('notifications_queue').insert({
+                    channel: 'email',
+                    recipient: toList.join(','),
+                    subject: `${ct?.name || 'Class'} — Host join details`,
+                    html: hostHtml,
+                    bcc: bccList?.join(',') || null,
+                    from: FROM_EMAIL,
+                    metadata: {
                         class_id: classId,
                         user_id: instructor?.user_id || instructor?.id || null,
-                        channel: 'email',
-                        recipient: rec,
-                        provider: 'resend',
-                        provider_message_id: providerId,
-                        status: (res && res.ok) ? 'sent' : 'failed',
-                        attempts: 1,
-                        metadata: { status: res?.status, body: res?.body },
-                    });
-                }
-            } catch (e) { console.error('Failed to insert message_audit rows for host email', e); }
+                        type: 'host_join_details'
+                    },
+                    status: 'pending',
+                    attempts: 0
+                });
+                sendResults.push({ to: toList, bcc: bccList, result: { ok: true, status: 'queued' } });
+            } catch (e) {
+                console.error('Failed to queue host email', e);
+                sendResults.push({ to: toList, bcc: bccList, result: { ok: false, error: e } });
+            }
         } else {
             // no instructor email found — notify admins only (existing behavior)
             const adminDetails = `
@@ -527,25 +527,71 @@ serve(async (req) => {
                     meetingId: String(zoomData.id || ''),
                     passcode: zoomData.password || undefined,
                 });
-                const ar = await sendResendEmail([FROM_EMAIL], `Admin: class created (no instructor) — ${ct?.name || 'Class'}`, adminHtml, ADMIN_EMAILS);
-                sendResults.push({ to: [FROM_EMAIL], bcc: ADMIN_EMAILS, result: ar });
+                // Queue admin notification email
                 try {
-                    let providerId: string | null = null;
-                    try { const parsed = typeof ar.body === 'string' ? JSON.parse(ar.body || '{}') : ar.body; providerId = parsed?.id || parsed?.message?.id || null; } catch (e) { providerId = null; }
-                    for (const rec of [FROM_EMAIL]) {
-                        await supabase.from('message_audit').insert({
+                    await supabase.from('notifications_queue').insert({
+                        channel: 'email',
+                        recipient: FROM_EMAIL,
+                        subject: `Admin: class created (no instructor) — ${ct?.name || 'Class'}`,
+                        html: adminHtml,
+                        bcc: ADMIN_EMAILS.join(','),
+                        from: FROM_EMAIL,
+                        metadata: {
                             class_id: classId,
                             user_id: null,
-                            channel: 'email',
-                            recipient: rec,
-                            provider: 'resend',
-                            provider_message_id: providerId,
-                            status: (ar && ar.ok) ? 'sent' : 'failed',
-                            attempts: 1,
-                            metadata: { status: ar?.status, body: ar?.body },
-                        });
-                    }
-                } catch (e) { console.error('Failed to insert message_audit rows for admin email', e); }
+                            type: 'admin_no_instructor'
+                        },
+                        status: 'pending',
+                        attempts: 0
+                    });
+                    sendResults.push({ to: [FROM_EMAIL], bcc: ADMIN_EMAILS, result: { ok: true, status: 'queued' } });
+                    hostEmailQueued = true;
+                } catch (e) {
+                    console.error('Failed to queue admin notification email', e);
+                    sendResults.push({ to: [FROM_EMAIL], bcc: ADMIN_EMAILS, result: { ok: false, error: e } });
+                }
+            }
+        }
+
+        // If there were attendees, send a single host email with start_url (if not already queued above)
+        if (attendees.length && instructor?.email && !hostEmailQueued) {
+            try {
+                const toList = [instructor.email];
+                const bccList = ADMIN_EMAILS.length ? ADMIN_EMAILS : undefined;
+                const hostHtml = buildEmailTemplate({
+                    recipientName: instructor.full_name || 'Instructor',
+                    isInstructor: true,
+                    classTitle: `${ct?.name || 'Class'} — Host join details`,
+                    classDisplay: classDisplay,
+                    localTime: null,
+                    zoomUrl: zoomData.start_url,
+                    assignmentCode: cls.assignment_code || cls.id,
+                    instructorName: instructor.full_name || 'Instructor',
+                    instructorEmail: instructor.email || '',
+                    meetingId: String(zoomData.id || ''),
+                    passcode: zoomData.password || undefined,
+                });
+
+                await supabase.from('notifications_queue').insert({
+                    channel: 'email',
+                    recipient: toList.join(','),
+                    subject: `${ct?.name || 'Class'} — Host join details`,
+                    html: hostHtml,
+                    bcc: bccList?.join(',') || null,
+                    from: FROM_EMAIL,
+                    metadata: {
+                        class_id: classId,
+                        user_id: instructor?.user_id || instructor?.id || null,
+                        type: 'host_join_details'
+                    },
+                    status: 'pending',
+                    attempts: 0
+                });
+                sendResults.push({ to: toList, bcc: bccList, result: { ok: true, status: 'queued' } });
+                hostEmailQueued = true;
+            } catch (e) {
+                console.error('Failed to queue host email', e);
+                sendResults.push({ to: [instructor.email], bcc: ADMIN_EMAILS, result: { ok: false, error: e } });
             }
         }
 
@@ -576,27 +622,80 @@ serve(async (req) => {
             }
         }
 
-        // fire-and-forget WhatsApp reminders via separate edge function
+        // Queue WhatsApp reminders via notifications_queue
         try {
-            const projectUrl = SUPABASE_URL.replace(/\/$/, "");
-            const whatsappUrl = `${projectUrl}/functions/v1/send-whatsapp-reminder`;
-            const waResp = await fetch(whatsappUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                    ...(SCHEDULER_SECRET_HEADER && SCHEDULER_SECRET_TOKEN
-                        ? { [SCHEDULER_SECRET_HEADER]: SCHEDULER_SECRET_TOKEN }
-                        : {}),
-                },
-                body: JSON.stringify({ classId }),
-            });
-            const waText = await waResp.text().catch(() => "");
-            try {
-                console.log("WhatsApp reminder response:", waResp.status, waText);
-            } catch (e) { /* ignore log errors */ }
+            if (!cls.whatsapp_notified && attendees.length) {
+                const nowIso = new Date().toISOString();
+                const queueRows: any[] = [];
+                
+                // Get attendee phone numbers from profiles
+                const attendeeIds = attendees.map(a => a.user_id || a.id).filter(Boolean);
+                if (attendeeIds.length) {
+                    const { data: profilesWithPhone } = await supabase
+                        .from("profiles")
+                        .select("id, user_id, phone, full_name")
+                        .in("user_id", attendeeIds);
+                    
+                    const phoneProfiles = profilesWithPhone || [];
+                    for (const profile of phoneProfiles) {
+                        const rawPhone = String(profile.phone || '').trim();
+                        if (!rawPhone) continue;
+                        
+                        // Ensure E.164 format
+                        let phone = rawPhone;
+                        if (!phone.startsWith('+')) {
+                            if (phone.startsWith('91') && phone.length === 12) phone = '+' + phone;
+                            else if (phone.length === 10) phone = '+91' + phone;
+                            else continue; // skip invalid format
+                        }
+                        
+                        // Build notification queue row
+                        const row = {
+                            channel: 'whatsapp',
+                            recipient: phone,
+                            template_key: 'class_reminder_zoom',
+                            template_language: 'en',
+                            vars: {
+                                title: ct?.name || 'Class',
+                                class_time: `${cls.date} ${cls.start_time}`,
+                                zoom_link: zoomData.join_url,
+                            },
+                            metadata: {
+                                class_id: classId,
+                                user_id: profile.user_id || profile.id,
+                                scheduled_by: 'create-zoom-and-email',
+                            },
+                            status: 'pending',
+                            attempts: 0,
+                            run_after: nowIso,
+                            created_at: nowIso,
+                            updated_at: nowIso,
+                        };
+                        queueRows.push(row);
+                    }
+                }
+                
+                // Bulk insert into notifications_queue
+                if (queueRows.length) {
+                    const { error: queueErr } = await supabase
+                        .from('notifications_queue')
+                        .insert(queueRows);
+                    
+                    if (queueErr) {
+                        console.error('Failed to queue WhatsApp notifications:', queueErr);
+                    } else {
+                        console.log(`Queued ${queueRows.length} WhatsApp notifications for class ${classId}`);
+                        
+                        // Mark class as whatsapp_notified
+                        await supabase
+                            .from('class_assignments')
+                            .update({ whatsapp_notified: true })
+                            .eq('id', classId);
+                    }
+                }
+            }
         } catch (waErr) {
-            console.error("WhatsApp reminder call failed:", String(waErr));
+            console.error("WhatsApp queue insertion failed:", String(waErr));
         }
 
         return new Response(JSON.stringify({ success: true, zoom: { id: zoomData.id, join_url: zoomData.join_url }, resend: sendResults }), { status: 200 });

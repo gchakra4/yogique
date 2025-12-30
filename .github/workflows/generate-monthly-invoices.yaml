@@ -1,0 +1,21 @@
+name: generate-monthly-invoices
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Daily at 2 AM UTC (function checks if day 23-27)
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  generate-invoices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call generate-monthly-invoices edge function
+        run: |
+          curl -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/generate-monthly-invoices" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            --fail-with-body
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

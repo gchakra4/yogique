@@ -15,6 +15,8 @@ export type DashboardModule =
   | 'user_role_management'
   | 'rate_management'
   | 'transaction_management'
+  | 'invoice_management'
+  | 'payment_links_monitor'
   | 'business_settings'
   | 'article_management'
   | 'class_assignment'
@@ -49,14 +51,17 @@ export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
     { id: 'class_assignment', title: 'Class Management', component: 'ClassAssignmentManager', icon: 'edit', order: 5 },
     { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 6 },
     { id: 'transaction_management', title: 'Transactions', component: 'TransactionManagement', icon: 'credit-card', order: 7 },
-    { id: 'business_settings', title: 'Business Settings', component: 'BusinessSettings', icon: 'settings', order: 8 },
-    { id: 'booking_management', title: 'Class Bookings', component: 'BookingManagement', icon: 'calendar', order: 9 },
-    { id: 'weekly_schedule', title: 'Weekly Schedule', component: 'WeeklySchedule', icon: 'schedule', order: 10 },
-    { id: 'form_submission', title: 'Form Submissions & Messages', component: 'FormSubmissions', icon: 'file-text', order: 11 },
-    { id: 'class_type_manager', title: 'Class & Package Manager', component: 'ClassTypeManager', icon: 'layers', order: 12 },
-    { id: 'newsletterManagement', title: 'NewsLetter Management', component: 'NewsletterManagement', icon: 'mail', order: 13 },
-    { id: 'admin_classes_overview', title: 'Classes Overview', component: 'AdminClassesOverview', icon: 'bar-chart', order: 14 },
-    { id: 'audit_logs', title: 'Audit Logs', component: 'AuditLogs', icon: 'archive', order: 15 },
+    { id: 'invoice_management', title: 'Invoice Management', component: 'InvoiceManagement', icon: 'file-text', order: 8 },
+    { id: 'payment_links_monitor', title: 'Payment Links', component: 'PaymentLinksMonitor', icon: 'link', order: 9 },
+    { id: 'business_settings', title: 'Business Settings', component: 'BusinessSettings', icon: 'settings', order: 10 },
+    { id: 'booking_management', title: 'Class Bookings', component: 'BookingManagement', icon: 'calendar', order: 11 },
+    { id: 'weekly_schedule', title: 'Weekly Schedule', component: 'WeeklySchedule', icon: 'schedule', order: 12 },
+    { id: 'form_submission', title: 'Form Submissions & Messages', component: 'FormSubmissions', icon: 'file-text', order: 13 },
+    { id: 'class_type_manager', title: 'Class & Package Manager', component: 'ClassTypeManager', icon: 'layers', order: 14 },
+    { id: 'newsletterManagement', title: 'NewsLetter Management', component: 'NewsletterManagement', icon: 'mail', order: 15 },
+    { id: 'admin_classes_overview', title: 'Classes Overview', component: 'AdminClassesOverview', icon: 'bar-chart', order: 16 },
+    { id: 'template_mappings', title: 'Template Mappings', component: 'AdminTemplateMappings', icon: 'message-square', order: 17 },
+    { id: 'audit_logs', title: 'Audit Logs', component: 'AuditLogs', icon: 'archive', order: 17 },
   ],
 
   admin: [
@@ -70,6 +75,7 @@ export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
     { id: 'forms', title: 'Forms', component: 'Forms', icon: 'file-text', order: 9 },
     { id: 'class_type_manager', title: 'Class & Package Manager', component: 'ClassTypeManager', icon: 'layers', order: 8 },
     { id: 'admin_classes_overview', title: 'Classes Overview', component: 'AdminClassesOverview', icon: 'bar-chart', order: 15 }
+    ,{ id: 'template_mappings', title: 'Template Mappings', component: 'AdminTemplateMappings', icon: 'message-square', order: 16 }
     ,{ id: 'audit_logs', title: 'Audit Logs', component: 'AuditLogs', icon: 'archive', order: 16 }
   ],
 

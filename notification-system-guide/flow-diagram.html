@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Diagram - Notification System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>Notification System</h2>
+            <p>Admin Guide</p>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="flow-diagram.html" class="active">Flow Diagram</a></li>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="configuration.html">Configuration</a></li>
+            <li><a href="queue-management.html">Queue Management</a></li>
+            <li><a href="troubleshooting.html">Troubleshooting</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <div class="container">
+            <h1>Complete Flow Diagram</h1>
+
+            <section>
+                <h2>Email Notification Flow</h2>
+                <svg viewBox="0 0 1000 600"
+                    style="width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                    <!-- Timeline labels -->
+                    <text x="50" y="30" font-size="12" fill="var(--text-light)" font-weight="bold">TIME →</text>
+
+                    <!-- Step 1: Business Function -->
+                    <rect x="30" y="60" width="140" height="100" fill="#6366f1" rx="8" />
+                    <text x="100" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">1.
+                        Business</text>
+                    <text x="100" y="103" text-anchor="middle" fill="white" font-size="13">Function</text>
+                    <text x="100" y="125" text-anchor="middle" fill="white" font-size="11">Builds HTML</text>
+                    <text x="100" y="140" text-anchor="middle" fill="white" font-size="11">template</text>
+
+                    <!-- Arrow -->
+                    <path d="M 170 110 L 220 110" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead)" />
+
+                    <!-- Step 2: Queue Insert -->
+                    <rect x="220" y="60" width="140" height="100" fill="#10b981" rx="8" />
+                    <text x="290" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">2. Insert
+                        into</text>
+                    <text x="290" y="103" text-anchor="middle" fill="white" font-size="13">Queue</text>
+                    <text x="290" y="125" text-anchor="middle" fill="white" font-size="11">status =</text>
+                    <text x="290" y="140" text-anchor="middle" fill="white" font-size="11">'pending'</text>
+
+                    <!-- Arrow -->
+                    <path d="M 360 110 L 410 110" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead)" />
+
+                    <!-- Step 3: Worker Polls -->
+                    <rect x="410" y="60" width="140" height="100" fill="#f59e0b" rx="8" />
+                    <text x="480" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">3.
+                        Worker</text>
+                    <text x="480" y="103" text-anchor="middle" fill="white" font-size="13">Polls</text>
+                    <text x="480" y="125" text-anchor="middle" fill="white" font-size="11">Every 5 min</text>
+                    <text x="480" y="140" text-anchor="middle" fill="white" font-size="11">Fetches rows</text>
+
+                    <!-- Arrow -->
+                    <path d="M 550 110 L 600 110" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead)" />
+
+                    <!-- Step 4: Lock & Route -->
+                    <rect x="600" y="60" width="140" height="100" fill="#ec4899" rx="8" />
+                    <text x="670" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">4. Lock
+                        &</text>
+                    <text x="670" y="103" text-anchor="middle" fill="white" font-size="13">Route</text>
+                    <text x="670" y="125" text-anchor="middle" fill="white" font-size="11">status =</text>
+                    <text x="670" y="140" text-anchor="middle" fill="white" font-size="11">'processing'</text>
+
+                    <!-- Arrow -->
+                    <path d="M 740 110 L 790 110" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead)" />
+
+                    <!-- Step 5: Send -->
+                    <rect x="790" y="60" width="140" height="100" fill="#3b82f6" rx="8" />
+                    <text x="860" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">5.
+                        send-email</text>
+                    <text x="860" y="103" text-anchor="middle" fill="white" font-size="13">Calls</text>
+                    <text x="860" y="125" text-anchor="middle" fill="white" font-size="11">Resend API</text>
+                    <text x="860" y="140" text-anchor="middle" fill="white" font-size="11">Sends email</text>
+
+                    <!-- Bottom: Details -->
+                    <rect x="30" y="200" width="900" height="380" fill="none" stroke="var(--border)"
+                        stroke-dasharray="5,5" rx="8" />
+
+                    <!-- Details heading -->
+                    <text x="50" y="230" font-size="14" font-weight="bold" fill="var(--text)">Data Details at Each
+                        Step</text>
+
+                    <!-- Step 1 Details -->
+                    <text x="50" y="260" font-size="12" font-weight="bold" fill="#6366f1">Step 1: Business
+                        Function</text>
+                    <text x="50" y="280" font-size="11" fill="var(--text)">• Query database: attendees, instructor,
+                        class details</text>
+                    <text x="50" y="295" font-size="11" fill="var(--text)">• Call Zoom API: get meeting join URL and
+                        passcode</text>
+                    <text x="50" y="310" font-size="11" fill="var(--text)">• Build email HTML: buildEmailTemplate()
+                        function</text>
+                    <text x="50" y="325" font-size="11" fill="var(--text)">• Create vars: {subject, html, recipient,
+                        bcc, from}</text>
+
+                    <!-- Step 2 Details -->
+                    <text x="50" y="355" font-size="12" font-weight="bold" fill="#10b981">Step 2: Queue Insert</text>
+                    <text x="50" y="375" font-size="11" fill="var(--text)">INSERT INTO notifications_queue (channel,
+                        recipient, subject, html, bcc, from, status, attempts, run_after)</text>
+                    <text x="50" y="390" font-size="11" fill="var(--text)">VALUES ('email', 'student@email.com', 'Yoga
+                        Class — Join details', '&lt;html&gt;...&lt;/html&gt;', 'admin@mail', 'noreply@yogique',
+                        'pending', 0, NOW())</text>
+
+                    <!-- Step 3 Details -->
+                    <text x="50" y="420" font-size="12" font-weight="bold" fill="#f59e0b">Step 3: Worker Polls</text>
+                    <text x="50" y="440" font-size="11" fill="var(--text)">SELECT * FROM notifications_queue WHERE
+                        status='pending' AND run_after ≤ NOW() ORDER BY run_after LIMIT 10</text>
+                    <text x="50" y="455" font-size="11" fill="var(--text)">Returns: all email fields ready to
+                        process</text>
+
+                    <!-- Step 4 Details -->
+                    <text x="50" y="485" font-size="12" font-weight="bold" fill="#ec4899">Step 4: Lock & Route</text>
+                    <text x="50" y="505" font-size="11" fill="var(--text)">UPDATE notifications_queue SET
+                        status='processing' WHERE id=XXX</text>
+                    <text x="50" y="520" font-size="11" fill="var(--text)">Checks: channel='email' → calls send-email
+                        function</text>
+                    <text x="50" y="535" font-size="11" fill="var(--text)">Payload: {to, subject, html, bcc, from,
+                        dry_run: false}</text>
+
+                    <!-- Step 5 Details -->
+                    <text x="550" y="280" font-size="12" font-weight="bold" fill="#3b82f6">Step 5: send-email</text>
+                    <text x="550" y="300" font-size="11" fill="var(--text)">• Validate: to, subject, html
+                        required</text>
+                    <text x="550" y="315" font-size="11" fill="var(--text)">• POST to: api.resend.com/emails</text>
+                    <text x="550" y="330" font-size="11" fill="var(--text)">• Headers: Authorization: Bearer
+                        RESEND_API_KEY</text>
+                    <text x="550" y="345" font-size="11" fill="var(--text)">• Response: {id: "038ae3ba...", status:
+                        200}</text>
+                    <text x="550" y="360" font-size="11" fill="var(--text)">• Returns: {ok: true,
+                        provider_message_id}</text>
+
+                    <!-- Success Path -->
+                    <text x="550" y="395" font-size="12" font-weight="bold" fill="#10b981">✓ On Success</text>
+                    <text x="550" y="415" font-size="11" fill="var(--text)">• UPDATE queue: status='sent',
+                        attempts=1</text>
+                    <text x="550" y="430" font-size="11" fill="var(--text)">• INSERT message_audit: provider_message_id,
+                        status='sent'</text>
+                    <text x="550" y="445" font-size="11" fill="var(--text)">• Notification delivery complete ✓</text>
+
+                    <!-- Failure Path -->
+                    <text x="550" y="480" font-size="12" font-weight="bold" fill="#ef4444">✗ On Failure</text>
+                    <text x="550" y="500" font-size="11" fill="var(--text)">• If attempts &lt; 5: Schedule retry with
+                        backoff</text>
+                    <text x="550" y="515" font-size="11" fill="var(--text)"> run_after = NOW() + (2^attempts
+                        seconds)</text>
+                    <text x="550" y="530" font-size="11" fill="var(--text)">• If attempts ≥ 5: Mark as 'failed', store
+                        error</text>
+
+                    <!-- Arrow marker -->
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#6366f1" />
+                        </marker>
+                    </defs>
+                </svg>
+            </section>
+
+            <section>
+                <h2>WhatsApp Notification Flow</h2>
+                <svg viewBox="0 0 1000 600"
+                    style="width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                    <!-- Step 1: Business Function -->
+                    <rect x="30" y="60" width="140" height="100" fill="#6366f1" rx="8" />
+                    <text x="100" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">1.
+                        Business</text>
+                    <text x="100" y="103" text-anchor="middle" fill="white" font-size="13">Function</text>
+                    <text x="100" y="125" text-anchor="middle" fill="white" font-size="11">Builds vars</text>
+                    <text x="100" y="140" text-anchor="middle" fill="white" font-size="11">object</text>
+
+                    <!-- Arrow -->
+                    <path d="M 170 110 L 220 110" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead2)" />
+
+                    <!-- Step 2: Queue Insert -->
+                    <rect x="220" y="60" width="140" height="100" fill="#10b981" rx="8" />
+                    <text x="290" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">2. Insert
+                        into</text>
+                    <text x="290" y="103" text-anchor="middle" fill="white" font-size="13">Queue</text>
+                    <text x="290" y="125" text-anchor="middle" fill="white" font-size="11">With template_key</text>
+                    <text x="290" y="140" text-anchor="middle" fill="white" font-size="11">+ vars</text>
+
+                    <!-- Arrow -->
+                    <path d="M 360 110 L 410 110" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead2)" />
+
+                    <!-- Step 3: Worker Polls -->
+                    <rect x="410" y="60" width="140" height="100" fill="#f59e0b" rx="8" />
+                    <text x="480" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">3.
+                        Worker</text>
+                    <text x="480" y="103" text-anchor="middle" fill="white" font-size="13">Polls</text>
+                    <text x="480" y="125" text-anchor="middle" fill="white" font-size="11">Every 5 min</text>
+                    <text x="480" y="140" text-anchor="middle" fill="white" font-size="11">Fetches rows</text>
+
+                    <!-- Arrow -->
+                    <path d="M 550 110 L 600 110" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead2)" />
+
+                    <!-- Step 4: Lock & Route -->
+                    <rect x="600" y="60" width="140" height="100" fill="#ec4899" rx="8" />
+                    <text x="670" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">4. Lock
+                        &</text>
+                    <text x="670" y="103" text-anchor="middle" fill="white" font-size="13">Route</text>
+                    <text x="670" y="125" text-anchor="middle" fill="white" font-size="11">status =</text>
+                    <text x="670" y="140" text-anchor="middle" fill="white" font-size="11">'processing'</text>
+
+                    <!-- Arrow -->
+                    <path d="M 740 110 L 790 110" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead2)" />
+
+                    <!-- Step 5: Send Template -->
+                    <rect x="790" y="60" width="140" height="100" fill="#3b82f6" rx="8" />
+                    <text x="860" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="13">5.
+                        send-template</text>
+                    <text x="860" y="103" text-anchor="middle" fill="white" font-size="13">Lookup &</text>
+                    <text x="860" y="125" text-anchor="middle" fill="white" font-size="11">Render</text>
+                    <text x="860" y="140" text-anchor="middle" fill="white" font-size="11">template</text>
+
+                    <!-- Bottom: Details -->
+                    <rect x="30" y="200" width="900" height="380" fill="none" stroke="var(--border)"
+                        stroke-dasharray="5,5" rx="8" />
+
+                    <!-- Details heading -->
+                    <text x="50" y="230" font-size="14" font-weight="bold" fill="var(--text)">Data Details at Each
+                        Step</text>
+
+                    <!-- Step 1 Details -->
+                    <text x="50" y="260" font-size="12" font-weight="bold" fill="#6366f1">Step 1: Business
+                        Function</text>
+                    <text x="50" y="280" font-size="11" fill="var(--text)">• Query database: class name, date,
+                        time</text>
+                    <text x="50" y="295" font-size="11" fill="var(--text)">• Call Zoom API: get meeting join URL</text>
+                    <text x="50" y="310" font-size="11" fill="var(--text)">• Build vars object:</text>
+                    <text x="50" y="325" font-size="11" fill="var(--text)"> {title: "Yoga Class", class_time:
+                        "2025-12-30 10:00", zoom_link: "https://..."}</text>
+
+                    <!-- Step 2 Details -->
+                    <text x="50" y="355" font-size="12" font-weight="bold" fill="#10b981">Step 2: Queue Insert</text>
+                    <text x="50" y="375" font-size="11" fill="var(--text)">INSERT INTO notifications_queue (channel,
+                        recipient, template_key, vars, status, attempts, run_after)</text>
+                    <text x="50" y="390" font-size="11" fill="var(--text)">VALUES ('whatsapp', '+919088951685',
+                        'class_reminder_zoom', '{"title": "Yoga Class", ...}', 'pending', 0, NOW())</text>
+
+                    <!-- Step 3 Details -->
+                    <text x="50" y="420" font-size="12" font-weight="bold" fill="#f59e0b">Step 3: Worker Polls</text>
+                    <text x="50" y="440" font-size="11" fill="var(--text)">SELECT * FROM notifications_queue WHERE
+                        status='pending' AND run_after ≤ NOW() ORDER BY run_after LIMIT 10</text>
+                    <text x="50" y="455" font-size="11" fill="var(--text)">Returns: template_key, vars, recipient,
+                        channel</text>
+
+                    <!-- Step 4 Details -->
+                    <text x="50" y="485" font-size="12" font-weight="bold" fill="#ec4899">Step 4: Lock & Route</text>
+                    <text x="50" y="505" font-size="11" fill="var(--text)">Checks: channel='whatsapp' → calls
+                        send-template function</text>
+                    <text x="50" y="520" font-size="11" fill="var(--text)">Payload: {templateKey: 'class_reminder_zoom',
+                        vars: {...}, to: '+919088951685', dry_run: false}</text>
+
+                    <!-- Step 5 Details -->
+                    <text x="550" y="280" font-size="12" font-weight="bold" fill="#3b82f6">Step 5: send-template</text>
+                    <text x="550" y="300" font-size="11" fill="var(--text)">• SELECT * FROM wa_templates WHERE
+                        template_key='class_reminder_zoom'</text>
+                    <text x="550" y="315" font-size="11" fill="var(--text)">• Render template with vars (replace
+                        {{title}}, {{class_time}}, {{zoom_link}})</text>
+                    <text x="550" y="330" font-size="11" fill="var(--text)">• Rendered text: "Hi! Your Yoga Class starts
+                        at 2025-12-30 10:00. Join: https://..."</text>
+                    <text x="550" y="345" font-size="11" fill="var(--text)">• POST to:
+                        graph.facebook.com/v20.0/PHONE_NUMBER_ID/messages</text>
+                    <text x="550" y="360" font-size="11" fill="var(--text)">• Response: {id: "msg_id_xxx", status:
+                        'sent'}</text>
+
+                    <!-- Success Path -->
+                    <text x="550" y="395" font-size="12" font-weight="bold" fill="#10b981">✓ On Success</text>
+                    <text x="550" y="415" font-size="11" fill="var(--text)">• UPDATE queue: status='sent',
+                        attempts=1</text>
+                    <text x="550" y="430" font-size="11" fill="var(--text)">• INSERT message_audit: provider_message_id,
+                        status='sent'</text>
+                    <text x="550" y="445" font-size="11" fill="var(--text)">• WhatsApp message delivered ✓</text>
+
+                    <!-- Failure Path -->
+                    <text x="550" y="480" font-size="12" font-weight="bold" fill="#ef4444">✗ On Failure</text>
+                    <text x="550" y="500" font-size="11" fill="var(--text)">• If attempts &lt; 5: Schedule retry</text>
+                    <text x="550" y="515" font-size="11" fill="var(--text)"> run_after = NOW() + (2^attempts
+                        seconds)</text>
+                    <text x="550" y="530" font-size="11" fill="var(--text)">• If attempts ≥ 5: Mark as 'failed', store
+                        error</text>
+
+                    <!-- Arrow marker -->
+                    <defs>
+                        <marker id="arrowhead2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#6366f1" />
+                        </marker>
+                    </defs>
+                </svg>
+            </section>
+
+            <section>
+                <h2>Retry & Backoff Strategy</h2>
+                <div class="info-box">
+                    <p><strong>Why Retries?</strong> Networks are unreliable. An API might be temporarily down, or
+                        rate-limited. Instead of losing notifications, we automatically retry them.</p>
+                </div>
+
+                <h3>Exponential Backoff Schedule</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Attempt #</th>
+                            <th>Wait Time</th>
+                            <th>Total Time Elapsed</th>
+                            <th>Status in Queue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Immediate</td>
+                            <td>0 seconds</td>
+                            <td style="background: #fee2e2;">Failed, attempts=1</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>1 second</td>
+                            <td>1 second</td>
+                            <td style="background: #fee2e2;">Failed, attempts=2</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>2 seconds</td>
+                            <td>3 seconds</td>
+                            <td style="background: #fee2e2;">Failed, attempts=3</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>4 seconds</td>
+                            <td>7 seconds</td>
+                            <td style="background: #fee2e2;">Failed, attempts=4</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>8 seconds</td>
+                            <td>15 seconds</td>
+                            <td style="background: #fee2e2;">Failed, attempts=5</td>
+                        </tr>
+                        <tr>
+                            <td>6+</td>
+                            <td>Capped at 10 min</td>
+                            <td>15+ seconds</td>
+                            <td style="background: #fecaca;">Marked Failed (Max retries)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>How It Works</h3>
+                <ol>
+                    <li>Worker calls send function</li>
+                    <li>If it returns <code>ok: false</code>:
+                        <ul>
+                            <li>Check if <code>attempts < 5</code></li>
+                            <li>If yes: Calculate wait time = <code>2^(attempts-1)</code> seconds, capped at 600 seconds
+                                (10 min)</li>
+                            <li>Set <code>run_after = NOW() + wait_time</code></li>
+                            <li>Keep <code>status = 'pending'</code> so worker picks it up later</li>
+                            <li>Next worker run will process it after run_after time passes</li>
+                        </ul>
+                    </li>
+                    <li>If <code>attempts >= 5</code>:
+                        <ul>
+                            <li>Mark <code>status = 'failed'</code></li>
+                            <li>Store <code>last_error</code> for debugging</li>
+                            <li>Never retry again (manual intervention needed)</li>
+                        </ul>
+                    </li>
+                </ol>
+            </section>
+        </div>
+    </main>
+</body>
+
+</html>

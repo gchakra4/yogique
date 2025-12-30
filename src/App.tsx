@@ -14,6 +14,7 @@ import { Header } from './shared/components/layout/Header';
 import { ProtectedRoute } from './features/auth/components/ProtectedRoute';
 // Dashboard component - new import
 import UniversalDashboard from './features/dashboard/components/UniversalDashboard';
+import ClassAssignmentPage from './features/dashboard/pages/ClassAssignmentPage';
 // Page imports - updated paths
 import { Navigate } from 'react-router-dom';
 import NewArticlePage from './features/articles/pages/NewArticlePage';
@@ -41,6 +42,8 @@ import { Schedule } from './features/scheduling/pages/Schedule';
 import { Profile } from './features/user-profile/pages/Profile';
 import AdminApprovals from './pages/AdminApprovals';
 import { NotFound } from './pages/NotFound';
+import PaymentFailed from './pages/PaymentFailed';
+import PaymentSuccess from './pages/PaymentSuccess';
 import PricingPage from './pages/PricingPage';
 
 function App() {
@@ -101,6 +104,15 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Dedicated Class Assignment page (standalone) */}
+      <Route
+        path="/dashboard/class-assignments"
+        element={
+          <ProtectedRoute>
+            <ClassAssignmentPage />
+          </ProtectedRoute>
+        }
+      />
       {/* Universal Dashboard Route - New modular dashboard */}
       <Route
         path="/dashboard/*"
@@ -166,6 +178,8 @@ function AppRoutes() {
               />
               <Route path="/instructor/:instructorId" element={<InstructorProfile />} />
               <Route path="/bookings/:bookingId/cancel" element={<CancelBookingPage />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/payment-failed" element={<PaymentFailed />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/book/individual" element={<BookOneOnOne />} />
               <Route path="/pricing" element={<PricingPage />} />

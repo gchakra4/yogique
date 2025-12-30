@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import AdminTemplateMappings from '../../../pages/admin-template-mappings';
 import { Footer } from '../../../shared/components/layout/Footer';
 import { Header } from '../../../shared/components/layout/Header';
 import RoleBasedNavigation from '../../../shared/components/navigation/RoleBasedNavigation';
@@ -11,6 +12,8 @@ const ArticleManagement = React.lazy(() => import('./Modules/ArticleManagement')
 const UserManagement = React.lazy(() => import('./Modules/UserManagement'));
 const UserRoleManagement = React.lazy(() => import('./Modules/UserRoleManagement'));
 const TransactionManagement = React.lazy(() => import('./Modules/TransactionManagement'));
+const InvoiceManagement = React.lazy(() => import('./Modules/InvoiceManagement'));
+const PaymentLinksMonitor = React.lazy(() => import('./Modules/PaymentLinksMonitor'));
 const BusinessSettings = React.lazy(() => import('./Modules/BusinessSettings'));
 const BookingManagement = React.lazy(() => import('./Modules/BookingManagement'));
 const WeeklySchedule = React.lazy(() => import('./Modules/WeeklyClassScheduler'));
@@ -51,6 +54,8 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
     UserManagement,
     UserRoleManagement,
     TransactionManagement,
+    InvoiceManagement,
+    PaymentLinksMonitor,
     BusinessSettings,
     BookingManagement,
     WeeklySchedule,
@@ -63,6 +68,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
     TeachingDashboard,
     Overview,
     AdminClassesOverview,
+    AdminTemplateMappings,
     AuditLogs: React.lazy(() => import('./Modules/AuditLogs')),
     InstructorRatesPage: React.lazy(() => import('../../instructor-rates/pages/InstructorRatesPage')),
   };

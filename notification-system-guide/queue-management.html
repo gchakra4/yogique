@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Management - Notification System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>Notification System</h2>
+            <p>Admin Guide</p>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="flow-diagram.html">Flow Diagram</a></li>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="configuration.html">Configuration</a></li>
+            <li><a href="queue-management.html" class="active">Queue Management</a></li>
+            <li><a href="troubleshooting.html">Troubleshooting</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <div class="container">
+            <h1>Queue Management</h1>
+
+            <section>
+                <h2>Monitoring the Queue</h2>
+                <p>The notifications queue should ideally be empty or very small. If it's growing, it indicates that the
+                    notification worker is not keeping up with the load.</p>
+
+                <h3>Check Queue Status</h3>
+                <p>Run this query in the Supabase SQL Editor:</p>
+
+                <pre><code>-- Overview of queue health
+SELECT 
+  status,
+  COUNT(*) as count,
+  AVG(EXTRACT(EPOCH FROM (NOW() - created_at))) as avg_age_seconds
+FROM notifications_queue
+GROUP BY status;
+
+-- Should output something like:
+-- status    | count | avg_age_seconds
+-- pending   |     0 | NULL
+-- processing|     0 | NULL
+-- sent      |  1234 | 3600
+-- failed    |     5 | 7200</code></pre>
+
+                <h3>Interpretation</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Expected Count</th>
+                            <th>If Growing</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>pending</code></td>
+                            <td>0-2</td>
+                            <td>Growing quickly</td>
+                            <td>Worker is falling behind - check worker logs</td>
+                        </tr>
+                        <tr>
+                            <td><code>processing</code></td>
+                            <td>0</td>
+                            <td>Non-zero consistently</td>
+                            <td>Worker crashed - check logs and restart</td>
+                        </tr>
+                        <tr>
+                            <td><code>sent</code></td>
+                            <td>Any</td>
+                            <td>N/A (archive old ones)</td>
+                            <td>Use archival query (see below)</td>
+                        </tr>
+                        <tr>
+                            <td><code>failed</code></td>
+                            <td>0-5</td>
+                            <td>Growing</td>
+                            <td>Provider issues - investigate last_error</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2>Queue Operations</h2>
+
+                <h3>View Oldest Pending Notifications</h3>
+                <pre><code>SELECT 
+  id,
+  channel,
+  recipient,
+  status,
+  attempts,
+  run_after,
+  created_at,
+  last_error
+FROM notifications_queue
+WHERE status = 'pending'
+ORDER BY run_after ASC
+LIMIT 10;</code></pre>
+
+                <h3>View Failed Notifications</h3>
+                <pre><code>SELECT 
+  id,
+  channel,
+  recipient,
+  subject,
+  attempts,
+  last_error,
+  created_at
+FROM notifications_queue
+WHERE status = 'failed'
+ORDER BY created_at DESC
+LIMIT 20;</code></pre>
+
+                <h3>Retry Failed Notifications</h3>
+                <p>Reset a failed notification to pending so it will be retried:</p>
+                <pre><code>-- Retry one notification
+UPDATE notifications_queue
+SET 
+  status = 'pending',
+  run_after = NOW(),
+  attempts = 0
+WHERE id = 'f561d2df-2735-4550-8489-eb70d909f2cc';
+
+-- Retry all failed notifications from last 24 hours
+UPDATE notifications_queue
+SET 
+  status = 'pending',
+  run_after = NOW() + INTERVAL '5 minutes',
+  attempts = 0,
+  last_error = NULL
+WHERE status = 'failed'
+  AND created_at > NOW() - INTERVAL '24 hours';</code></pre>
+
+                <h3>Mark Stuck Processing as Failed</h3>
+                <p>If a notification is stuck in "processing" (worker crashed), mark it as failed:</p>
+                <pre><code>UPDATE notifications_queue
+SET 
+  status = 'failed',
+  last_error = 'Marked failed by admin - worker crash detected'
+WHERE status = 'processing'
+  AND updated_at < NOW() - INTERVAL '10 minutes';</code></pre>
+
+                <h3>Clean Up Old Sent Notifications</h3>
+                <p>Archive old notifications to keep the table clean and performant:</p>
+                <pre><code>-- Archive sent notifications older than 30 days
+-- First, backup to archive table (create this table first)
+INSERT INTO notifications_queue_archive
+SELECT * FROM notifications_queue
+WHERE status = 'sent' AND created_at < NOW() - INTERVAL '30 days';
+
+-- Then delete them
+DELETE FROM notifications_queue
+WHERE status = 'sent' AND created_at < NOW() - INTERVAL '30 days';</code></pre>
+
+                <h3>Check Notifications for Specific User</h3>
+                <pre><code>SELECT 
+  id,
+  channel,
+  recipient,
+  subject,
+  status,
+  created_at
+FROM notifications_queue
+WHERE metadata->>'user_id' = 'abc123'
+ORDER BY created_at DESC;</code></pre>
+
+                <h3>Check Notifications for Specific Class</h3>
+                <pre><code>SELECT 
+  id,
+  channel,
+  recipient,
+  subject,
+  status,
+  created_at
+FROM notifications_queue
+WHERE metadata->>'class_id' = 'xyz789'
+ORDER BY created_at DESC;</code></pre>
+            </section>
+
+            <section>
+                <h2>Bulk Operations</h2>
+
+                <h3>Delete All Failed Notifications</h3>
+                <pre><code>DELETE FROM notifications_queue
+WHERE status = 'failed';</code></pre>
+
+                <h3>Pause All Notifications</h3>
+                <p>Set all pending notifications to run in the future:</p>
+                <pre><code>UPDATE notifications_queue
+SET run_after = NOW() + INTERVAL '1 hour'
+WHERE status = 'pending';</code></pre>
+
+                <h3>Resume All Paused Notifications</h3>
+                <pre><code>UPDATE notifications_queue
+SET run_after = NOW()
+WHERE status = 'pending'
+  AND run_after > NOW();</code></pre>
+
+                <h3>Change Retry Schedule</h3>
+                <p>Increase retry delay for all pending notifications:</p>
+                <pre><code>UPDATE notifications_queue
+SET run_after = NOW() + (INTERVAL '1 minute' * (attempts + 1))
+WHERE status = 'pending';</code></pre>
+            </section>
+
+            <section>
+                <h2>Troubleshooting via Queue</h2>
+
+                <h3>Find Notifications Stuck in Processing</h3>
+                <pre><code>SELECT 
+  id,
+  channel,
+  recipient,
+  attempts,
+  updated_at,
+  NOW() - updated_at as stuck_for
+FROM notifications_queue
+WHERE status = 'processing'
+  AND updated_at < NOW() - INTERVAL '5 minutes';</code></pre>
+
+                <h3>Find Notifications with Repeated Errors</h3>
+                <pre><code>SELECT 
+  id,
+  channel,
+  recipient,
+  attempts,
+  last_error,
+  COUNT(*) OVER (PARTITION BY last_error) as error_count
+FROM notifications_queue
+WHERE status = 'failed'
+ORDER BY error_count DESC;</code></pre>
+
+                <h3>Analyze Failure Rate by Channel</h3>
+                <pre><code>SELECT 
+  channel,
+  status,
+  COUNT(*) as count,
+  ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (PARTITION BY channel), 2) as percentage
+FROM notifications_queue
+WHERE created_at > NOW() - INTERVAL '24 hours'
+GROUP BY channel, status
+ORDER BY channel, status;</code></pre>
+
+                <h3>Check Average Retry Attempts</h3>
+                <pre><code>SELECT 
+  channel,
+  ROUND(AVG(attempts), 2) as avg_attempts,
+  MAX(attempts) as max_attempts,
+  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY attempts) as median_attempts
+FROM notifications_queue
+WHERE created_at > NOW() - INTERVAL '24 hours'
+GROUP BY channel;</code></pre>
+            </section>
+
+            <section>
+                <h2>Database Maintenance</h2>
+
+                <h3>Create Archive Table</h3>
+                <p>Create this table for long-term archival:</p>
+                <pre><code>CREATE TABLE notifications_queue_archive AS
+SELECT * FROM notifications_queue
+WHERE 1=0; -- Creates empty table with same schema</code></pre>
+
+                <h3>Index for Performance</h3>
+                <p>Ensure these indexes exist for fast queries:</p>
+                <pre><code>-- Status + run_after for worker queries
+CREATE INDEX IF NOT EXISTS idx_notifications_queue_status_run_after 
+ON notifications_queue (status, run_after);
+
+-- For finding user notifications
+CREATE INDEX IF NOT EXISTS idx_notifications_queue_metadata_user_id 
+ON notifications_queue USING GIN (metadata);
+
+-- For finding class notifications
+CREATE INDEX IF NOT EXISTS idx_notifications_queue_created_at 
+ON notifications_queue (created_at DESC);</code></pre>
+
+                <h3>Vacuum and Analyze</h3>
+                <p>Run periodically to maintain database health:</p>
+                <pre><code>-- Reclaim space and update statistics
+VACUUM ANALYZE notifications_queue;
+VACUUM ANALYZE message_audit;</code></pre>
+
+                <h3>Check Table Size</h3>
+                <pre><code>SELECT 
+  schemaname,
+  tablename,
+  pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
+FROM pg_tables
+WHERE tablename IN ('notifications_queue', 'message_audit', 'wa_templates')
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;</code></pre>
+            </section>
+
+            <section>
+                <h2>Monitoring Queries</h2>
+
+                <h3>Hourly Notification Summary</h3>
+                <pre><code>SELECT 
+  DATE_TRUNC('hour', created_at) as hour,
+  channel,
+  status,
+  COUNT(*) as count
+FROM notifications_queue
+WHERE created_at > NOW() - INTERVAL '24 hours'
+GROUP BY DATE_TRUNC('hour', created_at), channel, status
+ORDER BY hour DESC, channel;</code></pre>
+
+                <h3>Notifications by Recipient Domain</h3>
+                <p>See which email domains have the most notifications:</p>
+                <pre><code>SELECT 
+  SUBSTRING(recipient FROM '@(.*)$') as domain,
+  COUNT(*) as count,
+  SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count
+FROM notifications_queue
+WHERE channel = 'email'
+GROUP BY domain
+ORDER BY count DESC
+LIMIT 20;</code></pre>
+
+                <h3>Worker Health Check</h3>
+                <p>Quick health check to see if worker is running:</p>
+                <pre><code>-- Last 5 worker runs should have moved notifications
+SELECT 
+  DATE_TRUNC('hour', updated_at) as hour,
+  COUNT(*) as updated_count,
+  SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent_count,
+  SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count
+FROM notifications_queue
+WHERE updated_at > NOW() - INTERVAL '12 hours'
+GROUP BY DATE_TRUNC('hour', updated_at)
+ORDER BY hour DESC;</code></pre>
+            </section>
+
+            <section>
+                <h2>Best Practices</h2>
+
+                <ul>
+                    <li><strong>Monitor regularly:</strong> Check queue health hourly during business hours</li>
+                    <li><strong>Archive old records:</strong> Keep notifications_queue small for performance</li>
+                    <li><strong>Set retention policy:</strong> Delete sent/failed notifications after 30-90 days</li>
+                    <li><strong>Alert on failures:</strong> Use monitoring webhook to get notified of failures</li>
+                    <li><strong>Retry strategically:</strong> Use exponential backoff (don't retry immediately)</li>
+                    <li><strong>Investigate patterns:</strong> Look for common error messages and address root causes
+                    </li>
+                    <li><strong>Test regularly:</strong> Send test notifications monthly to catch configuration issues
+                    </li>
+                    <li><strong>Document issues:</strong> When you retry or fix notifications, log the reason in
+                        metadata</li>
+                </ul>
+            </section>
+        </div>
+    </main>
+</body>
+
+</html>

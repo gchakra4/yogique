@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Troubleshooting - Notification System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>Notification System</h2>
+            <p>Admin Guide</p>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="flow-diagram.html">Flow Diagram</a></li>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="configuration.html">Configuration</a></li>
+            <li><a href="queue-management.html">Queue Management</a></li>
+            <li><a href="troubleshooting.html" class="active">Troubleshooting</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <div class="container">
+            <h1>Troubleshooting Guide</h1>
+
+            <section>
+                <h2>Common Issues</h2>
+
+                <div class="issue">
+                    <h3>❌ Notifications Not Sending</h3>
+                    <h4>Symptoms</h4>
+                    <ul>
+                        <li>Notifications stay in "pending" status for hours</li>
+                        <li>Users don't receive emails or WhatsApp messages</li>
+                        <li>Queue keeps growing</li>
+                    </ul>
+
+                    <h4>Quick Diagnosis</h4>
+                    <ol>
+                        <li>Check queue status:
+                            <pre><code>SELECT COUNT(*) as pending_count FROM notifications_queue 
+WHERE status = 'pending';</code></pre>
+                        </li>
+                        <li>Check for notifications stuck in processing:
+                            <pre><code>SELECT COUNT(*) FROM notifications_queue 
+WHERE status = 'processing' AND updated_at < NOW() - INTERVAL '5 minutes';</code></pre>
+                        </li>
+                        <li>Check worker logs in Supabase Edge Functions</li>
+                    </ol>
+
+                    <h4>Possible Causes & Solutions</h4>
+
+                    <h5>1. Worker Not Running</h5>
+                    <p><strong>Check:</strong> Are notifications being processed at all?</p>
+                    <pre><code>-- Check if any notifications were updated in the last hour
+SELECT COUNT(*) as recently_updated FROM notifications_queue
+WHERE updated_at > NOW() - INTERVAL '1 hour';</code></pre>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Verify scheduler is running (check Supabase Dashboard → Scheduler)</li>
+                        <li>Check notification-worker function logs for errors</li>
+                        <li>Ensure <code>SCHEDULER_SECRET_TOKEN</code> is set correctly</li>
+                        <li>Manually trigger the worker function to test</li>
+                    </ul>
+
+                    <h5>2. Missing Environment Variables</h5>
+                    <p><strong>Check:</strong> Which provider is failing?</p>
+                    <pre><code>SELECT 
+  channel,
+  COUNT(*) as count,
+  MAX(last_error) as last_error
+FROM notifications_queue
+WHERE status = 'failed'
+GROUP BY channel;</code></pre>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>For email: Verify <code>RESEND_API_KEY</code>, <code>CLASSES_FROM_EMAIL</code> are set</li>
+                        <li>For WhatsApp: Verify <code>META_PHONE_NUMBER_ID</code>, <code>META_ACCESS_TOKEN</code> are
+                            set</li>
+                        <li>Go to Supabase → Settings → Edge Functions → Secrets to verify</li>
+                        <li>Redeploy functions after changing secrets</li>
+                    </ul>
+
+                    <h5>3. Database Connection Issues</h5>
+                    <p><strong>Check:</strong> Can the worker connect to the database?</p>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Verify <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> are correct</li>
+                        <li>Check if database is in safe mode (Supabase → Database → Pause Database)</li>
+                        <li>Check database connections aren't maxed out (Supabase → Database → Connections)</li>
+                        <li>Test database connectivity with a simple query</li>
+                    </ul>
+                </div>
+
+                <div class="issue">
+                    <h3>❌ Notifications Stuck in Processing</h3>
+                    <h4>Symptoms</h4>
+                    <ul>
+                        <li>Some notifications show status='processing' for hours</li>
+                        <li>They never move to 'sent' or 'failed'</li>
+                        <li>Worker seems to have crashed</li>
+                    </ul>
+
+                    <h4>Diagnosis</h4>
+                    <pre><code>SELECT 
+  id,
+  channel,
+  recipient,
+  updated_at,
+  NOW() - updated_at as stuck_duration
+FROM notifications_queue
+WHERE status = 'processing';</code></pre>
+
+                    <h4>Solution</h4>
+                    <ol>
+                        <li>Check worker logs for crash errors</li>
+                        <li>Mark stuck notifications as failed:
+                            <pre><code>UPDATE notifications_queue
+SET status = 'failed', 
+    last_error = 'Marked failed by admin - worker crash'
+WHERE status = 'processing' 
+  AND updated_at < NOW() - INTERVAL '10 minutes';</code></pre>
+                        </li>
+                        <li>Restart the worker function</li>
+                        <li>Retry the failed notifications manually</li>
+                    </ol>
+                </div>
+
+                <div class="issue">
+                    <h3>❌ Email Bouncing/Not Received</h3>
+                    <h4>Symptoms</h4>
+                    <ul>
+                        <li>Emails are marked 'sent' in queue but users don't receive them</li>
+                        <li>Bounces are not being tracked</li>
+                        <li>Some email domains never receive messages</li>
+                    </ul>
+
+                    <h4>Diagnosis</h4>
+                    <pre><code>-- Check what Resend says
+SELECT 
+  provider_message_id,
+  recipient,
+  status,
+  created_at
+FROM message_audit
+WHERE channel = 'email'
+  AND created_at > NOW() - INTERVAL '24 hours'
+ORDER BY created_at DESC;</code></pre>
+
+                    <h4>Common Causes & Solutions</h4>
+
+                    <h5>SPF/DKIM/DMARC Not Configured</h5>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Go to Resend → Domains</li>
+                        <li>Check each domain - should show "Verified"</li>
+                        <li>Ensure DNS records are properly set in your domain registrar</li>
+                        <li>Wait 24-48 hours for DNS propagation</li>
+                    </ul>
+
+                    <h5>From Email Not Verified</h5>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Go to Resend → From Addresses</li>
+                        <li>Check if your from email is listed and verified</li>
+                        <li>If not, create it and wait for verification email</li>
+                        <li>Update <code>CLASSES_FROM_EMAIL</code> to verified address</li>
+                    </ul>
+
+                    <h5>Recipient Email is Wrong</h5>
+                    <p><strong>Check:</strong> Who are we sending to?</p>
+                    <pre><code>SELECT DISTINCT recipient
+FROM notifications_queue
+WHERE channel = 'email' 
+  AND status = 'sent'
+  AND created_at > NOW() - INTERVAL '24 hours';</code></pre>
+                    <p><strong>Solution:</strong> Verify email addresses in your application code</p>
+
+                    <h5>Rate Limited by Resend</h5>
+                    <p><strong>Check:</strong> Error message in failed notifications</p>
+                    <pre><code>SELECT 
+  COUNT(*) as failed_count,
+  MAX(last_error) as error
+FROM notifications_queue
+WHERE status = 'failed'
+  AND last_error LIKE '%rate%';</code></pre>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Increase <code>NOTIFICATION_WORKER_LIMIT</code> gradually (not too fast)</li>
+                        <li>Spread notifications over time (use <code>run_after</code> field)</li>
+                        <li>Contact Resend support to increase limits</li>
+                    </ul>
+                </div>
+
+                <div class="issue">
+                    <h3>❌ WhatsApp Messages Not Sending</h3>
+                    <h4>Symptoms</h4>
+                    <ul>
+                        <li>WhatsApp notifications fail with provider errors</li>
+                        <li>Templates not found</li>
+                        <li>Phone numbers rejected</li>
+                    </ul>
+
+                    <h4>Common Causes & Solutions</h4>
+
+                    <h5>Template Not Found</h5>
+                    <p><strong>Error message:</strong> "Template not found" or "template_name not approved"</p>
+                    <p><strong>Check:</strong></p>
+                    <pre><code>SELECT * FROM wa_templates WHERE template_key = 'your_template_key';</code></pre>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Verify template name matches exactly (case-sensitive)</li>
+                        <li>Ensure template is approved by Meta (check Meta Dashboard)</li>
+                        <li>Re-create the template if it's not appearing in Meta's list</li>
+                        <li>Wait 24 hours after Meta approval for API availability</li>
+                    </ul>
+
+                    <h5>Invalid Phone Number</h5>
+                    <p><strong>Error message:</strong> "Invalid phone number" or "Invalid recipient"</p>
+                    <p><strong>Check:</strong> Phone numbers in recipient field</p>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Ensure phone numbers include country code (e.g., +1, +91)</li>
+                        <li>Remove spaces and special characters</li>
+                        <li>Format: +[country_code][number]</li>
+                        <li>Example: +14155552671 (valid), 4155552671 (invalid - missing +1)</li>
+                    </ul>
+
+                    <h5>Meta API Errors</h5>
+                    <p><strong>Check:</strong> Last error messages</p>
+                    <pre><code>SELECT 
+  template_key,
+  last_error,
+  COUNT(*) as count
+FROM notifications_queue
+WHERE channel = 'whatsapp' AND status = 'failed'
+GROUP BY template_key, last_error;</code></pre>
+                    <p><strong>Common Meta Errors:</strong></p>
+                    <ul>
+                        <li><code>131000</code> - Parameter value not recognized</li>
+                        <li><code>131008</code> - Throttled</li>
+                        <li><code>131026</code> - Invalid template language</li>
+                        <li><code>131034</code> - The number of template variables doesn't match the template</li>
+                    </ul>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Check Meta Business Dashboard for account issues</li>
+                        <li>Verify phone number ID is correct</li>
+                        <li>Ensure access token is not expired</li>
+                        <li>Contact Meta support if persistent</li>
+                    </ul>
+
+                    <h5>Variable Mismatch</h5>
+                    <p><strong>Error:</strong> "Template parameters do not match"</p>
+                    <p><strong>Check:</strong></p>
+                    <pre><code>-- Check template definition
+SELECT body FROM wa_templates WHERE template_key = 'your_template';
+
+-- Then check what variables are being passed
+SELECT vars FROM notifications_queue 
+WHERE template_key = 'your_template' AND status = 'failed';</code></pre>
+                    <p><strong>Solution:</strong></p>
+                    <ul>
+                        <li>Count {{variables}} in template</li>
+                        <li>Ensure vars JSON has exact same number of variables</li>
+                        <li>Variables are case-insensitive, but {{name}} ≠ {{Name}} if expecting exact case</li>
+                    </ul>
+                </div>
+
+                <div class="issue">
+                    <h3>❌ High Failure Rate</h3>
+                    <h4>Symptoms</h4>
+                    <ul>
+                        <li>Many notifications failing consistently</li>
+                        <li>Failure rate > 5%</li>
+                        <li>Same errors repeating</li>
+                    </ul>
+
+                    <h4>Diagnosis</h4>
+                    <pre><code>-- Failure rate by channel
+SELECT 
+  channel,
+  SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+  COUNT(*) as total,
+  ROUND(100.0 * SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) / COUNT(*), 2) as failure_rate
+FROM notifications_queue
+WHERE created_at > NOW() - INTERVAL '24 hours'
+GROUP BY channel;</code></pre>
+
+                    <h4>Solution</h4>
+                    <ol>
+                        <li>Identify the common error:
+                            <pre><code>SELECT 
+  last_error,
+  COUNT(*) as count
+FROM notifications_queue
+WHERE status = 'failed'
+  AND created_at > NOW() - INTERVAL '24 hours'
+GROUP BY last_error
+ORDER BY count DESC;</code></pre>
+                        </li>
+                        <li>Address that specific error (see other issues above)</li>
+                        <li>Monitor failure rate after fix - should drop below 1%</li>
+                    </ol>
+                </div>
+            </section>
+
+            <section>
+                <h2>Checking Logs</h2>
+
+                <h3>Access Supabase Logs</h3>
+                <ol>
+                    <li>Go to Supabase Dashboard</li>
+                    <li>Click "Logs" in the left sidebar</li>
+                    <li>Select "Edge Functions" tab</li>
+                    <li>Filter by function name (e.g., "notification-worker")</li>
+                    <li>Look for ERROR level logs</li>
+                </ol>
+
+                <h3>Interpret Log Messages</h3>
+                <pre><code>-- Successful run
+Edge Function: notification-worker
+Status: 200
+Message: "Processed 5 notifications"
+
+-- Worker error
+Edge Function: notification-worker
+Status: 500
+Message: "Error fetching from database: Connection timeout"
+
+-- Configuration error
+Edge Function: send-email
+Status: 400
+Message: "Missing required field: RESEND_API_KEY"</code></pre>
+
+                <h3>Enable Verbose Logging</h3>
+                <p>Add this to edge function code to debug:</p>
+                <pre><code>console.log('DEBUG: Step name', { variable: value });
+console.error('ERROR: Failed to send', { error: err });</code></pre>
+            </section>
+
+            <section>
+                <h2>Testing</h2>
+
+                <h3>Send a Test Email</h3>
+                <pre><code>-- 1. Insert test notification
+INSERT INTO notifications_queue 
+(channel, recipient, subject, html, from, status, run_after)
+VALUES (
+  'email',
+  'your-email@example.com',
+  'Test Email',
+  '<html><body>This is a test</body></html>',
+  'classes@yogique.life',
+  'pending',
+  NOW()
+);
+
+-- 2. Wait 5 minutes for worker to process
+-- 3. Check status
+SELECT status, last_error FROM notifications_queue 
+WHERE recipient = 'your-email@example.com'
+ORDER BY created_at DESC LIMIT 1;</code></pre>
+
+                <h3>Send a Test WhatsApp</h3>
+                <pre><code>-- 1. Verify template exists
+SELECT * FROM wa_templates WHERE template_key = 'class_reminder_zoom';
+
+-- 2. Insert test notification
+INSERT INTO notifications_queue 
+(channel, recipient, template_key, template_language, vars, status, run_after)
+VALUES (
+  'whatsapp',
+  '+14155552671',  -- Replace with your test number
+  'class_reminder_zoom',
+  'en',
+  '{"recipient_name": "Admin", "title": "Test Class", "class_time": "2:00 PM", "zoom_link": "https://zoom.us/..."}'::jsonb,
+  'pending',
+  NOW()
+);
+
+-- 3. Wait 5 minutes for worker to process
+-- 4. Check status
+SELECT status, last_error FROM notifications_queue 
+WHERE recipient = '+14155552671'
+ORDER BY created_at DESC LIMIT 1;</code></pre>
+
+                <h3>Test Provider Connectivity</h3>
+                <p>Call the provider functions directly:</p>
+                <pre><code>-- Test Resend API
+SELECT 
+  net.http_post(
+    'https://api.resend.com/emails',
+    jsonb_build_object(
+      'from', 'classes@yogique.life',
+      'to', 'your-email@example.com',
+      'subject', 'Test',
+      'html', '<p>Test</p>'
+    )::text,
+    'application/json',
+    'Authorization: Bearer your_resend_api_key'
+  ) as response;</code></pre>
+            </section>
+
+            <section>
+                <h2>Performance Issues</h2>
+
+                <h3>Queue Growing Too Fast</h3>
+                <p><strong>Cause:</strong> Notifications being created faster than worker can process</p>
+                <p><strong>Solution:</strong></p>
+                <ol>
+                    <li>Increase <code>NOTIFICATION_WORKER_LIMIT</code> gradually (start with 20, then 50)</li>
+                    <li>Run multiple worker instances in parallel (requires architecture change)</li>
+                    <li>Optimize the worker function code</li>
+                    <li>Distribute notifications over time (use <code>run_after</code>)</li>
+                </ol>
+
+                <h3>Database Queries Slow</h3>
+                <p><strong>Cause:</strong> notifications_queue table is too large</p>
+                <p><strong>Solution:</strong></p>
+                <ul>
+                    <li>Archive old notifications (see Queue Management page)</li>
+                    <li>Delete failed notifications older than 30 days</li>
+                    <li>Run VACUUM ANALYZE periodically</li>
+                    <li>Ensure indexes are created</li>
+                </ul>
+
+                <h3>Check Table Size</h3>
+                <pre><code>SELECT pg_size_pretty(pg_total_relation_size('notifications_queue'));</code></pre>
+
+                <h3>Optimize Indexes</h3>
+                <pre><code>-- Analyze current index usage
+SELECT * FROM pg_stat_user_indexes WHERE relname = 'notifications_queue';
+
+-- Reindex if needed
+REINDEX TABLE notifications_queue;</code></pre>
+            </section>
+
+            <section>
+                <h2>Emergency Procedures</h2>
+
+                <h3>Stop All Notifications (Emergency)</h3>
+                <pre><code>-- Pause all pending notifications
+UPDATE notifications_queue
+SET run_after = NOW() + INTERVAL '24 hours'
+WHERE status = 'pending';</code></pre>
+
+                <h3>Reset All to Pending (Retry Everything)</h3>
+                <pre><code>-- Reset everything for retry
+UPDATE notifications_queue
+SET 
+  status = 'pending',
+  run_after = NOW(),
+  attempts = 0,
+  last_error = NULL
+WHERE status IN ('failed', 'processing');</code></pre>
+
+                <h3>Check System Health in 60 Seconds</h3>
+                <pre><code>-- Run all at once to get complete picture
+SELECT 'pending' as status, COUNT(*) as count FROM notifications_queue WHERE status = 'pending'
+UNION ALL
+SELECT 'processing' as status, COUNT(*) FROM notifications_queue WHERE status = 'processing'
+UNION ALL
+SELECT 'sent' as status, COUNT(*) FROM notifications_queue WHERE status = 'sent'
+UNION ALL
+SELECT 'failed' as status, COUNT(*) FROM notifications_queue WHERE status = 'failed';</code></pre>
+            </section>
+
+            <section>
+                <h2>Contact & Escalation</h2>
+                <ul>
+                    <li><strong>Supabase Issues:</strong> Supabase Dashboard → Help → Contact Support</li>
+                    <li><strong>Resend Issues:</strong> <a href="https://resend.com/support"
+                            target="_blank">resend.com/support</a></li>
+                    <li><strong>Meta WhatsApp Issues:</strong> Meta Business Suite → Help Center</li>
+                    <li><strong>Database Issues:</strong> Check Supabase Status page</li>
+                </ul>
+            </section>
+        </div>
+    </main>
+
+    <style>
+        .issue {
+            background: #f9f9f9;
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .issue h3 {
+            color: #d32f2f;
+            margin-top: 0;
+        }
+
+        .issue h4 {
+            color: #f57c00;
+            margin-top: 20px;
+        }
+
+        .issue h5 {
+            color: #ff9800;
+            font-size: 16px;
+        }
+    </style>
+</body>
+
+</html>

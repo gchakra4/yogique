@@ -4,17 +4,11 @@
 This documents steps to send Zoom links to class participants via Twilio WhatsApp Sandbox 12 hours before class using the existing scheduler and a Supabase Edge Function.
 
 ## Required env vars
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
-- EDGE_FUNCTION_URL (set after deploying the edge function)
-- TWILIO_ACCOUNT_SID
-- TWILIO_AUTH_TOKEN
-- TWILIO_WHATSAPP_FROM (example: whatsapp:+14155238886)
-Optional:
-- SCHEDULER_SECRET_HEADER
-- SCHEDULER_SECRET_TOKEN
-- HOURS_BEFORE (defaults to 12)
-- WINDOW_MINUTES (defaults to 5)
+## DEPRECATED: Twilio WhatsApp integration details removed
+
+This project now uses Meta WhatsApp Cloud.
+
+If you previously used Twilio, remove your Twilio environment variables and update any external systems accordingly. The application now uses the Meta provider; see the Meta integration docs for setup.
 - FORCE_INVOKE (true to force calls during testing)
 
 ## Steps

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture - Notification System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>Notification System</h2>
+            <p>Admin Guide</p>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="architecture.html" class="active">Architecture</a></li>
+            <li><a href="flow-diagram.html">Flow Diagram</a></li>
+            <li><a href="components.html">Components</a></li>
+            <li><a href="configuration.html">Configuration</a></li>
+            <li><a href="queue-management.html">Queue Management</a></li>
+            <li><a href="troubleshooting.html">Troubleshooting</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <div class="container">
+            <h1>System Architecture</h1>
+
+            <section>
+                <h2>High-Level Overview</h2>
+                <div class="info-box">
+                    <p><strong>Core Principle:</strong> All notifications go through a queue. Business functions don't
+                        send notifications directly—they insert records into the database, and a background worker
+                        processes them asynchronously.</p>
+                </div>
+
+                <svg viewBox="0 0 800 400"
+                    style="width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                    <!-- Business Functions -->
+                    <rect x="20" y="20" width="140" height="80" fill="#6366f1" rx="8" />
+                    <text x="90" y="50" text-anchor="middle" fill="white" font-weight="bold" font-size="14">Business
+                        Functions</text>
+                    <text x="90" y="70" text-anchor="middle" fill="white" font-size="12">create-zoom-and-email</text>
+                    <text x="90" y="85" text-anchor="middle" fill="white" font-size="12">...other functions</text>
+
+                    <!-- Arrow -->
+                    <path d="M 160 60 L 210 60" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead)" />
+
+                    <!-- Queue -->
+                    <rect x="210" y="20" width="160" height="80" fill="#10b981" rx="8" />
+                    <text x="290" y="50" text-anchor="middle" fill="white" font-weight="bold"
+                        font-size="14">notifications_queue</text>
+                    <text x="290" y="70" text-anchor="middle" fill="white" font-size="12">(Database Table)</text>
+                    <text x="290" y="85" text-anchor="middle" fill="white" font-size="12">Email + WhatsApp</text>
+
+                    <!-- Arrow -->
+                    <path d="M 370 60 L 420 60" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead)" />
+
+                    <!-- Worker -->
+                    <rect x="420" y="20" width="140" height="80" fill="#f59e0b" rx="8" />
+                    <text x="490" y="50" text-anchor="middle" fill="white" font-weight="bold"
+                        font-size="14">notification-worker</text>
+                    <text x="490" y="70" text-anchor="middle" fill="white" font-size="12">(Edge Function)</text>
+                    <text x="490" y="85" text-anchor="middle" fill="white" font-size="12">Polls every 5 min</text>
+
+                    <!-- Arrow -->
+                    <path d="M 560 60 L 610 60" stroke="#6366f1" stroke-width="3" fill="none"
+                        marker-end="url(#arrowhead)" />
+
+                    <!-- Service -->
+                    <rect x="610" y="20" width="140" height="80" fill="#ec4899" rx="8" />
+                    <text x="680" y="50" text-anchor="middle" fill="white" font-weight="bold"
+                        font-size="14">notification-service</text>
+                    <text x="680" y="70" text-anchor="middle" fill="white" font-size="12">(Edge Function)</text>
+                    <text x="680" y="85" text-anchor="middle" fill="white" font-size="12">Router</text>
+
+                    <!-- Providers -->
+                    <rect x="50" y="180" width="120" height="80" fill="#6366f1" rx="8" />
+                    <text x="110" y="210" text-anchor="middle" fill="white" font-weight="bold"
+                        font-size="14">send-email</text>
+                    <text x="110" y="230" text-anchor="middle" fill="white" font-size="12">Resend API</text>
+
+                    <rect x="230" y="180" width="120" height="80" fill="#6366f1" rx="8" />
+                    <text x="290" y="210" text-anchor="middle" fill="white" font-weight="bold"
+                        font-size="14">send-template</text>
+                    <text x="290" y="230" text-anchor="middle" fill="white" font-size="12">Meta WhatsApp API</text>
+
+                    <!-- Arrows from service to providers -->
+                    <path d="M 650 100 L 170 160" stroke="#6366f1" stroke-width="2" fill="none"
+                        stroke-dasharray="5,5" />
+                    <path d="M 700 100 L 290 160" stroke="#6366f1" stroke-width="2" fill="none"
+                        stroke-dasharray="5,5" />
+
+                    <!-- External APIs -->
+                    <rect x="50" y="310" width="120" height="60" fill="#3b82f6" rx="8" />
+                    <text x="110" y="340" text-anchor="middle" fill="white" font-weight="bold" font-size="13">Resend
+                        Email</text>
+
+                    <rect x="230" y="310" width="120" height="60" fill="#3b82f6" rx="8" />
+                    <text x="290" y="340" text-anchor="middle" fill="white" font-weight="bold" font-size="13">WhatsApp
+                        API</text>
+
+                    <!-- Final arrows -->
+                    <path d="M 110 260 L 110 310" stroke="#6366f1" stroke-width="2" fill="none"
+                        marker-end="url(#arrowhead)" />
+                    <path d="M 290 260 L 290 310" stroke="#6366f1" stroke-width="2" fill="none"
+                        marker-end="url(#arrowhead)" />
+
+                    <!-- Arrow marker definition -->
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#6366f1" />
+                        </marker>
+                    </defs>
+                </svg>
+            </section>
+
+            <section>
+                <h2>Component Breakdown</h2>
+
+                <h3>1. Business Functions</h3>
+                <p>Examples: <code>create-zoom-and-email</code>, <code>create-invoice-or-link</code>, etc.</p>
+                <p><strong>Responsibility:</strong> Build email HTML and WhatsApp variables, then insert into queue.</p>
+                <p><strong>Data they create:</strong></p>
+                <ul>
+                    <li><strong>Email records:</strong> subject, html, recipient, bcc, from</li>
+                    <li><strong>WhatsApp records:</strong> template_key, vars (title, class_time, zoom_link), recipient
+                    </li>
+                </ul>
+
+                <h3>2. notifications_queue Table</h3>
+                <p><strong>Responsibility:</strong> Store all notifications waiting to be processed.</p>
+                <p><strong>Key columns:</strong></p>
+                <ul>
+                    <li><code>id</code> - Unique notification ID</li>
+                    <li><code>channel</code> - 'email' or 'whatsapp'</li>
+                    <li><code>recipient</code> - Email or phone number</li>
+                    <li><code>subject</code> - Email subject (email only)</li>
+                    <li><code>html</code> - Email HTML body (email only)</li>
+                    <li><code>template_key</code> - WhatsApp template name (WhatsApp only)</li>
+                    <li><code>vars</code> - Template variables (WhatsApp only)</li>
+                    <li><code>status</code> - 'pending', 'processing', 'sent', or 'failed'</li>
+                    <li><code>attempts</code> - Number of delivery attempts</li>
+                    <li><code>run_after</code> - When to process (for retry scheduling)</li>
+                </ul>
+
+                <h3>3. notification-worker</h3>
+                <p><strong>Responsibility:</strong> Poll the queue and process pending notifications.</p>
+                <p><strong>Key behaviors:</strong></p>
+                <ul>
+                    <li>Runs every 5 minutes (via scheduler or cron)</li>
+                    <li>Fetches up to 10 pending notifications</li>
+                    <li>Locks each notification to prevent duplicate processing</li>
+                    <li>Calls notification-service for each one</li>
+                    <li>Updates status to 'sent' or schedules retry</li>
+                    <li>Implements exponential backoff: 1s → 2s → 4s → 8s... (max 10 min)</li>
+                </ul>
+
+                <h3>4. notification-service</h3>
+                <p><strong>Responsibility:</strong> Route notifications to the correct sender.</p>
+                <p><strong>Routing logic:</strong></p>
+                <ul>
+                    <li>If <code>channel === 'email'</code> → call <code>send-email</code></li>
+                    <li>If <code>channel === 'whatsapp'</code> → call <code>send-template</code></li>
+                </ul>
+
+                <h3>5. send-email</h3>
+                <p><strong>Responsibility:</strong> Send emails via Resend API.</p>
+                <p><strong>Process:</strong></p>
+                <ol>
+                    <li>Receives: to, subject, html, bcc, from</li>
+                    <li>Calls Resend API endpoint</li>
+                    <li>Returns message ID for logging</li>
+                    <li>Retries on rate limits (429 errors)</li>
+                </ol>
+
+                <h3>6. send-template</h3>
+                <p><strong>Responsibility:</strong> Send WhatsApp messages via Meta API.</p>
+                <p><strong>Process:</strong></p>
+                <ol>
+                    <li>Receives: template_key, vars, to</li>
+                    <li>Looks up template from <code>wa_templates</code> table</li>
+                    <li>Renders template with variables</li>
+                    <li>Calls Meta WhatsApp Business API</li>
+                    <li>Returns message ID for logging</li>
+                </ol>
+            </section>
+
+            <section>
+                <h2>Data Flow by Channel</h2>
+
+                <h3>Email Flow</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Stage</th>
+                            <th>What Happens</th>
+                            <th>Data Involved</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. Insert</td>
+                            <td>Business function builds HTML and inserts into queue</td>
+                            <td>subject, html, recipient, bcc, from</td>
+                        </tr>
+                        <tr>
+                            <td>2. Poll</td>
+                            <td>Worker fetches pending email records from queue</td>
+                            <td>All email fields</td>
+                        </tr>
+                        <tr>
+                            <td>3. Route</td>
+                            <td>Service identifies channel='email' and calls send-email</td>
+                            <td>Channel identifier</td>
+                        </tr>
+                        <tr>
+                            <td>4. Send</td>
+                            <td>send-email calls Resend API with HTML</td>
+                            <td>Full email with HTML</td>
+                        </tr>
+                        <tr>
+                            <td>5. Log</td>
+                            <td>Message audit logs the delivery result</td>
+                            <td>Status, provider_message_id, attempts</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>WhatsApp Flow</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Stage</th>
+                            <th>What Happens</th>
+                            <th>Data Involved</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. Insert</td>
+                            <td>Business function inserts template_key and vars into queue</td>
+                            <td>template_key='class_reminder_zoom', vars={title, class_time, zoom_link}</td>
+                        </tr>
+                        <tr>
+                            <td>2. Poll</td>
+                            <td>Worker fetches pending WhatsApp records from queue</td>
+                            <td>All WhatsApp fields</td>
+                        </tr>
+                        <tr>
+                            <td>3. Route</td>
+                            <td>Service identifies channel='whatsapp' and calls send-template</td>
+                            <td>Channel identifier</td>
+                        </tr>
+                        <tr>
+                            <td>4. Render</td>
+                            <td>send-template looks up template and renders with vars</td>
+                            <td>Template text + dynamic variables</td>
+                        </tr>
+                        <tr>
+                            <td>5. Send</td>
+                            <td>send-template calls Meta WhatsApp API with rendered message</td>
+                            <td>Formatted WhatsApp message</td>
+                        </tr>
+                        <tr>
+                            <td>6. Log</td>
+                            <td>Message audit logs the delivery result</td>
+                            <td>Status, provider_message_id, attempts</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2>Key Design Principles</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                    <div
+                        style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                        <h4>🔄 Decoupling</h4>
+                        <p>Business functions don't wait for notifications to send. They queue the work and move on.</p>
+                    </div>
+                    <div
+                        style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                        <h4>🔁 Retry Logic</h4>
+                        <p>Failed notifications are automatically retried with exponential backoff, not lost.</p>
+                    </div>
+                    <div
+                        style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                        <h4>📊 Monitoring</h4>
+                        <p>Every notification is logged in message_audit for full visibility and debugging.</p>
+                    </div>
+                    <div
+                        style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                        <h4>🎯 Unified Interface</h4>
+                        <p>Different channels (email, WhatsApp) use the same queue and infrastructure.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</body>
+
+</html>

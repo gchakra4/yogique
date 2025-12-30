@@ -29,6 +29,9 @@ const initialFormData = {
     course_duration_unit: 'weeks',
     class_frequency: 'weekly',
     specific_days: [],
+    // Recurrence metadata
+    recurrence_type: 'single',
+    recurrence_interval: 1,
     // Package fields
     package_id: '',
     booking_type: 'individual',
@@ -49,6 +52,8 @@ const initialFormData = {
     client_email: '',
     // Multiple booking support
     booking_ids: [],
+    // UI flag to indicate whether booking linking is enabled
+    link_booking: false,
     // Weekly template assignment
     selected_template_id: '',
     // Package validity constraint

@@ -91,6 +91,7 @@ export function Profile() {
   const resendIntervalRef = useRef<number | null>(null)
   const [phoneConflictMessage, setPhoneConflictMessage] = useState<string | null>(null)
   const [otpError, setOtpError] = useState<string | null>(null)
+  const [otpSuccessMessage, setOtpSuccessMessage] = useState<string | null>(null)
 
 
   const tabs = [
@@ -647,13 +648,36 @@ export function Profile() {
 
       // Handle responses explicitly
       if (data && data.verified === true) {
-        // Server verified and (server-side) updated the profile.phone; refresh profile data
+        // Server verified; ensure profile reflects verified phone + opt-in
+        try {
+          const now = new Date().toISOString()
+          // Try update first
+          const upd = await supabase
+            .from('profiles')
+            .update({ phone: pendingPhone, whatsapp_opt_in: true, whatsapp_opt_in_at: now })
+            .eq('user_id', user!.id)
+
+          // If update returned no rows (profile missing), insert a new row
+          if (upd.error || (Array.isArray((upd as any).data) && (upd as any).data.length === 0)) {
+            try {
+              await supabase.from('profiles').insert({ user_id: user!.id, phone: pendingPhone, whatsapp_opt_in: true, whatsapp_opt_in_at: now })
+            } catch (e) {
+              console.warn('failed to insert profile after verify', e)
+            }
+          }
+        } catch (e) {
+          console.warn('failed to persist whatsapp opt-in', e)
+        }
+
+        // Refresh client state and show inline success
         await fetchProfileData()
         setInitialPhone(pendingPhone)
         setOtpModalOpen(false)
         setOtpCode('')
         setPendingPhone(null)
-        alert('Phone verified and saved successfully')
+        setOtpSuccessMessage('Phone verified and WhatsApp opt-in enabled')
+        // clear success banner after 6s
+        setTimeout(() => setOtpSuccessMessage(null), 6000)
         return
       }
 
@@ -995,6 +1019,20 @@ export function Profile() {
               </div>
               <div className="ml-4 flex-shrink-0">
                 <button onClick={() => setPhoneConflictMessage(null)} className="text-sm text-yellow-700 underline">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {otpSuccessMessage && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+          <div className="rounded-md bg-green-50 p-4 border border-green-200">
+            <div className="flex items-start">
+              <div className="flex-1 text-sm text-green-800">
+                {otpSuccessMessage}
+              </div>
+              <div className="ml-4 flex-shrink-0">
+                <button onClick={() => setOtpSuccessMessage(null)} className="text-sm text-green-700 underline">Dismiss</button>
               </div>
             </div>
           </div>
