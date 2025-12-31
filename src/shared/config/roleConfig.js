@@ -1,6 +1,7 @@
 // Role-based module configuration
 export const ROLE_MODULES = {
     super_admin: [
+        { id: 'message_monitor', title: 'Message Monitoring', component: 'MessageMonitor', icon: 'monitor', order: 3 },
         { id: 'user_management', title: 'User Management', component: 'UserManagement', icon: 'users', order: 2 },
         { id: 'rate_management', title: 'Rate Management', component: 'InstructorRatesPage', icon: 'dollar-sign', order: 4 },
         { id: 'class_assignment', title: 'Class Management', component: 'ClassAssignmentManager', icon: 'edit', order: 5 },

@@ -68,8 +68,8 @@ export default function MessageMonitor() {
                 if (!mounted) return
                 setRows((json.rows || []) as MessageAuditRow[])
                 const otpData = json.otps || []
-                const map: Record<string, OtpRow | null> = {}
-                    (otpData || []).forEach((o: any) => { if (!map[o.phone]) map[o.phone] = o })
+                const map: Record<string, OtpRow | null> = {};
+                (otpData || []).forEach((o: any) => { if (!map[o.phone]) map[o.phone] = o })
                 if (mounted) setOtps(map)
             } catch (e: any) {
                 setError(e.message || String(e))
