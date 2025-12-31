@@ -1,0 +1,43 @@
+name: Run Escalation Orchestration
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC (after T-5 invoice generation at 1 AM)
+    - cron: '0 2 * * *'
+  
+  workflow_dispatch:
+    # Allow manual trigger for testing
+
+jobs:
+  run-orchestration:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Call Escalation Orchestration Edge Function
+        run: |
+          response=$(curl -s -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/run-escalation-orchestration" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+          
+          echo "Response: $response"
+          
+          # Check if the response indicates success
+          if echo "$response" | jq -e '.success == true' > /dev/null; then
+            echo "✅ Escalation orchestration completed successfully"
+            
+            # Extract details
+            escalated=$(echo "$response" | jq -r '.escalation.escalated // 0')
+            restored=$(echo "$response" | jq -r '.escalation.restored // 0')
+            reminders=$(echo "$response" | jq -r '.reminders_sent // 0')
+            
+            echo "📊 Escalated: $escalated bookings"
+            echo "✅ Restored: $restored bookings"
+            echo "📧 Reminders sent: $reminders"
+            
+            exit 0
+          else
+            echo "❌ Escalation orchestration failed"
+            echo "$response" | jq '.'
+            exit 1
+          fi

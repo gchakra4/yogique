@@ -33,6 +33,10 @@ export const SimplifiedAssignmentForm = ({
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
     const [showQuickBooking, setShowQuickBooking] = useState(false)
 
+    // ⚡ PHASE 2: Booking access status tracking
+    const [bookingAccessStatus, setBookingAccessStatus] = useState<'active' | 'overdue_grace' | 'overdue_locked' | null>(null)
+    const [accessWarning, setAccessWarning] = useState<string | null>(null)
+
     // Step 2: Assignment type (defaults to monthly)
     const [assignmentType, setAssignmentType] = useState<'monthly' | 'crash_course' | 'adhoc'>('monthly')
 
@@ -56,11 +60,25 @@ export const SimplifiedAssignmentForm = ({
     // Validation & errors
     const [errors, setErrors] = useState<any>({})
 
-    // When booking selected, load booking details
+    // When booking selected, load booking details and check access status
     useEffect(() => {
         if (selectedBookingId) {
             const booking = bookings.find(b => b.booking_id === selectedBookingId)
             setSelectedBooking(booking || null)
+
+            // ⚡ PHASE 2: Check booking access status
+            if (booking) {
+                const accessStatus = (booking as any).access_status || 'active'
+                setBookingAccessStatus(accessStatus)
+
+                if (accessStatus === 'overdue_locked') {
+                    setAccessWarning('⛔ BLOCKED: Payment overdue. Cannot schedule new classes until payment is cleared.')
+                } else if (accessStatus === 'overdue_grace') {
+                    setAccessWarning('⚠️ WARNING: Payment approaching overdue. Please settle dues soon to avoid service interruption.')
+                } else {
+                    setAccessWarning(null)
+                }
+            }
 
             // Auto-suggest assignment type based on booking
             if (booking?.class_package_id) {
@@ -71,6 +89,9 @@ export const SimplifiedAssignmentForm = ({
                     setAssignmentType('monthly')
                 }
             }
+        } else {
+            setBookingAccessStatus(null)
+            setAccessWarning(null)
         }
     }, [selectedBookingId, bookings, packages])
 
@@ -214,14 +235,32 @@ export const SimplifiedAssignmentForm = ({
 
                                 {/* Show booking details when selected */}
                                 {selectedBooking && !showQuickBooking && (
-                                    <div className="mt-3 p-3 bg-white rounded border">
-                                        <div className="text-sm space-y-1">
-                                            <p><strong>Customer:</strong> {selectedBooking.first_name} {selectedBooking.last_name}</p>
-                                            <p><strong>Email:</strong> {selectedBooking.email}</p>
-                                            <p><strong>Type:</strong> {selectedBooking.booking_type}</p>
-                                            {selectedBooking.class_packages && (
-                                                <p><strong>Package:</strong> {selectedBooking.class_packages.name}</p>
-                                            )}
+                                    <div className="mt-3 space-y-2">
+                                        {/* ⚡ PHASE 2: Access Status Warning */}
+                                        {accessWarning && (
+                                            <div className={`p-3 rounded border ${bookingAccessStatus === 'overdue_locked'
+                                                ? 'bg-red-50 border-red-300 text-red-800'
+                                                : 'bg-yellow-50 border-yellow-300 text-yellow-800'
+                                                }`}>
+                                                <p className="text-sm font-medium">{accessWarning}</p>
+                                                {bookingAccessStatus === 'overdue_locked' && (
+                                                    <p className="text-xs mt-1">Existing scheduled classes will remain, but no new classes can be created.</p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="p-3 bg-white rounded border">
+                                            <div className="text-sm space-y-1">
+                                                <p><strong>Customer:</strong> {selectedBooking.first_name} {selectedBooking.last_name}</p>
+                                                <p><strong>Email:</strong> {selectedBooking.email}</p>
+                                                <p><strong>Type:</strong> {selectedBooking.booking_type}</p>
+                                                {selectedBooking.class_packages && (
+                                                    <p><strong>Package:</strong> {selectedBooking.class_packages.name}</p>
+                                                )}
+                                                {bookingAccessStatus && bookingAccessStatus === 'active' && (
+                                                    <p className="text-green-600 text-xs mt-2">✓ Payment status: Active</p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -452,7 +491,10 @@ export const SimplifiedAssignmentForm = ({
                             <Button type="button" variant="outline" onClick={onClose}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={saving || !selectedBookingId}>
+                            <Button
+                                type="submit"
+                                disabled={saving || !selectedBookingId || bookingAccessStatus === 'overdue_locked'}
+                            >
                                 {saving ? (
                                     <>
                                         <LoadingSpinner size="sm" className="mr-2" />

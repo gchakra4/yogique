@@ -22,6 +22,10 @@ export interface ClassAssignment {
     // Multiple booking support
     assignment_bookings?: AssignmentBooking[]
     bookings?: Booking[] // Populated bookings for convenience
+    // ⚡ PHASE 1: Adjustment classes and calendar month tracking
+    is_adjustment?: boolean // True if auto-generated to fill calendar shortfall
+    adjustment_reason?: string | null // Why this adjustment was created
+    calendar_month?: string | null // YYYY-MM format for monthly billing periods
     class_type?: {
         id: string
         name: string
@@ -133,6 +137,10 @@ export interface Booking {
     created_at: string
     booking_type?: 'individual' | 'corporate' | 'private_group' | 'public_group'
     class_package_id?: string
+    // ⚡ PHASE 1: Access control for payment status
+    access_status?: 'active' | 'overdue_grace' | 'overdue_locked'
+    billing_cycle_anchor?: string | null // Date when monthly billing started (YYYY-MM-DD)
+    is_recurring?: boolean // TRUE for monthly subscriptions
     class_packages?: {
         id: string
         name: string
