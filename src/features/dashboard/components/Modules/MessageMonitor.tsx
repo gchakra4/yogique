@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../../shared/lib/supabase'
+import { supabase, SUPABASE_URL } from '../../../../shared/lib/supabase'
 
 type MessageAuditRow = {
     id: string
@@ -58,7 +58,7 @@ export default function MessageMonitor() {
                 // get current session access token
                 const { data: sessionData } = await supabase.auth.getSession()
                 const token = sessionData?.session?.access_token || ''
-                const fnUrl = `/functions/v1/admin-message-monitor?${params.toString()}`
+                const fnUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/admin-message-monitor?${params.toString()}`
                 const fnRes = await fetch(fnUrl, { headers: { Authorization: `Bearer ${token}` } })
                 if (!fnRes.ok) {
                     const txt = await fnRes.text().catch(() => '')
