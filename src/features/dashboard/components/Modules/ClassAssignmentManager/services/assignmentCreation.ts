@@ -13,6 +13,11 @@ import {
     getCalendarMonthBoundaries,
     validateAllDatesWithinMonth
 } from './monthlySchedulingService'
+import {
+    createFirstMonthInvoice,
+    setBillingCycleAnchor,
+    getPackageMonthlyPrice
+} from './monthlyInvoiceService'
 
 // Helper function to validate UUID format
 const isValidUUID = (uuid: string): boolean => {
@@ -562,10 +567,10 @@ export class AssignmentCreationService {
         const currentUserId = await getCurrentUserId()
 
         // ⚡ PHASE 2: Validate booking is present for adhoc
-        const bookingIds = formData.booking_ids && formData.booking_ids.length > 0
+        const adhocBookingIds = formData.booking_ids && formData.booking_ids.length > 0
             ? formData.booking_ids
             : (formData.booking_id ? [formData.booking_id] : [])
-        const validBookingIds = bookingIds.filter(id => id && id.trim() !== '' && id.trim() !== 'null' && id.trim() !== 'undefined')
+        const validBookingIds = adhocBookingIds.filter(id => id && id.trim() !== '' && id.trim() !== 'null' && id.trim() !== 'undefined')
         
         // 🆕 PHASE 6: Comprehensive adhoc validation
         const adhocValidation = validateAdhocClass({
@@ -715,16 +720,16 @@ export class AssignmentCreationService {
         }
 
         // Create booking associations using the new multiple booking system
-        const bookingIds = formData.booking_ids && formData.booking_ids.length > 0
+        const assignmentBookingIds = formData.booking_ids && formData.booking_ids.length > 0
             ? formData.booking_ids
             : (formData.booking_id ? [formData.booking_id] : [])
 
-        if (bookingIds.length > 0) {
+        if (assignmentBookingIds.length > 0) {
             try {
-                await createAssignmentBookings(insertedAssignment.id, bookingIds)
+                await createAssignmentBookings(insertedAssignment.id, assignmentBookingIds)
 
                 // Update booking status for all linked bookings if needed
-                for (const bookingId of bookingIds) {
+                for (const bookingId of assignmentBookingIds) {
                     if (bookingId && bookingId.trim() !== '') {
                         await this.updateBookingStatus(bookingId, 'completed')
                     }
@@ -1586,12 +1591,17 @@ export class AssignmentCreationService {
         // Calculate per-class amount based on payment type
         const perClassAmount = this.calculatePaymentAmount(formData, 'package', selectedPackage.class_count, studentCount)
 
+        // Get calendar month from start_date
+        const startDate = new Date(formData.start_date + 'T00:00:00.000Z')
+        const monthBoundaries = getCalendarMonthBoundaries(startDate)
+        const calendarMonth = monthBoundaries.monthKey
+
         if (formData.monthly_assignment_method === 'weekly_recurrence') {
             // Weekly recurrence method - use package-specific logic
             assignments.push(...await this.generatePackageWeeklyRecurrenceAssignments(formData, selectedPackage, perClassAmount))
         } else {
             // Manual calendar selection method
-            assignments.push(...await this.generateManualCalendarAssignments(formData, perClassAmount))
+            assignments.push(...await this.generateManualCalendarAssignments(formData, perClassAmount, calendarMonth))
         }
 
         // Get booking IDs (support both new and old format)
