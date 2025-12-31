@@ -1,5 +1,18 @@
 import { supabase } from '../../../../../../shared/lib/supabase'
 import { FormData, Package } from '../types'
+import {
+    getShortfallWithRecommendations
+} from './adjustmentClassService'
+import {
+    checkAdhocConflicts,
+    extractDatesFromAssignments,
+    validateAdhocClass,
+    validateCrashCourseAssignment
+} from './crashCourseAdhocService'
+import {
+    getCalendarMonthBoundaries,
+    validateAllDatesWithinMonth
+} from './monthlySchedulingService'
 
 // Helper function to validate UUID format
 const isValidUUID = (uuid: string): boolean => {
@@ -407,6 +420,66 @@ const getFallbackScheduledClassId = async (): Promise<string | null> => {
     }
 }
 
+/**
+ * Check booking access status to determine if new scheduling is allowed
+ * Returns: { allowed: boolean, reason?: string, status: string }
+ */
+const checkBookingAccessStatus = async (bookingIds: string[]): Promise<{ allowed: boolean; reason?: string; status: string }> => {
+    if (!bookingIds || bookingIds.length === 0) {
+        return { allowed: false, reason: 'No booking provided', status: 'none' }
+    }
+
+    // Filter valid booking IDs
+    const validBookingIds = bookingIds.filter(id => id && id.trim() !== '' && id.trim() !== 'null' && id.trim() !== 'undefined')
+    
+    if (validBookingIds.length === 0) {
+        return { allowed: false, reason: 'No valid booking provided', status: 'none' }
+    }
+
+    try {
+        // Check all bookings' access status
+        const { data: bookings, error } = await supabase
+            .from('bookings')
+            .select('booking_id, access_status, status')
+            .in('booking_id', validBookingIds)
+
+        if (error) {
+            console.error('Error checking booking access status:', error)
+            throw new Error(`Failed to verify booking status: ${error.message}`)
+        }
+
+        if (!bookings || bookings.length === 0) {
+            return { allowed: false, reason: 'Booking not found in database', status: 'not_found' }
+        }
+
+        // Check if any booking is locked
+        const lockedBooking = bookings.find(b => b.access_status === 'overdue_locked')
+        if (lockedBooking) {
+            return {
+                allowed: false,
+                reason: 'Payment is overdue. Please clear outstanding dues before scheduling new classes.',
+                status: 'overdue_locked'
+            }
+        }
+
+        // Check if any booking is in grace period
+        const graceBooking = bookings.find(b => b.access_status === 'overdue_grace')
+        if (graceBooking) {
+            return {
+                allowed: true, // Allow but with warning
+                reason: 'Warning: Payment is approaching overdue. Please settle dues soon to avoid service interruption.',
+                status: 'overdue_grace'
+            }
+        }
+
+        // All bookings are active
+        return { allowed: true, status: 'active' }
+    } catch (error) {
+        console.error('Exception checking booking access status:', error)
+        throw error
+    }
+}
+
 export class AssignmentCreationService {
     /**
      * Update the status of an assignment (class) by assignment ID.
@@ -441,6 +514,31 @@ export class AssignmentCreationService {
     }
 
     static async createAssignment(formData: FormData, packages: Package[], studentCount?: number) {
+        // ⚡ PHASE 2: MANDATORY BOOKING ENFORCEMENT
+        // Validate that booking is provided - ALL assignments require a booking
+        const bookingIds = formData.booking_ids && formData.booking_ids.length > 0
+            ? formData.booking_ids
+            : (formData.booking_id ? [formData.booking_id] : [])
+
+        const validBookingIds = bookingIds.filter(id => id && id.trim() !== '' && id.trim() !== 'null' && id.trim() !== 'undefined')
+        
+        if (validBookingIds.length === 0) {
+            throw new Error('⚠️ BOOKING REQUIRED: All class assignments must be linked to a booking. Please select an existing booking or create a Quick Booking first.')
+        }
+
+        // ⚡ PHASE 2: ACCESS STATUS CHECK
+        // Check booking access status before allowing scheduling
+        const accessCheck = await checkBookingAccessStatus(validBookingIds)
+        
+        if (!accessCheck.allowed) {
+            throw new Error(`🚫 SCHEDULING BLOCKED: ${accessCheck.reason}`)
+        }
+
+        // Log warning if in grace period
+        if (accessCheck.status === 'overdue_grace') {
+            console.warn('⚠️ GRACE PERIOD WARNING:', accessCheck.reason)
+        }
+
         // Validate student count
         const validatedStudentCount = studentCount && studentCount > 0 ? studentCount : 1
 
@@ -462,6 +560,37 @@ export class AssignmentCreationService {
 
     private static async createAdhocAssignment(formData: FormData, studentCount: number) {
         const currentUserId = await getCurrentUserId()
+
+        // ⚡ PHASE 2: Validate booking is present for adhoc
+        const bookingIds = formData.booking_ids && formData.booking_ids.length > 0
+            ? formData.booking_ids
+            : (formData.booking_id ? [formData.booking_id] : [])
+        const validBookingIds = bookingIds.filter(id => id && id.trim() !== '' && id.trim() !== 'null' && id.trim() !== 'undefined')
+        
+        // 🆕 PHASE 6: Comprehensive adhoc validation
+        const adhocValidation = validateAdhocClass({
+            date: formData.date,
+            classTypeId: formData.class_type_id,
+            bookingIds: validBookingIds,
+            instructorId: formData.instructor_id
+        })
+
+        if (!adhocValidation.valid) {
+            throw new Error(adhocValidation.errors.join('\n'))
+        }
+
+        // 🆕 PHASE 6: Check for scheduling conflicts
+        const conflictCheck = await checkAdhocConflicts(
+            formData.instructor_id,
+            formData.date,
+            formData.start_time,
+            formData.end_time
+        )
+
+        if (conflictCheck.hasConflict) {
+            console.warn('⚠️ Adhoc scheduling conflict detected:', conflictCheck.conflictDetails)
+            // Warning only - allow override for admin
+        }
 
         // Validate required fields
         if (!formData.class_type_id || formData.class_type_id.trim() === '') {
@@ -861,10 +990,35 @@ export class AssignmentCreationService {
             formData.package_id
         )
 
+        // 🆕 PHASE 3: Calendar Month Boundary Validation
+        // Get calendar month boundaries from start_date
+        const startDate = new Date(formData.start_date + 'T00:00:00.000Z')
+        const monthBoundaries = getCalendarMonthBoundaries(startDate)
+        const calendarMonth = monthBoundaries.monthKey
+
+        console.log('📅 Monthly Assignment - Calendar Month:', calendarMonth)
+        console.log('📅 Month Boundaries:', {
+            start: monthBoundaries.startDate.toISOString().split('T')[0],
+            end: monthBoundaries.endDate.toISOString().split('T')[0],
+            days: monthBoundaries.daysInMonth
+        })
+
         if (formData.monthly_assignment_method === 'weekly_recurrence') {
-            assignments.push(...await this.generateWeeklyRecurrenceAssignments(formData, perClassAmount))
+            assignments.push(...await this.generateWeeklyRecurrenceAssignments(formData, perClassAmount, calendarMonth))
         } else {
-            assignments.push(...await this.generateManualCalendarAssignments(formData, perClassAmount))
+            assignments.push(...await this.generateManualCalendarAssignments(formData, perClassAmount, calendarMonth))
+        }
+
+        // 🆕 PHASE 3: Validate all dates are within same calendar month
+        const assignmentDates = assignments.map(a => new Date(a.date + 'T00:00:00.000Z'))
+        try {
+            validateAllDatesWithinMonth(assignmentDates, calendarMonth)
+            console.log('✅ All assignment dates validated within calendar month:', calendarMonth)
+        } catch (error) {
+            throw new Error(
+                `Calendar Month Violation: ${error instanceof Error ? error.message : String(error)}\n\n` +
+                `Monthly subscriptions must stay within calendar month boundaries (${monthBoundaries.startDate.toISOString().split('T')[0]} to ${monthBoundaries.endDate.toISOString().split('T')[0]}).`
+            )
         }
 
         // Get booking IDs (support both new and old format)
@@ -901,11 +1055,32 @@ export class AssignmentCreationService {
                 } catch (recErr) {
                     console.warn('Failed to mark bookings as recurring:', recErr)
                 }
+
+                // 🆕 PHASE 4: Generate first month invoice automatically
+                try {
+                    await this.generateFirstMonthInvoices(bookingIds, formData.start_date, formData.package_id)
+                } catch (invoiceErr) {
+                    console.error('Failed to generate first month invoices:', invoiceErr)
+                    // Don't fail the entire operation - invoice can be generated later
+                }
             } catch (bookingError) {
                 console.error('Failed to associate bookings with monthly assignments:', bookingError)
                 // Assignments are created, but booking association failed
                 throw new Error('Assignments created but failed to link bookings. Please contact support.')
             }
+        }
+
+        // 🆕 PHASE 5: Detect and warn about scheduling shortfalls
+        try {
+            await this.detectAndWarnShortfall(
+                formData.instructor_id,
+                calendarMonth,
+                formData.total_classes || assignments.length,
+                formData.weekly_days || []
+            )
+        } catch (shortfallErr) {
+            console.warn('Shortfall detection failed:', shortfallErr)
+            // Don't fail - this is informational only
         }
 
         return { success: true, count: assignments.length }
@@ -939,7 +1114,119 @@ export class AssignmentCreationService {
         }
     }
 
-    private static async generateWeeklyRecurrenceAssignments(formData: FormData, perClassAmount: number) {
+    // 🆕 PHASE 5: Detect scheduling shortfalls and log warnings/recommendations
+    private static async detectAndWarnShortfall(
+        instructorId: string,
+        calendarMonth: string,
+        requiredClasses: number,
+        preferredDays: number[]
+    ): Promise<void> {
+        try {
+            if (preferredDays.length === 0) {
+                console.log('ℹ️ No preferred days specified - skipping shortfall detection')
+                return
+            }
+
+            const analysis = await getShortfallWithRecommendations(
+                instructorId,
+                calendarMonth,
+                requiredClasses,
+                preferredDays
+            )
+
+            console.log('📊 Monthly Shortfall Analysis:', {
+                month: calendarMonth,
+                required: requiredClasses,
+                scheduled: analysis.scheduledClasses,
+                adjustments: analysis.adjustmentClasses,
+                total: analysis.scheduledClasses + analysis.adjustmentClasses,
+                shortfall: analysis.shortfall
+            })
+
+            if (analysis.hasShortfall) {
+                console.warn(`⚠️ SHORTFALL DETECTED: Need ${Math.abs(analysis.shortfall)} more class(es) for ${calendarMonth}`)
+                
+                if (analysis.recommendations.length > 0) {
+                    console.log('💡 Adjustment Recommendations:')
+                    analysis.recommendations.forEach((rec, idx) => {
+                        console.log(`   ${idx + 1}. ${rec.dateString} (${rec.reason})`)
+                    })
+                    console.log(`ℹ️ Use the Adjustment Class feature to fill this shortfall`)
+                } else {
+                    console.warn(`❌ No alternative dates available in ${calendarMonth} - cannot fill shortfall`)
+                }
+            } else if (analysis.shortfall === 0) {
+                console.log(`✅ Perfect match: Exactly ${requiredClasses} class(es) scheduled for ${calendarMonth}`)
+            } else {
+                console.log(`✅ No shortfall: ${analysis.scheduledClasses + analysis.adjustmentClasses} class(es) scheduled (${analysis.shortfall} more than required)`)
+            }
+        } catch (error) {
+            console.error('Error in shortfall detection:', error)
+            // Don't throw - this is non-critical
+        }
+    }
+
+    // 🆕 PHASE 4: Generate first month invoices for monthly bookings
+    private static async generateFirstMonthInvoices(
+        bookingIds: string[],
+        startDate: string,
+        packageId?: string | null
+    ): Promise<void> {
+        if (!bookingIds || bookingIds.length === 0 || !packageId) return
+
+        try {
+            // Get package monthly price
+            const monthlyPrice = await getPackageMonthlyPrice(packageId)
+
+            console.log('💰 Generating first month invoices for', bookingIds.length, 'booking(s) - Monthly price:', monthlyPrice)
+
+            // Generate invoice for each booking
+            for (const bookingCode of bookingIds) {
+                if (!bookingCode || bookingCode.trim() === '') continue
+
+                try {
+                    // Get booking user_id
+                    const { data: booking, error: bookingError } = await supabase
+                        .from('bookings')
+                        .select('user_id')
+                        .eq('booking_id', bookingCode.trim())
+                        .single()
+
+                    if (bookingError || !booking) {
+                        console.warn('Could not fetch booking for invoice generation:', bookingCode)
+                        continue
+                    }
+
+                    // Set billing cycle anchor first
+                    await setBillingCycleAnchor(bookingCode.trim(), startDate)
+
+                    // Generate first month invoice (with proration)
+                    const result = await createFirstMonthInvoice(
+                        bookingCode.trim(),
+                        booking.user_id,
+                        startDate,
+                        monthlyPrice,
+                        packageId
+                    )
+
+                    if (result.success) {
+                        console.log('✅ First month invoice created for booking:', bookingCode.trim())
+                    } else {
+                        console.warn('Failed to create invoice for', bookingCode, ':', result.error)
+                    }
+                } catch (err) {
+                    console.error('Exception generating invoice for', bookingCode, ':', err)
+                }
+            }
+
+            console.log('✅ Invoice generation complete')
+        } catch (error) {
+            console.error('Error in generateFirstMonthInvoices:', error)
+            throw error
+        }
+    }
+
+    private static async generateWeeklyRecurrenceAssignments(formData: FormData, perClassAmount: number, calendarMonth: string) {
         const currentUserId = await getCurrentUserId()
         const assignments = []
 
@@ -1007,7 +1294,9 @@ export class AssignmentCreationService {
                     booking_type: formData.booking_type || 'individual',
                     class_status: 'scheduled',
                     payment_status: 'pending',
-                    instructor_status: 'pending'
+                    instructor_status: 'pending',
+                    calendar_month: calendarMonth, // 🆕 Phase 3: Calendar month tracking
+                    is_adjustment: false // 🆕 Phase 3: Regular scheduled class
                 }
 
                 // Add optional fields only if they have values
@@ -1029,7 +1318,7 @@ export class AssignmentCreationService {
         return assignments
     }
 
-    private static async generateManualCalendarAssignments(formData: FormData, perClassAmount: number) {
+    private static async generateManualCalendarAssignments(formData: FormData, perClassAmount: number, calendarMonth: string) {
         const currentUserId = await getCurrentUserId()
 
         // Validate manual selections
@@ -1069,7 +1358,9 @@ export class AssignmentCreationService {
                 booking_type: formData.booking_type || 'individual',
                 class_status: 'scheduled',
                 payment_status: 'pending',
-                instructor_status: 'pending'
+                instructor_status: 'pending',
+                calendar_month: calendarMonth, // 🆕 Phase 3: Calendar month tracking
+                is_adjustment: false // 🆕 Phase 3: Regular scheduled class
             }
 
             // Add optional fields only if they have values
@@ -1090,6 +1381,7 @@ export class AssignmentCreationService {
         }
 
         const assignments = []
+        let crashCourseValidation: any = null // Store for later validation
 
         // Calculate per-class amount based on payment type
         const perClassAmount = this.calculatePaymentAmount(formData, 'crash_course', selectedPackage.class_count, studentCount)
@@ -1140,6 +1432,22 @@ export class AssignmentCreationService {
 
                 return assignment
             }))
+        }
+
+        // 🆕 PHASE 6: Validate crash course dates are within validity window
+        const crashCourseDates = extractDatesFromAssignments(assignments)
+        crashCourseValidation = await validateCrashCourseAssignment(
+            formData.package_id,
+            formData.start_date,
+            crashCourseDates
+        )
+
+        if (!crashCourseValidation.valid) {
+            throw new Error(crashCourseValidation.error || 'Crash course validation failed')
+        }
+
+        if (crashCourseValidation.details?.warnings?.length > 0) {
+            console.warn('⚠️ Crash Course Warnings:', crashCourseValidation.details.warnings)
         }
 
         // Get booking IDs (support both new and old format)

@@ -10,6 +10,7 @@ export function Terms(): JSX.Element {
         <div className="min-h-screen bg-white dark:bg-slate-900 text-gray-900 dark:text-white">
             <header className="bg-gradient-to-r from-indigo-50 to-emerald-50 dark:from-slate-800 dark:to-slate-900 py-16">
                 <div className="max-w-5xl mx-auto px-6">
+                    <p className="text-sm text-gray-500 dark:text-slate-400">Last updated: December 31, 2025</p>
                     <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight">Terms of Service</h1>
                     <p className="mt-3 text-lg text-gray-700 dark:text-slate-300 max-w-3xl">
                         These Terms govern your use of the Yogique website and services. By using the Service you agree to these terms.
@@ -29,6 +30,36 @@ export function Terms(): JSX.Element {
                         <p className="mt-2 text-sm text-gray-700 dark:text-slate-300">
                             By accessing or using Yogique (the “Service”), you agree to be bound by these Terms of Service and any additional terms posted on the Service.
                         </p>
+                    </section>
+
+                    <section className="mt-6">
+                        <h2>Monthly Class Delivery Policy</h2>
+                        <div className="mt-2 text-sm text-gray-700 dark:text-slate-300">
+                            <p className="font-semibold">1️⃣ Monthly Commitment</p>
+                            <p className="mt-1">Each monthly subscription guarantees a fixed number of classes per calendar month, as defined in the selected package.</p>
+
+                            <p className="font-semibold mt-3">2️⃣ Preferred Days of Class</p>
+                            <p className="mt-1">Participants may select preferred recurring days (e.g., Monday–Wednesday–Friday). These preferred days will be followed as the primary schedule pattern.</p>
+
+                            <p className="font-semibold mt-3">3️⃣ Calendar Variation Handling</p>
+                            <p className="mt-1">Since calendar months vary in the number and arrangement of weekdays, some months may naturally contain fewer preferred-day occurrences than the package commitment.</p>
+                            <p className="mt-1">In such cases: we will schedule equivalent alternative sessions within the same calendar month to ensure delivery of the promised number of classes.</p>
+
+                            <p className="font-semibold mt-3">4️⃣ No Rollover Policy</p>
+                            <p className="mt-1">Missed or unavailable preferred-day sessions due to calendar structure are not carried forward to the next month. Each month is independent.</p>
+
+                            <p className="font-semibold mt-3">5️⃣ Fairness Guarantee</p>
+                            <p className="mt-1">Any adjustment classes added will:</p>
+                            <ul className="list-disc ml-5 mt-2">
+                                <li>remain within the same month</li>
+                                <li>be reasonably placed</li>
+                                <li>not overload participants</li>
+                                <li>maintain session quality</li>
+                            </ul>
+
+                            <p className="font-semibold mt-3">6️⃣ Flexibility Clause</p>
+                            <p className="mt-1">Participants may optionally choose alternate regular batches offered by us to meet required class count.</p>
+                        </div>
                     </section>
 
                     <section className="mt-6">
