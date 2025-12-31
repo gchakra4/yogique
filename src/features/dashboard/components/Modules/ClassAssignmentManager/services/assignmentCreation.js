@@ -1,8 +1,8 @@
 import { supabase } from '../../../../../../shared/lib/supabase';
 import { getShortfallWithRecommendations } from './adjustmentClassService';
 import { checkAdhocConflicts, extractDatesFromAssignments, validateAdhocClass, validateCrashCourseAssignment } from './crashCourseAdhocService';
+import { createFirstMonthInvoice, getPackageMonthlyPrice, setBillingCycleAnchor } from './monthlyInvoiceService';
 import { getCalendarMonthBoundaries, validateAllDatesWithinMonth } from './monthlySchedulingService';
-import { createFirstMonthInvoice, setBillingCycleAnchor, getPackageMonthlyPrice } from './monthlyInvoiceService';
 // Helper function to validate UUID format
 const isValidUUID = (uuid) => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

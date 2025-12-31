@@ -19,7 +19,7 @@ import {
     calculateMonthlyInvoice,
     type MonthlyInvoiceRequest
 } from './monthlyInvoiceService'
-import { getNextMonth } from './monthlySchedulingService'
+import { getCalendarMonthBoundaries, getNextMonth } from './monthlySchedulingService'
 
 // ============================================================================
 // Configuration
@@ -54,6 +54,8 @@ export interface InvoiceGenerationResult {
     invoice_id?: string
     invoice_number?: string
     calendar_month?: string
+    classes_generated?: number
+    classes_error?: string
     error?: string
     skipped_reason?: string
 }
@@ -64,6 +66,34 @@ export interface BatchGenerationSummary {
     total_skipped: number
     total_errors: number
     results: InvoiceGenerationResult[]
+}
+
+export interface ClassAssignment {
+    package_id: string
+    class_package_id: string
+    date: string
+    start_time: string
+    end_time: string
+    instructor_id: string
+    payment_amount: number
+    schedule_type: string
+    assigned_by: string
+    booking_type: string
+    class_status: string
+    payment_status: string
+    instructor_status: string
+    calendar_month: string
+    is_adjustment: boolean
+}
+
+export interface ClassGenerationResult {
+    success: boolean
+    booking_id: string
+    booking_code: string
+    classes_generated?: number
+    calendar_month?: string
+    error?: string
+    skipped_reason?: string
 }
 
 // ============================================================================
@@ -185,6 +215,179 @@ export async function getBookingsDueForInvoice(): Promise<{
         console.error('Unexpected error in getBookingsDueForInvoice:', error)
         return {
             bookings: [],
+            error: error instanceof Error ? error.message : 'Unknown error'
+        }
+    }
+}
+
+// ============================================================================
+// Generate Monthly Classes
+// ============================================================================
+
+/**
+ * Generate class assignments for next calendar month
+ */
+export async function generateMonthlyClassesForBooking(
+    booking: BookingForInvoice,
+    targetMonth: string
+): Promise<ClassGenerationResult> {
+    try {
+        console.log(`Generating classes for ${booking.booking_id} - Month: ${targetMonth}`)
+
+        // Get booking details with weekly schedule preferences
+        const { data: bookingDetails, error: bookingError } = await supabase
+            .from('bookings')
+            .select(`
+                id,
+                booking_id,
+                user_id,
+                class_package_id,
+                instructor_id,
+                start_time,
+                end_time,
+                weekly_days,
+                booking_type,
+                class_packages!inner(
+                    id,
+                    class_count,
+                    total_amount
+                )
+            `)
+            .eq('id', booking.id)
+            .single()
+
+        if (bookingError || !bookingDetails) {
+            return {
+                success: false,
+                booking_id: booking.id,
+                booking_code: booking.booking_id,
+                error: `Failed to fetch booking details: ${bookingError?.message || 'Not found'}`
+            }
+        }
+
+        const packageData = (bookingDetails.class_packages as any)
+        if (!packageData || !packageData.class_count) {
+            return {
+                success: false,
+                booking_id: booking.id,
+                booking_code: booking.booking_id,
+                error: 'Package has no class_count'
+            }
+        }
+
+        const weeklyDays = bookingDetails.weekly_days as number[] || []
+        if (weeklyDays.length === 0) {
+            return {
+                success: false,
+                booking_id: booking.id,
+                booking_code: booking.booking_id,
+                error: 'No weekly_days preference found'
+            }
+        }
+
+        // Parse target month (YYYY-MM)
+        const [year, month] = targetMonth.split('-').map(Number)
+        const monthStart = new Date(Date.UTC(year, month - 1, 1))
+        const monthBoundaries = getCalendarMonthBoundaries(monthStart)
+
+        // Generate classes for all selected days in the month
+        const assignments: ClassAssignment[] = []
+        const sortedWeeklyDays = [...weeklyDays].sort((a, b) => a - b)
+        const requiredClasses = packageData.class_count
+        const perClassAmount = packageData.total_amount / requiredClasses
+
+        let currentDate = new Date(monthBoundaries.startDate)
+        let classesGenerated = 0
+
+        while (currentDate <= monthBoundaries.endDate && classesGenerated < requiredClasses) {
+            const dayOfWeek = currentDate.getUTCDay()
+
+            if (sortedWeeklyDays.includes(dayOfWeek)) {
+                const dateStr = currentDate.toISOString().split('T')[0]
+
+                assignments.push({
+                    package_id: bookingDetails.class_package_id,
+                    class_package_id: bookingDetails.class_package_id,
+                    date: dateStr,
+                    start_time: bookingDetails.start_time,
+                    end_time: bookingDetails.end_time,
+                    instructor_id: bookingDetails.instructor_id,
+                    payment_amount: perClassAmount,
+                    schedule_type: 'monthly',
+                    assigned_by: 'system_automated', // System-generated
+                    booking_type: bookingDetails.booking_type || 'individual',
+                    class_status: 'scheduled',
+                    payment_status: 'pending',
+                    instructor_status: 'pending',
+                    calendar_month: targetMonth,
+                    is_adjustment: false
+                })
+
+                classesGenerated++
+            }
+
+            // Move to next day
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1)
+        }
+
+        if (assignments.length === 0) {
+            return {
+                success: false,
+                booking_id: booking.id,
+                booking_code: booking.booking_id,
+                error: 'No classes could be generated for the month'
+            }
+        }
+
+        // Insert class assignments
+        const { data: insertedAssignments, error: insertError } = await supabase
+            .from('class_assignments')
+            .insert(assignments)
+            .select('id')
+
+        if (insertError) {
+            console.error('Failed to insert class assignments:', insertError)
+            return {
+                success: false,
+                booking_id: booking.id,
+                booking_code: booking.booking_id,
+                error: `Database insert failed: ${insertError.message}`
+            }
+        }
+
+        // Link assignments to booking
+        if (insertedAssignments && insertedAssignments.length > 0) {
+            const bookingLinks = insertedAssignments.map(assignment => ({
+                assignment_id: assignment.id,
+                booking_id: bookingDetails.id
+            }))
+
+            const { error: linkError } = await supabase
+                .from('assignment_bookings')
+                .insert(bookingLinks)
+
+            if (linkError) {
+                console.warn('Failed to link assignments to booking:', linkError)
+                // Don't fail completely - assignments were created
+            }
+        }
+
+        console.log(`✅ Generated ${assignments.length} classes for ${booking.booking_id} (Month: ${targetMonth})`)
+
+        return {
+            success: true,
+            booking_id: booking.id,
+            booking_code: booking.booking_id,
+            classes_generated: assignments.length,
+            calendar_month: targetMonth
+        }
+
+    } catch (error) {
+        console.error('Error generating classes for booking:', error)
+        return {
+            success: false,
+            booking_id: booking.id,
+            booking_code: booking.booking_id,
             error: error instanceof Error ? error.message : 'Unknown error'
         }
     }
@@ -326,13 +529,23 @@ export async function generateInvoiceForBooking(
 
         console.log(`✅ Invoice generated: ${invoice.invoice_number} for ${booking.booking_id}`)
 
+        // Generate monthly classes for this booking
+        const classResult = await generateMonthlyClassesForBooking(booking, targetMonth)
+
+        if (!classResult.success) {
+            console.warn(`⚠️ Classes generation failed for ${booking.booking_id}:`, classResult.error)
+            // Invoice created but classes failed - log warning but don't fail completely
+        }
+
         return {
             success: true,
             booking_id: booking.id,
             booking_code: booking.booking_id,
             invoice_id: invoice.id,
             invoice_number: invoice.invoice_number,
-            calendar_month: targetMonth
+            calendar_month: targetMonth,
+            classes_generated: classResult.classes_generated,
+            classes_error: classResult.error
         }
 
     } catch (error) {

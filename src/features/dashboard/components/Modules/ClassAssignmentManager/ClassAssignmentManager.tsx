@@ -644,6 +644,10 @@ export function ClassAssignmentManager() {
             setSaving(true)
             setLoadingStates(prev => ({ ...prev, creatingAssignment: true }))
 
+            // Get the package class count for monthly assignments
+            const selectedPackage = packages.find(p => p.id === data.package_id)
+            const totalClasses = selectedPackage?.class_count || 1
+
             // Convert simplified form data to service format
             const formPayload: any = {
                 assignment_type: data.assignment_type,
@@ -671,7 +675,7 @@ export function ClassAssignmentManager() {
                 class_frequency: 'weekly' as any,
                 specific_days: [],
                 timeline_description: '',
-                total_classes: 1,
+                total_classes: totalClasses,
                 timezone: 'UTC+5:30',
                 manual_selections: [],
                 client_name: '',
