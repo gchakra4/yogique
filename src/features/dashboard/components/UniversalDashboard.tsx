@@ -25,6 +25,7 @@ const NewsletterManagement = React.lazy(() => import('./Modules/NewsletterManage
 const TeachingDashboard = React.lazy(() => import('./Modules/TeachingDashboard'));
 const Overview = React.lazy(() => import('./Modules/OverView'));
 const AdminClassesOverview = React.lazy(() => import('./Modules/AdminClassesOverview'));
+const MessageMonitor = React.lazy(() => import('./Modules/MessageMonitor'));
 
 interface User {
   id: string;
@@ -71,6 +72,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
     AdminTemplateMappings,
     AuditLogs: React.lazy(() => import('./Modules/AuditLogs')),
     InstructorRatesPage: React.lazy(() => import('../../instructor-rates/pages/InstructorRatesPage')),
+    MessageMonitor,
   };
 
   // Get the first available module for default tab
