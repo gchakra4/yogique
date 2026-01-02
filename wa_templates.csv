@@ -1,12 +1,12 @@
-key,meta_name,language,category,status,id,variables_count,variables,example_values,has_buttons,button_types
-"yogique_next_class_alerts","yogique_next_class_alerts","en","UTILITY","APPROVED","1215242169937888",5,"1;2;3;4;5","Gourab Chakraborty;3874aae8;29 Dec 2025;7.30 PM;https://us06web.zoom.us/j/86427553426?pwd=dE6GYQLFKLbXFdgPmfUDtbUTKNUgoM.1",false,
-"yogique_otp_phone_verification","yogique_otp_phone_verification","en","AUTHENTICATION","APPROVED","3471444632996786",1,"1","123456",true,"URL"
-"yogique_invoice_generated","yogique_invoice_generated","en","MARKETING","APPROVED","905405281837791",5,"1;2;3;4;5","Gourab;March 2026;INvoiceNo-24793;5000;7 March 2026",true,"URL"
-"yogique_payment_successful","yogique_payment_successful","en_IN","UTILITY","APPROVED","1379734223559848",4,"1;2;3;4","Gourab;5000;March 2026;PAYABC12345",false,
-"payment_overdue_reminder","payment_overdue_reminder","en","MARKETING","APPROVED","3230726907103908",3,"1;2;3","Gourab;5000;March 2026",true,"URL"
-"yogique_payment_due_reminder","yogique_payment_due_reminder","en","UTILITY","APPROVED","644830015324514",4,"1;2;3;4","Gourab;March 2026;dhgsdjh23jjwy3udhh2829;5000",true,"URL"
-"yogique_payment_success","yogique_payment_success","en","UTILITY","APPROVED","1374368854237617",4,"1;2;3;4","Gourab;₹3000;Pravaha;dhsjkajkaj3y23929jba",false,
-"class_reminder_zoom","class_reminder_zoom","en_IN","MARKETING","APPROVED","1157617086147873",4,"1;2;3;4","Gourab;29 Dec 2025;7.30 PM;https://us06web.zoom.us/j/82116668953?pwd=oGXinlNQsi3AV9cK3tyVz6yYg9KJ8t.1",false,
-"yogique_booking_confirmation","yogique_booking_confirmation","en","UTILITY","APPROVED","1921291862071161",4,"1;2;3;4","Gourab;YOG-156465-4596;Gourab Chakraborty;Pravaha",true,"PHONE_NUMBER"
-"yogique_test","yogique_test","en","UTILITY","APPROVED","1950973042520636",1,"1","Gourab",false,
-"hello_world","hello_world","en_US","UTILITY","APPROVED","1181216620653648",0,"","",false,
+﻿"name","language","status","category","id","last_updated_time"
+"yogique_next_class_alerts","en","APPROVED","UTILITY","1215242169937888",
+"yogique_otp_phone_verification","en","APPROVED","AUTHENTICATION","3471444632996786",
+"yogique_invoice_generated","en","APPROVED","UTILITY","905405281837791",
+"yogique_payment_successful","en_IN","APPROVED","UTILITY","1379734223559848",
+"payment_overdue_reminder","en","APPROVED","UTILITY","3230726907103908",
+"yogique_payment_due_reminder","en","APPROVED","UTILITY","644830015324514",
+"yogique_payment_success","en","APPROVED","UTILITY","1374368854237617",
+"class_reminder_zoom","en_IN","APPROVED","UTILITY","1157617086147873",
+"yogique_booking_confirmation","en","APPROVED","UTILITY","1921291862071161",
+"yogique_test","en","APPROVED","UTILITY","1950973042520636",
+"hello_world","en_US","APPROVED","UTILITY","1181216620653648",
