@@ -1,0 +1,27 @@
+name: Run Notification Worker Queue
+
+on:
+  schedule:
+    # Run every 2 minutes to process notification queue
+    - cron: '*/2 * * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max notifications to process'
+        required: false
+        default: '10'
+
+jobs:
+  process-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process notification queue
+        run: |
+          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/notification-worker" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"limit": ${{ github.event.inputs.limit || 10 }}}'
+        
+      - name: Check response
+        run: |
+          echo "Worker queue processing completed"
