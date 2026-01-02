@@ -650,16 +650,18 @@ serve(async (req) => {
                         }
                         
                         // Build notification queue row
+                        // class_reminder_zoom template expects: [name, date, time, zoom_link]
                         const row = {
                             channel: 'whatsapp',
                             recipient: phone,
                             template_key: 'class_reminder_zoom',
-                            template_language: 'en',
-                            vars: {
-                                title: ct?.name || 'Class',
-                                class_time: `${cls.date} ${cls.start_time}`,
-                                zoom_link: zoomData.join_url,
-                            },
+                            template_language: 'en_IN',
+                            vars: [
+                                profile.full_name || 'Student',
+                                cls.date || '',
+                                cls.start_time || '',
+                                zoomData.join_url || '',
+                            ],
                             metadata: {
                                 class_id: classId,
                                 user_id: profile.user_id || profile.id,

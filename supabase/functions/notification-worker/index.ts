@@ -1,8 +1,14 @@
 import { serve } from "https://deno.land/std@0.201.0/http/server.ts";
-import { callFunction, restGet, restPatch } from '../shared/db.ts';
+import { callFunctionWithOptions, restGet, restPatch } from '../shared/db.ts';
 
-const PROCESS_LIMIT = Number(Deno.env.get('NOTIFICATION_WORKER_LIMIT') || '10');
-const POLL_TIMEOUT = Number(Deno.env.get('NOTIFICATION_WORKER_TIMEOUT_MS') || '5000');
+// Keep each invocation short to avoid Edge runtime EarlyDrop (~15s)
+const DEFAULT_LIMIT = Number(Deno.env.get('NOTIFICATION_WORKER_LIMIT') || '1');
+const DEFAULT_BUDGET_MS = Number(Deno.env.get('NOTIFICATION_WORKER_BUDGET_MS') || '9000');
+const DEFAULT_DOWNSTREAM_TIMEOUT_MS = Number(Deno.env.get('NOTIFICATION_WORKER_DOWNSTREAM_TIMEOUT_MS') || '8000');
+
+function nowMs() {
+  return Date.now();
+}
 
 // Retry/backoff configuration
 const MAX_ATTEMPTS = Number(Deno.env.get('NOTIFICATION_MAX_ATTEMPTS') || '5');
@@ -76,7 +82,7 @@ async function finalizeRow(id: string, ok: boolean, attempts: number, errorText:
   } catch (_) {}
 }
 
-async function processRow(row: any) {
+async function processRow(row: any, serviceRoleKey: string | null) {
   const id = row.id;
   if (!id) return { ok: false, error: 'missing id' };
 
@@ -106,13 +112,19 @@ async function processRow(row: any) {
   }
 
   try {
-    const result = await callFunction('notification-service', payload);
-    if (result && result.ok) {
+    const result = await callFunctionWithOptions('notification-service', payload, {
+      serviceRoleKey,
+      timeoutMs: DEFAULT_DOWNSTREAM_TIMEOUT_MS,
+    });
+    const downstreamOk = Boolean(result && result.ok && (result as any).body && (result as any).body.ok === true);
+    if (downstreamOk) {
       await finalizeRow(id, true, (row.attempts || 0) + 1, null);
       return { ok: true, id };
     } else {
-      await finalizeRow(id, false, (row.attempts || 0) + 1, `func_status=${result?.status} body=${JSON.stringify(result?.body)}`);
-      return { ok: false, id, error: JSON.stringify(result?.body) };
+      const status = result?.status;
+      const body = (result as any)?.body;
+      await finalizeRow(id, false, (row.attempts || 0) + 1, `func_status=${status} body=${JSON.stringify(body)}`);
+      return { ok: false, id, error: JSON.stringify(body) };
     }
   } catch (err) {
     await finalizeRow(id, false, (row.attempts || 0) + 1, String(err));
@@ -123,21 +135,45 @@ async function processRow(row: any) {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
-    // restGet/restPatch will throw if env missing
+    const incomingApikey = req.headers.get('apikey') || null;
+    const incomingBearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '') || null;
+    const runtimeKey = incomingApikey || incomingBearer || null;
+
+    try {
+      console.log('notification-worker auth', {
+        apikey_len: incomingApikey ? incomingApikey.length : 0,
+        bearer_len: incomingBearer ? incomingBearer.length : 0,
+        runtime_key_len: runtimeKey ? runtimeKey.length : 0,
+      });
+    } catch (_) {}
 
     const body = await req.json().catch(() => ({}));
-    const limit = Number(body.limit || PROCESS_LIMIT);
+    const limit = Number(body.limit || DEFAULT_LIMIT);
+    const budgetMs = Number(body.budget_ms || DEFAULT_BUDGET_MS);
+
+    const start = nowMs();
+    let processed = 0;
 
     const rows = await fetchPending(limit);
-    const results: any[] = [];
-    for (const r of Array.isArray(rows) ? rows : []) {
-      const res = await processRow(r);
-      results.push(res);
+    if (Array.isArray(rows)) {
+      for (const r of rows) {
+        if (nowMs() - start > budgetMs) break;
+        await processRow(r, runtimeKey);
+        processed++;
+      }
     }
 
-    return new Response(JSON.stringify({ ok: true, processed: results.length, results }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: true, processed }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (err) {
     console.error('notification-worker error', err);
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 });
+
+// Additionally: when making any fetch to another edge function from this worker, set headers like:
+// Runtime key is taken from request headers (or env) via shared helpers.
+// const headers = { 'Content-Type': 'application/json', 'Authorization': key ? `Bearer ${key}` : '', 'apikey': key || '' };
+// await fetch(`${SUPABASE_URL}/functions/v1/notification-service`, { method:'POST', headers, body: JSON.stringify(payload) });

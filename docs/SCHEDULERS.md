@@ -1,8 +1,18 @@
-# Scheduled Jobs (GitHub Actions)
+# Scheduled Jobs (pg_cron)
 
-This document lists repository scheduled workflows (cron) and explains how to configure and test them in GitHub Actions.
+This document lists repository scheduled workflows using Supabase's built-in `pg_cron` extension.
 
-## Discovered scheduled workflows
+## ✅ Why pg_cron instead of GitHub Actions?
+
+- **Available on free tier** - No external service needed
+- **Lower latency** - Runs inside your database
+- **More reliable** - No network dependencies
+- **Simpler** - Just SQL, no workflow files
+- **Built-in monitoring** - Query `cron.job_run_details` for logs
+
+## Scheduled Jobs
+
+All jobs are configured in `supabase/migrations/YYYYMMDD_schedule_all_cron_jobs.sql`
 
 - Name: generate-t5-invoices  
   Path: .github/workflows/generate-t5-invoices.yaml  
@@ -17,6 +27,7 @@ Description: This job automatically generates a daily batch of "T5" invoices so 
   ```
   curl -X POST "${SUPABASE_URL}/functions/v1/generate-t5-invoices" \
     -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+    -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
     -H "Content-Type: application/json" \
     -d '{}'
   ```
@@ -45,13 +56,13 @@ Description: This job coordinates escalation rules (e.g., alerting or follow-ups
 
 - Name: schedule-create-zoom  
   Path: .github/workflows/schedule-create-zoom.yaml  
-  Cron: `*/5 * * * *` (Every 5 minutes)  
+  Cron: `*/15 * * * *` (Every 15 minutes)  
   Action: runs `scheduler.js` which invokes edge function(s) configured by `EDGE_FUNCTION_URL`  
   Required secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `EDGE_FUNCTION_URL`, `SCHEDULER_SECRET_TOKEN`  
   Optional: `SCHEDULER_SECRET_HEADER`  
   Notes: accepts `force_invoke` input when manually dispatched.
 
-Description: This frequent scheduler watches for items that need Zoom meetings created (or similar quick tasks) and calls the appropriate function to create them. It's used to handle near-real-time scheduling without manual intervention.
+Description: This scheduler watches for items that need Zoom meetings created (or similar quick tasks) and calls the appropriate function to create them. It's used to handle near-real-time scheduling without manual intervention.
 
   Example curl (edge function invocation):
   ```
@@ -96,294 +107,272 @@ Description: This job finds bookings that are overdue (e.g., missed payments or 
 
 - Name: run-worker-queue  
   Path: .github/workflows/run-worker-queue.yaml  
-  Cron: `*/2 * * * *` (Every 2 minutes)  
+  Cron: `* * * * *` (Every minute)  
   Action: POST to `${SUPABASE_URL}/functions/v1/notification-worker`  
   Required secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`  
   Notes: `workflow_dispatch` enabled with configurable limit.
 
-Description: This job continuously processes the notifications queue, sending WhatsApp and email notifications. It runs frequently to ensure timely delivery of messages like payment reminders, class notifications, and booking confirmations.
+Description: This job processes the notifications queue, sending WhatsApp and email notifications. It runs frequently to ensure timely delivery of messages like payment reminders, class notifications, and booking confirmations.
 
   Example curl:
   ```
   curl -X POST "${SUPABASE_URL}/functions/v1/notification-worker" \
     -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+    -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
     -H "Content-Type: application/json" \
-    -d '{"limit":10}'
+    -d '{"limit":5,"runs":1}'
   ```
 
-  Example GH CLI:
-  ```
-  gh workflow run run-worker-queue.yaml --ref main -f limit=20
-  ```
+  **Important (Edge Function runtime limit / EarlyDrop):**
+  - Edge invocations can be dropped after ~15 seconds (`Shutdown reason: EarlyDrop`).
+  - Keep the worker **fast**: `runs=1`, small `limit` (start with 5), **no internal sleep/poll loops**.
 
-## How to set these up in GitHub
+## How to set up pg_cron
 
-1. Add required Actions secrets  
-   Repository → Settings → Secrets and variables → Actions → New repository secret. Add:
-   - `SUPABASE_URL` — e.g. `https://<project>.supabase.co`  
-   - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (keep secret)  
-   - `SUPABASE_ANON_KEY` — if used by the scheduler  
-   - `CRON_SECRET` — secret used by `run-escalation-orchestration` (Authorization header)  
-   - `EDGE_FUNCTION_URL` — base URL for edge functions (used by `schedule-create-zoom`)  
-   - `SCHEDULER_SECRET_TOKEN` — token expected by scheduler when calling edge functions  
-   - `SCHEDULER_SECRET_HEADER` — optional header name if needed
+1. **Enable extensions** (if not already enabled):
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS pg_net;
+```
 
-2. Ensure workflow files are in `.github/workflows/` on the repository default branch. GitHub enables cron triggers when the workflow file exists on the default branch.
+2. **Create secrets table** (run migration):
+```bash
+supabase db push
+```
 
-## Testing / manual runs
+Or manually run the migrations in SQL Editor:
+- `supabase/migrations/20250101235959_create_secrets_table.sql`
+- `supabase/migrations/20250102000000_schedule_all_cron_jobs.sql`
 
-- GitHub UI: Actions → select workflow → Run workflow → set inputs (if any).  
-- GH CLI: `gh workflow run <workflow-file> --ref main`  
-- Direct curl to function endpoints (use correct secret header as shown above).
+3. **Update secrets with your actual values**:
+```sql
+-- Get your values from Supabase Dashboard → Settings → API
+UPDATE public.cron_secrets 
+SET value = 'https://your-project.supabase.co', updated_at = NOW()
+WHERE key = 'supabase_url';
 
-## Monitor runs & logs
+UPDATE public.cron_secrets 
+SET value = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', updated_at = NOW()
+WHERE key = 'service_role_key';
 
-- GitHub: Actions → workflow run logs.  
-- Supabase: Edge Functions → Logs for function execution.  
-- Database / application logs for side-effects (e.g., notifications_queue, message_audit).
+UPDATE public.cron_secrets 
+SET value = 'your-generated-secret', updated_at = NOW()
+WHERE key = 'cron_secret';
 
-## Security recommendations
+UPDATE public.cron_secrets 
+SET value = 'https://your-project.supabase.co/functions/v1', updated_at = NOW()
+WHERE key = 'edge_function_url';
 
-- Prefer minimal-scope credentials for scheduled invocations (dedicated cron/edge token) rather than exposing the `SERVICE_ROLE_KEY` unless necessary.  
-- Store service role keys and other long-lived secrets securely and rotate regularly.  
-- Use `SCHEDULER_SECRET_HEADER` and a short-lived token pattern where possible for edge functions.
+UPDATE public.cron_secrets 
+SET value = 'your-generated-token', updated_at = NOW()
+WHERE key = 'scheduler_secret_token';
+```
+
+4. **Verify secrets are set**:
+```sql
+SELECT key, 
+       CASE WHEN value LIKE 'placeholder%' THEN '❌ NOT SET' ELSE '✅ SET' END as status,
+       description
+FROM public.cron_secrets
+ORDER BY key;
+```
+
+5. **Verify cron jobs are scheduled**:
+```sql
+SELECT jobid, jobname, schedule, active 
+FROM cron.job 
+ORDER BY jobname;
+```
+
+## Managing Cron Jobs
+
+### View scheduled jobs
+```sql
+SELECT * FROM cron.job;
+```
+
+### View job history
+```sql
+SELECT 
+    j.jobname,
+    jrd.status,
+    jrd.start_time,
+    jrd.end_time,
+    (jrd.end_time - jrd.start_time) as duration,
+    LEFT(jrd.return_message, 100) as message_preview
+FROM cron.job_run_details jrd
+JOIN cron.job j ON j.jobid = jrd.jobid
+ORDER BY jrd.start_time DESC 
+LIMIT 20;
+```
+
+### Manually trigger a job
+```sql
+-- Example: Trigger notification worker manually
+SELECT net.http_post(
+    url := public.get_secret('supabase_url') || '/functions/v1/notification-worker',
+    headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || public.get_secret('service_role_key'),
+        'apikey', public.get_secret('service_role_key')
+    ),
+    body := jsonb_build_object('limit', 5, 'runs', 1),
+    timeout_milliseconds := 15000
+);
+```
+
+### Update a secret
+```sql
+UPDATE public.cron_secrets 
+SET value = 'new-value', updated_at = NOW()
+WHERE key = 'service_role_key';
+```
+
+### Unschedule a job
+```sql
+SELECT cron.unschedule('notification-worker');
+```
+
+### Reschedule a job
+```sql
+-- Unschedule first
+SELECT cron.unschedule('notification-worker');
+
+-- Then schedule again with new timing
+SELECT cron.schedule('notification-worker', '*/5 * * * *', $$ ... $$);
+```
+
+## Key rotation & restriction (quick guide)
+
+- When rotating a key (recommended regularly):
+  1. Generate the new key in Supabase / provider.
+  2. Update the secret in the database (see SQL below).
+  3. Update any running functions / services that read the secret (Edge Functions, cron jobs).
+  4. Verify behaviour by manually invoking the job (see "Manually trigger a job").
+  5. Revoke or remove the old key from the provider.
+
+- Secure update pattern (run in SQL Editor — do NOT commit real secrets to git):
+
+```sql
+-- rotate an individual secret
+BEGIN;
+UPDATE public.cron_secrets
+SET value = 'NEW_SECRET_VALUE', updated_at = NOW()
+WHERE key = 'service_role_key';
+COMMIT;
+
+-- verify
+SELECT key, LEFT(value, 10) || '...' AS preview, updated_at
+FROM public.cron_secrets
+WHERE key = 'service_role_key';
+```
+
+- Restrict direct writes and use a secure helper:
+  1. Revoke DML from PUBLIC so only explicit actors/roles can modify.
+  2. Provide a SECURITY DEFINER function to perform rotations (callable only by admins).
+
+```sql
+-- revoke direct modification
+REVOKE INSERT, UPDATE, DELETE ON public.cron_secrets FROM PUBLIC;
+
+-- secure helper to rotate secrets (runs with function owner's privileges)
+CREATE OR REPLACE FUNCTION public.rotate_cron_secret(p_key text, p_value text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.cron_secrets
+  SET value = p_value, updated_at = NOW()
+  WHERE key = p_key;
+END;
+$$;
+
+-- grant execute only to a controlled role (replace 'admin_role' with your admin role)
+GRANT EXECUTE ON FUNCTION public.rotate_cron_secret(text, text) TO postgres;
+-- optionally: create a restricted DB role for operators and grant execute to it
+```
+
+- Post-rotation checks:
+  - Trigger a manual test request to the function (see "Manually trigger a job").
+  - Inspect Edge Function logs and cron.job_run_details for failures.
+  - Rotate provider-side secret (if applicable) only after consumers verified.
+
+- Notes:
+  - Using the service_role key gives full privileges to the requests — treat it as highly sensitive and limit exposure.
+  - Keep migration placeholders in source; apply real values via SQL Editor or CI secrets during deployment.
 
 ## Troubleshooting
 
-- If a scheduled run doesn't occur, verify the workflow file exists on the default branch and the cron expression is valid.  
-- If the function rejects requests, confirm the Authorization header value and check function logs for error details.  
-- Use `workflow_dispatch` to run and debug manually; inspect logs to reproduce and fix failures.
-
-### How to deploy and run the worker queue
-
-**✅ WORKER FUNCTION EXISTS** at `supabase/functions/notification-worker/index.ts`
-
-**The worker is ready but needs scheduling.** Add the GitHub Actions workflow above to enable automatic processing.
-
-**The worker itself needs to be running continuously to process the queue.** Simply having jobs in the `notifications_queue` table isn't enough—you need an active process polling and executing those jobs.
-
-#### Deployment options:
-
-**Option 1: Supabase Edge Function (serverless worker)**
-
-Deploy a worker as a Supabase Edge Function that runs on a schedule (e.g., every 1-5 minutes via GitHub Actions or pg_cron).
-
-Example worker edge function structure:
-```typescript
-// filepath: supabase/functions/process-queue/index.ts
-import { createClient } from '@supabase/supabase-js'
-
-Deno.serve(async (req) => {
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  )
-
-  // Fetch pending jobs with lock
-  const { data: jobs } = await supabase
-    .from('notifications_queue')
-    .select('*')
-    .eq('status', 'pending')
-    .lte('scheduled_for', new Date().toISOString())
-    .limit(10)
-
-  for (const job of jobs || []) {
-    // Mark as processing
-    await supabase
-      .from('notifications_queue')
-      .update({ status: 'processing' })
-      .eq('id', job.id)
-
-    try {
-      // Execute job based on type
-      await executeJob(job)
-      
-      // Mark as completed
-      await supabase
-        .from('notifications_queue')
-        .update({ status: 'completed' })
-        .eq('id', job.id)
-    } catch (error) {
-      // Handle failure with retry logic
-      const newAttempts = job.attempts + 1
-      await supabase
-        .from('notifications_queue')
-        .update({ 
-          status: newAttempts >= 5 ? 'failed' : 'pending',
-          attempts: newAttempts,
-          error_message: error.message
-        })
-        .eq('id', job.id)
-    }
-  }
-
-  return new Response(JSON.stringify({ processed: jobs?.length || 0 }))
-})
-```
-
-Deploy: `supabase functions deploy process-queue`
-
-Schedule via GitHub Actions (`.github/workflows/run-worker-queue.yaml`):
-```yaml
-name: Run Worker Queue
-on:
-  schedule:
-    - cron: '*/2 * * * *'  # Every 2 minutes
-  workflow_dispatch:
-
-jobs:
-  process-queue:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Call worker function
-        run: |
-          curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/process-queue" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
-```
-
-**Option 2: Long-running Node.js/Deno process**
-
-Run a dedicated worker process on a server, container, or platform like Railway/Fly.io/Heroku.
-
-Example: `worker/index.ts`
-```typescript
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-async function pollQueue() {
-  while (true) {
-    try {
-      // Similar logic to Option 1 but in infinite loop
-      const { data: jobs } = await supabase
-        .from('notifications_queue')
-        .select('*')
-        .eq('status', 'pending')
-        .lte('scheduled_for', new Date().toISOString())
-        .limit(10)
-
-      for (const job of jobs || []) {
-        await processJob(job)
-      }
-
-      // Wait before next poll
-      await new Promise(resolve => setTimeout(resolve, 5000)) // 5 seconds
-    } catch (error) {
-      console.error('Worker error:', error)
-      await new Promise(resolve => setTimeout(resolve, 10000)) // 10 seconds on error
-    }
-  }
-}
-
-pollQueue()
-```
-
-Run: `npm start` or `deno run --allow-net --allow-env worker/index.ts`
-
-Deploy to Railway/Fly.io/etc with environment variables set.
-
-**Option 3: PostgreSQL pg_cron (database-native)**
-
-Use Supabase's built-in pg_cron to call a PostgreSQL function that processes the queue.
-
+- **Check if pg_cron is running**: `SELECT * FROM cron.job;`
+- **View recent failures**: 
 ```sql
--- Create worker function
-CREATE OR REPLACE FUNCTION process_notifications_queue()
-RETURNS void AS $$
-DECLARE
-  job RECORD;
-BEGIN
-  FOR job IN 
-    SELECT * FROM notifications_queue
-    WHERE status = 'pending'
-    AND scheduled_for <= NOW()
-    LIMIT 10
-    FOR UPDATE SKIP LOCKED
-  LOOP
-    -- Update to processing
-    UPDATE notifications_queue SET status = 'processing' WHERE id = job.id;
-    
-    -- Call edge function or execute logic here
-    -- PERFORM net.http_post(...)
-    
-    -- Update to completed
-    UPDATE notifications_queue SET status = 'completed' WHERE id = job.id;
-  END LOOP;
-END;
-$$ LANGUAGE plpgsql;
+SELECT 
+    j.jobname,
+    jrd.status,
+    jrd.return_message,
+    jrd.start_time
+FROM cron.job_run_details jrd
+JOIN cron.job j ON j.jobid = jrd.jobid
+WHERE jrd.status = 'failed'
+ORDER BY jrd.start_time DESC 
+LIMIT 10;
+```
+- **Check function logs**: Supabase Dashboard → Edge Functions → Logs
+- **Verify secrets are set**: 
+```sql
+SELECT key, 
+       CASE WHEN value LIKE 'placeholder%' THEN 'NOT SET' ELSE 'SET' END as status
+FROM public.cron_secrets;
+```
+- **Common error: "schema net does not exist"**: Enable pg_net extension:
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_net;
+GRANT USAGE ON SCHEMA net TO postgres;
+```
 
--- Schedule with pg_cron (requires Supabase pg_cron extension)
+- Live verification:
+  - send-email function now returns 200 for requests coming from the notification-worker (confirmed). If you see "POST | 200 | .../functions/v1/send-email" in Edge Function logs, the authentication fix is working.
+  - If you still observe 401s, re-check:
+    - public.cron_secrets.service_role_key is the correct service_role JWT (no quotes/newlines).
+    - scheduler token (if used) matches the configured SCHEDULER_SECRET_TOKEN and header.
+    - Edge Function logs for the incoming masked header lengths and debugUnauthorized entries.
+
+## Edge Function "EarlyDrop" / Shutdown (diagnose & fix)
+
+Symptoms:
+- Cron job shows short run duration and Edge Function logs include "shutdown" / "EarlyDrop".
+- Notifications show failed with short duration or 401/timeout in job_run_details.
+- Worker logs show abrupt termination after small CPU/memory usage.
+
+Cause:
+- Edge Function invocation exceeded the runtime/timeout allowed for a single net.http_post call or the function's runtime limit. Long internal loops (e.g., many 10s polls per invocation) can trigger EarlyDrop.
+
+Quick fixes (recommended):
+- Make the worker finish quickly:
+  - `runs = 1`
+  - remove any `sleep`/poll loops
+  - keep `limit` small enough to complete within ~15s
+
+Example reschedule (run in SQL Editor):
+```sql
+SELECT cron.unschedule('notification-worker');
+
 SELECT cron.schedule(
-  'process-queue',
-  '*/2 * * * *',  -- Every 2 minutes
-  'SELECT process_notifications_queue();'
+  'notification-worker',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := public.get_secret('supabase_url') || '/functions/v1/notification-worker',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || public.get_secret('service_role_key'),
+      'apikey', public.get_secret('service_role_key')
+    ),
+    body := jsonb_build_object('limit', 5, 'runs', 1),
+    timeout_milliseconds := 60000
+  );
+  $$
 );
-```
-
-Enable pg_cron in Supabase: Dashboard → Database → Extensions → enable `pg_cron`
-
-**Option 4: Existing scheduler triggers worker**
-
-Your `schedule-create-zoom` workflow already runs every 5 minutes. You can extend it to also call a worker endpoint:
-
-```yaml
-# In .github/workflows/schedule-create-zoom.yaml
-- name: Process notification queue
-  run: |
-    curl -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/process-queue" \
-      -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
-```
-
-#### Recommended approach for your setup:
-
-Based on your existing GitHub Actions schedulers, I recommend **Option 1 (Edge Function + GitHub Actions scheduler)** or **Option 4 (extend existing scheduler)**:
-
-1. Create `supabase/functions/process-queue/index.ts` worker function
-2. Deploy it: `supabase functions deploy process-queue`
-3. Either:
-   - Create new GitHub Actions workflow that calls it every 1-2 minutes, OR
-   - Add worker call to your existing `schedule-create-zoom.yaml` (already runs every 5 min)
-
-#### Verifying the worker is running:
-
-```sql
--- Check if jobs are being processed (status changes from pending → processing → completed)
-SELECT status, COUNT(*), MAX(updated_at) as last_activity
-FROM notifications_queue
-GROUP BY status;
-
--- If you see old 'pending' jobs with recent created_at, the worker isn't running
-SELECT id, type, status, created_at, updated_at, attempts
-FROM notifications_queue
-WHERE status = 'pending' AND created_at < NOW() - INTERVAL '10 minutes';
-```
-
-**Logs to confirm worker execution:**
-- GitHub Actions logs (if using scheduled workflow approach)
-- Supabase Edge Functions logs: Dashboard → Edge Functions → `process-queue` → Logs
-- Database audit tables showing recent activity
-
-### Queue table structure (typical)
-
-```sql
--- Typical structure for notifications_queue table
-CREATE TABLE notifications_queue (
-  id SERIAL PRIMARY KEY,
-  status TEXT NOT NULL CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
-  type TEXT NOT NULL,
-  payload JSONB NOT NULL,
-  attempts INTEGER NOT NULL DEFAULT 0,
-  error_message TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  scheduled_for TIMESTAMPTZ
-);
-
--- Indexes to optimize processing
-CREATE INDEX idx_notifications_queue_status ON notifications_queue(status);
-CREATE INDEX idx_notifications_queue_scheduled_for ON notifications_queue(scheduled_for);
 ```
 

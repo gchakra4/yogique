@@ -1,0 +1,399 @@
+﻿[
+    {
+        "name":  "yogique_next_class_alerts",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "BODY",
+                               "text":  "Namaste {{1}}, \n\nThis is a reminder for your scheduled class from Yogique.\n\nClass: {{2}}\nDate: {{3}}\nTime: {{4}}\n\nJoin your session here:\n{{5}}\n\nIf you need assistance, contact us.",
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "Gourab Chakraborty",
+                                                                     "3874aae8",
+                                                                     "29 Dec 2025",
+                                                                     "7.30 PM",
+                                                                     "https://us06web.zoom.us/j/86427553426?pwd=dE6GYQLFKLbXFdgPmfUDtbUTKNUgoM.1"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "Powered by Sampurnayogam LLP"
+                           }
+                       ],
+        "language":  "en",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "sub_category":  "CUSTOM",
+        "id":  "1215242169937888"
+    },
+    {
+        "name":  "yogique_otp_phone_verification",
+        "message_send_ttl_seconds":  600,
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "BODY",
+                               "text":  "*{{1}}* is your verification code. For your security, do not share this code.",
+                               "add_security_recommendation":  true,
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "123456"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "BUTTONS",
+                               "buttons":  [
+                                               {
+                                                   "type":  "URL",
+                                                   "text":  "Copy code",
+                                                   "url":  "https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE\u0026code=otp{{1}}",
+                                                   "example":  [
+                                                                   "https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE\u0026code=otp123456"
+                                                               ]
+                                               }
+                                           ]
+                           }
+                       ],
+        "language":  "en",
+        "status":  "APPROVED",
+        "category":  "AUTHENTICATION",
+        "id":  "3471444632996786"
+    },
+    {
+        "name":  "yogique_invoice_generated",
+        "previous_category":  "MARKETING",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "HEADER",
+                               "format":  "TEXT",
+                               "text":  "Invoice Generated"
+                           },
+                           {
+                               "type":  "BODY",
+                               "text":  "Namaste {{1}},\n\nYour invoice for {{2}} has been generated successfully.\n\n📄 Invoice No: {{3}}\n💰 Amount: ₹{{4}}\n📅 Due Date: {{5}}\n\nYou can securely complete the payment using the link below.\n\nIf you have already completed the payment, please ignore this message.\n\nThank you for choosing Yogique 🙏",
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "Gourab",
+                                                                     "March 2026",
+                                                                     "INvoiceNo-24793",
+                                                                     "5000",
+                                                                     "7 March 2026"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "Powered by Sampurnayogam LLP"
+                           },
+                           {
+                               "type":  "BUTTONS",
+                               "buttons":  [
+                                               {
+                                                   "type":  "URL",
+                                                   "text":  "Pay Now",
+                                                   "url":  "https://rzp.io/rzp/%7B%7B1%7D%7D{{1}}",
+                                                   "example":  [
+                                                                   "https://rzp.io/rzp/HeMpHbO"
+                                                               ]
+                                               }
+                                           ]
+                           }
+                       ],
+        "language":  "en",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "sub_category":  "CUSTOM",
+        "correct_category":  "UTILITY",
+        "id":  "905405281837791"
+    },
+    {
+        "name":  "yogique_payment_successful",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "HEADER",
+                               "format":  "TEXT",
+                               "text":  "Payment Successful"
+                           },
+                           {
+                               "type":  "BODY",
+                               "text":  "Namaste {{1}}, \n\nWe have received your payment of ₹{{2}} for {{3}}.  \n\nYour transaction reference is {{4}}.\n\nThank you for completing the payment 🙏",
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "Gourab",
+                                                                     "5000",
+                                                                     "March 2026",
+                                                                     "PAYABC12345"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "Powered by Sampurnayogam LLP"
+                           }
+                       ],
+        "language":  "en_IN",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "sub_category":  "CUSTOM",
+        "id":  "1379734223559848"
+    },
+    {
+        "name":  "payment_overdue_reminder",
+        "previous_category":  "MARKETING",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "HEADER",
+                               "format":  "TEXT",
+                               "text":  "Payment Overdue Alert"
+                           },
+                           {
+                               "type":  "BODY",
+                               "text":  "Namaste  {{1}},  \n\nThis is a reminder that your payment of ₹{{2}} for {{3}} is overdue.  \n\nPlease complete the payment as soon as possible to avoid service interruption.  \n\nYou can pay securely using the link below 👇",
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "Gourab",
+                                                                     "5000",
+                                                                     "March 2026"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "Powered by Sampurnayogam LLP"
+                           },
+                           {
+                               "type":  "BUTTONS",
+                               "buttons":  [
+                                               {
+                                                   "type":  "URL",
+                                                   "text":  "Pay Now",
+                                                   "url":  "https://rzp.io/rzp/%7B%7B1%7D%7D{{1}}",
+                                                   "example":  [
+                                                                   "https://rzp.io/rzp/HeMpHbO"
+                                                               ]
+                                               }
+                                           ]
+                           }
+                       ],
+        "language":  "en",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "sub_category":  "CUSTOM",
+        "correct_category":  "UTILITY",
+        "id":  "3230726907103908"
+    },
+    {
+        "name":  "yogique_payment_due_reminder",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "BODY",
+                               "text":  "Namaste {{1}},\n\nYour payment for {{2}} is due.\n\nInvoice No: {{3}}\nAmount: ₹{{4}}\n\nPlease pay securely using the button below.\n\nThank you 🙏",
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "Gourab",
+                                                                     "March 2026",
+                                                                     "dhgsdjh23jjwy3udhh2829",
+                                                                     "5000"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "Powered by Sampurnayogam LLP"
+                           },
+                           {
+                               "type":  "BUTTONS",
+                               "buttons":  [
+                                               {
+                                                   "type":  "URL",
+                                                   "text":  "Pay Now",
+                                                   "url":  "https://rzp.io/rzp/%7B%7B1%7D%7D{{1}}",
+                                                   "example":  [
+                                                                   "https://rzp.io/rzp/iGBQ1ePA"
+                                                               ]
+                                               }
+                                           ]
+                           }
+                       ],
+        "language":  "en",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "sub_category":  "CUSTOM",
+        "id":  "644830015324514"
+    },
+    {
+        "name":  "yogique_payment_success",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "BODY",
+                               "text":  "Namaste {{1}},\n\n🎉 Payment received successfully!\n\nPayment Details:\nAmount: {{2}}\nPlan: {{3}}\nTransaction ID: {{4}}\n\nA detailed invoice has been sent to your email.\n\nThank you for choosing Yogique 🙏",
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "Gourab",
+                                                                     "₹3000",
+                                                                     "Pravaha",
+                                                                     "dhsjkajkaj3y23929jba"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "Powered by Sampurnayogam LLP"
+                           }
+                       ],
+        "language":  "en",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "sub_category":  "CUSTOM",
+        "id":  "1374368854237617"
+    },
+    {
+        "name":  "class_reminder_zoom",
+        "previous_category":  "MARKETING",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "HEADER",
+                               "format":  "TEXT",
+                               "text":  "Next Class Details"
+                           },
+                           {
+                               "type":  "BODY",
+                               "text":  "Namaste {{1}},\n\nThis is a reminder for your upcoming Yogique class.\n\n📅 Date: {{2}}\n🕒 Time: {{3}}\n\nJoin using the link below 👇\n{{4}}\n\nSee you in class 🙏",
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "Gourab",
+                                                                     "29 Dec 2025",
+                                                                     "7.30 PM",
+                                                                     "https://us06web.zoom.us/j/82116668953?pwd=oGXinlNQsi3AV9cK3tyVz6yYg9KJ8t.1"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "Powered by Sampurnayogam LLM"
+                           }
+                       ],
+        "language":  "en_IN",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "correct_category":  "UTILITY",
+        "id":  "1157617086147873"
+    },
+    {
+        "name":  "yogique_booking_confirmation",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "HEADER",
+                               "format":  "TEXT",
+                               "text":  "Yogique Booking Confirmation"
+                           },
+                           {
+                               "type":  "BODY",
+                               "text":  "Namaste {{1}},\n\nYour Yogique booking is confirmed 🎉\n\nBooking ID: {{2}}\nName: {{3}}\nPlan: {{4}}\n\nWe have also sent the booking details to your email.\n\nOur team will personally call you soon to help schedule your classes.\n\nThank you for choosing Yogique 🙏",
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "Gourab",
+                                                                     "YOG-156465-4596",
+                                                                     "Gourab Chakraborty",
+                                                                     "Pravaha"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "Powered by Sampurnayogam LLP"
+                           },
+                           {
+                               "type":  "BUTTONS",
+                               "buttons":  [
+                                               {
+                                                   "type":  "PHONE_NUMBER",
+                                                   "text":  "Call Yogique Support",
+                                                   "phone_number":  "+918240262455"
+                                               }
+                                           ]
+                           }
+                       ],
+        "language":  "en",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "sub_category":  "CUSTOM",
+        "id":  "1921291862071161"
+    },
+    {
+        "name":  "yogique_test",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "BODY",
+                               "text":  "Hello {{1}},\nThis is a service notification from Yogique.\nYour request has been received successfully.\nWe will keep you informed about further updates.",
+                               "example":  {
+                                               "body_text":  [
+                                                                 [
+                                                                     "Gourab"
+                                                                 ]
+                                                             ]
+                                           }
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "Powered by Sampurnayogam LLP"
+                           }
+                       ],
+        "language":  "en",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "sub_category":  "CUSTOM",
+        "id":  "1950973042520636"
+    },
+    {
+        "name":  "hello_world",
+        "parameter_format":  "POSITIONAL",
+        "components":  [
+                           {
+                               "type":  "HEADER",
+                               "format":  "TEXT",
+                               "text":  "Hello World"
+                           },
+                           {
+                               "type":  "BODY",
+                               "text":  "Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta. Thank you for taking the time to test with us."
+                           },
+                           {
+                               "type":  "FOOTER",
+                               "text":  "WhatsApp Business Platform sample message"
+                           }
+                       ],
+        "language":  "en_US",
+        "status":  "APPROVED",
+        "category":  "UTILITY",
+        "id":  "1181216620653648"
+    }
+]

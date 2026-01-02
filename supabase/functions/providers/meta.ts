@@ -77,12 +77,28 @@ export const metaProvider: WhatsAppProvider = {
 
     // Fetch template row from wa_templates by key + language
     try {
-      const requestedLang = templateLanguage || 'en';
+      const requestedLang = String(templateLanguage || 'en');
       const tryLangs: string[] = [];
-      tryLangs.push(requestedLang);
-      // fallback: en_US -> en, en-US -> en
+      const seen = new Set<string>();
+      const addLang = (l: string | null | undefined) => {
+        const v = String(l || '').trim();
+        if (!v) return;
+        if (seen.has(v)) return;
+        seen.add(v);
+        tryLangs.push(v);
+      };
+
+      // Try exact, then a normalized variant (en-in -> en_IN), then base language.
+      addLang(requestedLang);
+      const normalized = requestedLang.replace(/-/g, '_');
+      const parts = normalized.split('_').filter(Boolean);
+      if (parts.length >= 2) {
+        addLang(`${parts[0].toLowerCase()}_${parts.slice(1).join('_').toUpperCase()}`);
+      }
+      addLang(requestedLang.toLowerCase());
       const base = requestedLang.split(/[-_]/)[0];
-      if (base && base !== requestedLang) tryLangs.push(base);
+      addLang(base);
+      addLang(String(base || '').toLowerCase());
 
       let row: any = null;
       for (const lang of tryLangs) {
@@ -96,7 +112,61 @@ export const metaProvider: WhatsAppProvider = {
         row = Array.isArray(rows) && rows.length ? rows[0] : null;
         if (row) break;
       }
-      if (!row) return { ok: false, provider: 'meta', provider_message_id: null, rawResponse: 'template_not_found' };
+      if (!row) {
+        // If language mismatch is the only problem, show what languages exist.
+        const langsUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/wa_templates?select=key,language,meta_name&key=eq.${encodeURIComponent(templateName)}&order=language.asc&limit=50`;
+        const langsResp = await fetch(langsUrl, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+        const langsTxt = await langsResp.text().catch(() => '');
+        let langsRows: any[] = [];
+        try {
+          langsRows = langsTxt ? JSON.parse(langsTxt) : [];
+        } catch {
+          langsRows = [];
+        }
+
+        // Case-insensitive match (fixes en_in vs en_IN).
+        if (langsResp.ok && Array.isArray(langsRows) && langsRows.length) {
+          const want = requestedLang.toLowerCase();
+          const match = langsRows.find((r) => String(r?.language || '').toLowerCase() === want);
+          if (match?.language) {
+            const matchUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/wa_templates?select=*&key=eq.${encodeURIComponent(templateName)}&language=eq.${encodeURIComponent(String(match.language))}&limit=1`;
+            const matchResp = await fetch(matchUrl, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+            if (matchResp.ok) {
+              const matchRows = await matchResp.json().catch(() => []);
+              const matchRow = Array.isArray(matchRows) && matchRows.length ? matchRows[0] : null;
+              if (matchRow) row = matchRow;
+            }
+          }
+        }
+
+        // Auto-fallback only if there is exactly one available language row for this key.
+        if (!row && langsResp.ok && Array.isArray(langsRows) && langsRows.length === 1) {
+          const onlyLang = langsRows[0]?.language;
+          const onlyRowUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/wa_templates?select=*&key=eq.${encodeURIComponent(templateName)}&language=eq.${encodeURIComponent(String(onlyLang || ''))}&limit=1`;
+          const onlyRowResp = await fetch(onlyRowUrl, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
+          if (onlyRowResp.ok) {
+            const onlyRows = await onlyRowResp.json().catch(() => []);
+            const onlyRow = Array.isArray(onlyRows) && onlyRows.length ? onlyRows[0] : null;
+            if (onlyRow) row = onlyRow;
+          }
+        }
+
+        if (!row) {
+          return {
+            ok: false,
+            provider: 'meta',
+            provider_message_id: null,
+            rawResponse: {
+              error: 'template_not_found',
+              hint: 'No matching row in public.wa_templates for (key, language). Fix by setting notifications_queue.template_language to one of available_languages (or sync the missing language).',
+              template_key: templateName,
+              requested_language: requestedLang,
+              tried_languages: tryLangs,
+              available_languages: Array.isArray(langsRows) ? langsRows.map((r) => r?.language).filter(Boolean) : [],
+            },
+          };
+        }
+      }
 
       // render payload
       const tpl = { key: row.key, meta_name: row.meta_name, language: row.language, components: row.components };

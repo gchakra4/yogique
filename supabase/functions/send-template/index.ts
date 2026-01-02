@@ -8,6 +8,11 @@ const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SCHED_HEADER = Deno.env.get("SCHEDULER_SECRET_HEADER") || null;
 const SCHED_TOKEN = Deno.env.get("SCHEDULER_SECRET_TOKEN") || null;
 
+function mask(s: string | null | undefined) {
+  if (!s) return '';
+  return s.length > 8 ? s.slice(0,4) + '...' + s.slice(-4) : '****';
+}
+
 serve(async (req) => {
   try {
     if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -15,9 +20,22 @@ serve(async (req) => {
     if (!SUPABASE_URL || !SUPABASE_KEY) return new Response(JSON.stringify({ ok: false, error: 'missing_env' }), { status: 500 });
 
     // Optional scheduler secret header
-    if (SCHED_HEADER && SCHED_TOKEN) {
-      const incoming = req.headers.get(SCHED_HEADER);
-      if (!incoming || incoming !== SCHED_TOKEN) return new Response('Unauthorized', { status: 401 });
+    if (SCHED_TOKEN) {
+      const incomingHeader = SCHED_HEADER ? req.headers.get(SCHED_HEADER) : null;
+      const authBearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+      const incomingApikey = req.headers.get('apikey') || null;
+
+      // Accept scheduler token via configured header or bearer.
+      const schedulerOk = (incomingHeader && incomingHeader === SCHED_TOKEN) || (authBearer && authBearer === SCHED_TOKEN);
+
+      // Also accept service role style auth (cron + internal calls):
+      // - exact match to env service role key, OR
+      // - heuristic "looks like a JWT" (matches send-email behavior)
+      const serviceRoleExact = !!SUPABASE_KEY && (incomingApikey === SUPABASE_KEY || authBearer === SUPABASE_KEY);
+      const serviceRoleHeuristic = !!incomingApikey && incomingApikey.length > 100;
+      const serviceRoleOk = serviceRoleExact || serviceRoleHeuristic;
+
+      if (!schedulerOk && !serviceRoleOk) return new Response('Unauthorized', { status: 401 });
     }
 
     const payload = await req.json().catch(() => ({}));
