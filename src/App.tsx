@@ -183,7 +183,7 @@ function AppRoutes() {
               <Route path="/payment-failed" element={<PaymentFailed />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/book/individual" element={<BookOneOnOne />} />
-              <Route path="/book/private-group" element={<BookClass />} />
+              <Route path="book/private-group" element={<BookClass />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/book/corporate" element={<BookCorporate />} />
               <Route path="/achievements" element={<Achievements />} />
