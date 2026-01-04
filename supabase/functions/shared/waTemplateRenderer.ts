@@ -39,7 +39,21 @@ export function renderTemplatePayload(template: WaTemplate, vars: string[]) {
 
   if (headerComponent) {
     if (headerComponent.format && headerComponent.format.toLowerCase() === 'text') {
-      components.push({ type: 'header', parameters: [{ type: 'text', text: escapeParam(vars[0] || '') }] });
+      // Only include header parameters if the header text contains placeholders like {{1}}
+      const headerText = headerComponent.text || '';
+      const headerHasPlaceholders = /\{\{\d+\}\}/.test(headerText);
+      if (headerHasPlaceholders) {
+        // Collect placeholder indices in order of occurrence and map to vars (vars are 0-based for {{1}} -> vars[0])
+        const re = /\{\{(\d+)\}\}/g;
+        let m: RegExpExecArray | null;
+        const headerParams: any[] = [];
+        while ((m = re.exec(headerText)) !== null) {
+          const idx = parseInt(m[1], 10);
+          const val = vars[idx - 1] ?? '';
+          headerParams.push({ type: 'text', text: escapeParam(val) });
+        }
+        if (headerParams.length) components.push({ type: 'header', parameters: headerParams });
+      }
     }
   }
 
