@@ -12,7 +12,20 @@ interface RoleBasedNavigationProps {
 
 const RoleBasedNavigation: React.FC<RoleBasedNavigationProps> = ({ user, className = '' }) => {
   const location = useLocation()
-  const modules = getModulesForRole(user.role)
+
+  // Support multiple assigned roles on the user: aggregate modules (union, dedupe, ordered)
+  const roles: string[] = (user as any).roles && (user as any).roles.length > 0 ? (user as any).roles : [user.role]
+
+  const modulesById: Record<string, ModuleConfig> = {}
+  roles.forEach((r: string) => {
+    getModulesForRole(r as any).forEach((m: ModuleConfig) => {
+      if (!modulesById[m.id] || m.order < modulesById[m.id].order) {
+        modulesById[m.id] = m
+      }
+    })
+  })
+
+  const modules: ModuleConfig[] = Object.values(modulesById).sort((a, b) => a.order - b.order)
 
   const isActive = (moduleId: string): boolean => {
     const currentPath = location.pathname

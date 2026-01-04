@@ -19,7 +19,7 @@ export function Header() {
   // removed isDark usage - header now uses a single orange logo for both themes
 
 
-    const navigation = [
+  const navigation = [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
     { name: 'Yogique for You', href: '/book/private-group' },

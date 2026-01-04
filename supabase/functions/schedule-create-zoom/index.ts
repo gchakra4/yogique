@@ -139,14 +139,23 @@ serve(async (req) => {
         if (shouldInvoke) {
           console.log(`Invoking create-zoom-and-email for class ${cls.id}`);
           
-          // Build headers with optional scheduler secret (env or DB fallback)
-          const headers: Record<string, string> = {};
-          if (schedulerHeader && schedulerToken) {
-            headers[schedulerHeader] = schedulerToken;
-          } else if (schedulerToken) {
-            // default to Authorization Bearer if no explicit header name provided
-            headers['Authorization'] = `Bearer ${schedulerToken}`;
-          }
+                // Capture incoming authorization/apikey (if any) and prefer forwarding
+                const incomingAuth = incomingHeaders.get('authorization') || incomingHeaders.get('Authorization') || null;
+                const incomingApikey = incomingHeaders.get('apikey') || incomingHeaders.get('ApiKey') || null;
+
+                // Build headers with optional scheduler secret (env or DB fallback).
+                // Prefer forwarding incoming `Authorization`/`apikey` when present so downstream
+                // receives the same service-role auth injected by pg_cron.
+                const headers: Record<string, string> = {};
+                if (incomingAuth) headers['Authorization'] = incomingAuth;
+                if (incomingApikey) headers['apikey'] = incomingApikey;
+
+                if (!incomingAuth && schedulerHeader && schedulerToken) {
+                  headers[schedulerHeader] = schedulerToken;
+                } else if (!incomingAuth && schedulerToken && !headers['Authorization']) {
+                  // default to Authorization Bearer if no explicit header name or incoming auth provided
+                  headers['Authorization'] = `Bearer ${schedulerToken}`;
+                }
           
           const result = await callFunctionWithOptions('create-zoom-and-email', { classId: cls.id }, {
             serviceRoleKey: SUPABASE_KEY,

@@ -32,6 +32,8 @@ interface User {
   email: string;
   name: string;
   role: UserRole;
+  // optional list of roles assigned to the user
+  roles?: UserRole[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -42,7 +44,20 @@ interface UniversalDashboardProps {
 }
 
 const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
-  const userModules = getModulesForRole(user.role);
+  // Aggregate modules from all assigned roles (union, dedupe, ordered)
+  const roles = (user.roles && user.roles.length > 0) ? user.roles : [user.role]
+
+  const modulesById: Record<string, any> = {}
+  roles.forEach(r => {
+    getModulesForRole(r).forEach((m) => {
+      // keep the module with the smallest order if duplicates occur
+      if (!modulesById[m.id] || (m.order < modulesById[m.id].order)) {
+        modulesById[m.id] = m
+      }
+    })
+  })
+
+  const userModules = Object.values(modulesById).sort((a: any, b: any) => a.order - b.order)
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -86,7 +101,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
     const moduleId = pathSegments[pathSegments.length - 1] as DashboardModule;
     // Check if the module exists and user has access
     const moduleExists = userModules.some(module => module.id === moduleId);
-    const hasAccess = hasModuleAccess(user.role, moduleId);
+    const hasAccess = roles.some(r => hasModuleAccess(r, moduleId as DashboardModule));
     return (moduleExists && hasAccess) ? moduleId : defaultModule;
   };
 
@@ -99,11 +114,11 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
     if (currentModule !== activeTab) {
       setActiveTab(currentModule);
     }
-  }, [location.pathname, activeTab, userModules, user.role]);
+  }, [location.pathname, activeTab, userModules, roles]);
 
   // Handle tab change - update both state and URL
   const handleTabChange = (tabId: string) => {
-    if (hasModuleAccess(user.role, tabId as DashboardModule)) {
+    if (roles.some(r => hasModuleAccess(r, tabId as DashboardModule))) {
       setActiveTab(tabId);
       navigate(`/dashboard/${tabId}`);
     }
@@ -116,7 +131,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
       console.warn(`Module with id ${activeTab} not found`);
       return null;
     }
-    if (!hasModuleAccess(user.role, activeTab as DashboardModule)) {
+    if (!roles.some(r => hasModuleAccess(r, activeTab as DashboardModule))) {
       return <div className="unauthorized">You don't have access to this module</div>;
     }
     const Component = componentMap[activeModule.component];

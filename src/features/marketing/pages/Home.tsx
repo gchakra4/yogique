@@ -97,13 +97,13 @@ export function Home() {
       features: ["1-on-1 sessions", "Personalized routines", "Flexible timing", "Progress tracking"],
       route: "/book/individual"
     },
-      {
-        icon: <Users className="w-12 h-12 text-emerald-500 dark:text-emerald-400" />,
-        title: "Online Group Sessions",
-        description: "Build consistency with like-minded professionals",
-        features: ["Small group classes", "Community support", "Regular schedule", "Affordable pricing"],
-        route: "/book/private-group"
-      },
+    {
+      icon: <Users className="w-12 h-12 text-emerald-500 dark:text-emerald-400" />,
+      title: "Online Group Sessions",
+      description: "Build consistency with like-minded professionals",
+      features: ["Small group classes", "Community support", "Regular schedule", "Affordable pricing"],
+      route: "/book/private-group"
+    },
     {
       icon: <Building className="w-12 h-12 text-orange-500 dark:text-orange-400" />,
       title: "Corporate Wellness Solutions",
@@ -203,7 +203,7 @@ export function Home() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                  <Link to="/book/private-group">
+                <Link to="/book/private-group">
                   <Button
                     size="lg"
                     className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300 shadow-md"
