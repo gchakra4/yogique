@@ -11,7 +11,7 @@ export type { Instructor, InstructorProfile, ScheduleInstructor };
 export interface ClassType {
     id: string;
     name: string;
-    difficulty_level: 'beginner' | 'intermediate' | 'advanced';
+    difficulty_level: 'beginner' | 'intermediate' | 'advanced' | 'all';
     price?: number;
     description?: string;
     duration_minutes?: number;
