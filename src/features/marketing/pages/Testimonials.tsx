@@ -1,4 +1,5 @@
 import { Building, Globe, Quote, Star, User } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export function Testimonials() {
   const testimonials = [
