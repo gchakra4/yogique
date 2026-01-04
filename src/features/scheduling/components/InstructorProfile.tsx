@@ -321,7 +321,7 @@ function InstructorProfile() {
                                 <Button
                                     variant="outline"
                                     className="w-full"
-                                    onClick={() => window.location.href = 'https://yogique.life/yogique-for-you'}
+                                    onClick={() => window.location.href = '/book/private-group'}
                                 >
                                     Book a Class
                                 </Button>

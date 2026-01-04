@@ -188,7 +188,7 @@ export function ArticleView() {
                     More in {article.category}
                   </Link>
                   <Link
-                    to="https://yogique.life/yogique-for-you"
+                    to="/book/private-group"
                     className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                   >
                     Book a Class →

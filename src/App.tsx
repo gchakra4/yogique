@@ -151,7 +151,7 @@ function AppRoutes() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
-              <Route path="/services" element={<Navigate to="/yogique-for-you" replace />} />
+              <Route path="/services" element={<Navigate to="/book/private-group" replace />} />
               {ENABLE_REQUEST_ACCESS && (
                 <Route path="/request-access" element={<RequestAccess />} />
               )}

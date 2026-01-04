@@ -173,7 +173,7 @@ const PricingPage: React.FC = () => {
                         symbol={cfg.symbol}
                         price2={cfg.privateGroup2People}
                         price3Plus={cfg.privateGroup3Plus}
-                        ctaHref="/yogique-for-you"
+                        ctaHref="/book/private-group"
                         image="/images/private_group.png"
                         bullets={["Small group coaching", "Customized sequences", "Max 5 participants"]}
                     />

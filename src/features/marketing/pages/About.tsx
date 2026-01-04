@@ -247,7 +247,7 @@ export function About() {
           </div>
 
           <div className="mt-8 text-center">
-            <a href="/yogique-for-you" className="inline-flex items-center px-6 py-3 rounded-md bg-emerald-600 text-white font-medium shadow hover:bg-emerald-700">View classes</a>
+            <a href="/book/private-group" className="inline-flex items-center px-6 py-3 rounded-md bg-emerald-600 text-white font-medium shadow hover:bg-emerald-700">View classes</a>
             <a href="/contact" className="ml-4 inline-flex items-center px-6 py-3 rounded-md border border-emerald-600 text-emerald-600 font-medium hover:bg-emerald-50 dark:hover:bg-slate-800">Book a free demo</a>
           </div>
         </div>
