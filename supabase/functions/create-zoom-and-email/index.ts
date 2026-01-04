@@ -133,11 +133,29 @@ async function sendResendEmail(to: string | string[], subject: string, html: str
 
 serve(async (req) => {
     try {
-        // If scheduler auth is configured, require the header to match the token
+        // Optional scheduler secret check (allow bypass for service-role auth)
         if (SCHEDULER_SECRET_HEADER && SCHEDULER_SECRET_TOKEN) {
             const provided = req.headers.get(SCHEDULER_SECRET_HEADER);
-            if (!provided || provided !== SCHEDULER_SECRET_TOKEN) {
-                console.warn('Unauthorized request: missing or invalid scheduler header');
+            const schedulerOk = provided && provided === SCHEDULER_SECRET_TOKEN;
+
+            // Also accept service-role key (for internal scheduler calls)
+            const authBearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+            const incomingApikey = req.headers.get('apikey') || null;
+            const serviceRoleOk = (authBearer === SUPABASE_SERVICE_ROLE_KEY) || (incomingApikey === SUPABASE_SERVICE_ROLE_KEY);
+
+            // Safe debug log: do not print secrets, only presence/length and boolean checks
+            try {
+                console.log('auth debug', {
+                    auth_bearer_len: authBearer ? authBearer.length : 0,
+                    apikey_len: incomingApikey ? incomingApikey.length : 0,
+                    scheduler_header_provided: !!provided,
+                    scheduler_ok: !!schedulerOk,
+                    service_role_ok: !!serviceRoleOk,
+                });
+            } catch (_) {}
+
+            if (!schedulerOk && !serviceRoleOk) {
+                console.warn('Unauthorized request: missing or invalid scheduler header/service-role key');
                 return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 });
             }
         }

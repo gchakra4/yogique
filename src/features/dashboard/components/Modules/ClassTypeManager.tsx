@@ -94,6 +94,7 @@ export function ClassTypeManager() {
   })
 
   const difficultyLevels = [
+    { value: 'all', label: 'All Levels' },
     { value: 'beginner', label: 'Beginner' },
     { value: 'intermediate', label: 'Intermediate' },
     { value: 'advanced', label: 'Advanced' }
@@ -666,11 +667,18 @@ export function ClassTypeManager() {
 
   const getDifficultyColor = (level: string) => {
     switch (level) {
+      case 'all': return 'bg-gray-100 text-gray-800'
       case 'beginner': return 'bg-green-100 text-green-800'
       case 'intermediate': return 'bg-yellow-100 text-yellow-800'
       case 'advanced': return 'bg-red-100 text-red-800'
       default: return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  const formatDifficultyLabel = (level?: string) => {
+    if (!level) return ''
+    if (level === 'all') return 'All Levels'
+    return level.charAt(0).toUpperCase() + level.slice(1)
   }
 
   const formatPrice = (price: number) => {
@@ -1222,8 +1230,8 @@ export function ClassTypeManager() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">Difficulty:</span>
-                      <span className={`px-2 py-1 rounded text-xs ${getDifficultyColor(classType.difficulty_level)}`}>
-                        {classType.difficulty_level}
+                        <span className={`px-2 py-1 rounded text-xs ${getDifficultyColor(classType.difficulty_level)}`}>
+                        {formatDifficultyLabel(classType.difficulty_level)}
                       </span>
                     </div>
 
@@ -1401,7 +1409,7 @@ export function ClassTypeManager() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">Difficulty:</span>
                       <span className={`px-2 py-1 rounded text-xs ${getDifficultyColor(classType.difficulty_level)}`}>
-                        {classType.difficulty_level}
+                        {formatDifficultyLabel(classType.difficulty_level)}
                       </span>
                     </div>
 

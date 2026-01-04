@@ -74,17 +74,20 @@ SELECT cron.schedule(
 );
 
 -- 4. Schedule Create Zoom (every 15 minutes)
+-- Queries upcoming classes and invokes create-zoom-and-email for those starting within 12 hours
 SELECT cron.schedule(
     'schedule-create-zoom',
     '*/15 * * * *',
     $$
     SELECT net.http_post(
-        url := public.get_secret('edge_function_url'),
+        url := public.get_secret('supabase_url') || '/functions/v1/schedule-create-zoom',
         headers := jsonb_build_object(
             'Content-Type', 'application/json',
-            'Authorization', 'Bearer ' || public.get_secret('scheduler_secret_token')
+            'Authorization', 'Bearer ' || public.get_secret('service_role_key'),
+            'apikey', public.get_secret('service_role_key')
         ),
-        body := jsonb_build_object('force_invoke', false)
+        body := jsonb_build_object('hours_before', 12, 'window_minutes', 5, 'limit', 20),
+        timeout_milliseconds := 30000
     );
     $$
 );

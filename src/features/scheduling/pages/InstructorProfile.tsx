@@ -537,6 +537,8 @@ export default function InstructorProfile() {
 
   const getDifficultyColor = (level: string) => {
     switch (level?.toLowerCase()) {
+      case 'all':
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600'
       case 'beginner':
         return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700'
       case 'intermediate':
