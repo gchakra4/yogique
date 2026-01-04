@@ -156,7 +156,7 @@ const PricingPage: React.FC = () => {
                     <PriceCard
                         title="Public Group Classes"
                         priceLabel={`${cfg.symbol}${cfg.groupMonthly}`}
-                        ctaHref="/book/group"
+                        ctaHref="/schedule"
                         ctaText="Book Group"
                         image="/images/public_group.png"
                         bullets={["Drop-in friendly", "All levels welcome", "Weekly schedules available"]}
@@ -173,7 +173,7 @@ const PricingPage: React.FC = () => {
                         symbol={cfg.symbol}
                         price2={cfg.privateGroup2People}
                         price3Plus={cfg.privateGroup3Plus}
-                        ctaHref="/book/private-group"
+                        ctaHref="/yogique-for-you"
                         image="/images/private_group.png"
                         bullets={["Small group coaching", "Customized sequences", "Max 5 participants"]}
                     />

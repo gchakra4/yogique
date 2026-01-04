@@ -34,6 +34,7 @@ import { Terms } from './features/marketing/pages/Terms';
 import { Testimonials } from './features/marketing/pages/Testimonials';
 import Unsubscribe from './features/marketing/pages/Unsubscribe';
 import { YogaForYou } from './features/marketing/pages/YogaForYou';
+import { BookClass } from './features/scheduling/pages/BookClass';
 import { BookCorporate } from './features/scheduling/pages/BookCorporate';
 import { BookOneOnOne } from './features/scheduling/pages/BookOneOnOne';
 import CancelBookingPage from './features/scheduling/pages/CancelBookingPage';
@@ -182,6 +183,7 @@ function AppRoutes() {
               <Route path="/payment-failed" element={<PaymentFailed />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/book/individual" element={<BookOneOnOne />} />
+              <Route path="/book/private-group" element={<BookClass />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/book/corporate" element={<BookCorporate />} />
               <Route path="/achievements" element={<Achievements />} />

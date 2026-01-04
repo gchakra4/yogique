@@ -1230,7 +1230,7 @@ export function ClassTypeManager() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">Difficulty:</span>
-                        <span className={`px-2 py-1 rounded text-xs ${getDifficultyColor(classType.difficulty_level)}`}>
+                      <span className={`px-2 py-1 rounded text-xs ${getDifficultyColor(classType.difficulty_level)}`}>
                         {formatDifficultyLabel(classType.difficulty_level)}
                       </span>
                     </div>
