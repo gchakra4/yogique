@@ -65,14 +65,9 @@ export function Footer() {
             <ul className="space-y-2">
               <li><Link to="/about" className="text-gray-300 hover:text-emerald-400 transition-colors">About Us</Link></li>
               <li>
-                <a
-                  href="https://yogique.life/yogique-for-you"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-300 hover:text-emerald-400 transition-colors"
-                >
+                <Link to="/book/private-group" className="text-gray-300 hover:text-emerald-400 transition-colors">
                   Book Class
-                </a>
+                </Link>
               </li>
               <li><Link to="/learning" className="text-gray-300 hover:text-emerald-400 transition-colors">Learning Center</Link></li>
               <li><Link to="/contact" className="text-gray-300 hover:text-emerald-400 transition-colors">Contact</Link></li>

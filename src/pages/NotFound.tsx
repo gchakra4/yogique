@@ -38,9 +38,9 @@ export function NotFound() {
             <Link to="/about" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">
               About Us
             </Link>
-            <a href="https://yogique.life/yogique-for-you" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300" target="_blank" rel="noopener noreferrer">
+            <Link to="/book/private-group" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">
               Book Class
-            </a>
+            </Link>
             <Link to="/contact" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">
               Ask Question
             </Link>

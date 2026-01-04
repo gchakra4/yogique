@@ -1,5 +1,6 @@
 import { Clock, Globe, Mail, MessageCircle, Send } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '../../../shared/components/ui/Button'
 import { supabase } from '../../../shared/lib/supabase'
 
@@ -329,12 +330,12 @@ export function Contact() {
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Quick Links</h3>
                   <div className="space-y-2">
-                    <a href="https://yogique.life/yogique-for-you" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm" target="_blank" rel="noopener noreferrer">
+                    <Link to="/book/private-group" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
                       Book a Session
-                    </a>
-                    <a href="/yogique-for-you" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
+                    </Link>
+                    <Link to="/book/private-group" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
                       View Offerings
-                    </a>
+                    </Link>
                     <a href="/testimonials" className="block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors text-sm">
                       Read Testimonials
                     </a>

@@ -156,7 +156,7 @@ const PricingPage: React.FC = () => {
                     <PriceCard
                         title="Public Group Classes"
                         priceLabel={`${cfg.symbol}${cfg.groupMonthly}`}
-                        ctaHref="/book/group"
+                        ctaHref="/schedule"
                         ctaText="Book Group"
                         image="/images/public_group.png"
                         bullets={["Drop-in friendly", "All levels welcome", "Weekly schedules available"]}
