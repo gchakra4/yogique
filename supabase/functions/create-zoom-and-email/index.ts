@@ -294,6 +294,17 @@ serve(async (req) => {
         const hostZoomUserId = "me"; // change if you store per-instructor Zoom user IDs
         const { accessToken, apiUrl } = await getZoomAccessToken();
         const apiBase = (apiUrl || "https://api.zoom.us").replace(/\/$/, "");
+        // Build Zoom meeting settings and include alternative_hosts if instructor email is available
+        const meetingSettings: Record<string, any> = {
+            join_before_host: true,
+            approval_type: 0,
+            registration_type: 1,
+            enforce_login: false,
+            // Request no registration; may be overridden by account policy
+            require_registration: false,
+        };
+        // Do not set alternative_hosts here; handled separately if needed in Zoom account
+
         const zoomResp = await fetch(`${apiBase}/v2/users/${encodeURIComponent(hostZoomUserId)}/meetings`, {
             method: "POST",
             headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -303,7 +314,7 @@ serve(async (req) => {
                 start_time: startIso,
                 duration: 60,
                 timezone: cls.timezone || "UTC",
-                settings: { join_before_host: false, approval_type: 0 }
+                settings: meetingSettings
             })
         });
 

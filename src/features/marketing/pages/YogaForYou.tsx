@@ -140,9 +140,9 @@ export function YogaForYou() {
                                             </p>
                                             <div className="flex flex-col sm:flex-row gap-3 items-center">
                                                 <Link to="/book/private-group">
-                                                        <Button variant="outline" className="border-2 border-emerald-600 text-emerald-600 px-6 py-3 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transform hover:scale-[1.02]">
-                                                            Private Group
-                                                        </Button>
+                                                    <Button variant="outline" className="border-2 border-emerald-600 text-emerald-600 px-6 py-3 rounded-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transform hover:scale-[1.02]">
+                                                        Private Group
+                                                    </Button>
                                                 </Link>
                                                 <Link to="/schedule" className="relative inline-block">
                                                     <Button className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-3">

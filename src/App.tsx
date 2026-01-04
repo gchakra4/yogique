@@ -2,7 +2,7 @@ import { Link, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import RequestAccess from './pages/RequestAccess';
 import { ScrollToTop } from './shared/components/ScrollToTop';
 import { UserRole } from './shared/config/roleConfig';
-import { User as CustomUserType } from './shared/types/user';
+
 // Context imports - updated paths
 import { AuthProvider, useAuth } from './features/auth/contexts/AuthContext';
 import { NotificationProvider } from './features/notifications/contexts/NotificationContext';
@@ -90,17 +90,25 @@ function AppRoutes() {
     )
   )
 
+  // Role priority for selecting an effective single role when needed
+  const ROLE_PRIORITY: UserRole[] = ['super_admin', 'admin', 'instructor', 'yoga_acharya', 'energy_exchange_lead', 'sangha_guide', 'user']
+
   // Compose a dashboardUser with a role property for UniversalDashboard
-  const dashboardUser: CustomUserType | null = user && userRoles.length > 0
-    ? {
-      id: user.id,
-      email: user.email || '',
-      name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-      role: userRoles[0] as UserRole,
-      isActive: !!user.email_confirmed_at,
-      createdAt: new Date(user.created_at),
-      updatedAt: new Date(user.updated_at || user.created_at)
-    }
+  // Choose effective role using configured priority, and also attach full role list
+  const dashboardUser: any | null = user && userRoles.length > 0
+    ? (() => {
+      const effective = (userRoles.find(r => ROLE_PRIORITY.includes(r as UserRole)) || userRoles[0]) as UserRole
+      return {
+        id: user.id,
+        email: user.email || '',
+        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+        role: effective,
+        roles: userRoles as UserRole[],
+        isActive: !!user.email_confirmed_at,
+        createdAt: new Date(user.created_at),
+        updatedAt: new Date(user.updated_at || user.created_at)
+      }
+    })()
     : null
 
   return (
