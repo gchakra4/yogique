@@ -6,6 +6,7 @@ import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../shared/lib/supabase'
 import { useAuth } from '../../auth/contexts/AuthContext'
 import { useClassSchedule } from '../hooks/useClassSchedule'
+import BookingConfirmationCard from './BookingConfirmationCard'
 import InstructorLink from './InstructorLink'
 import { InstructorProvider } from './InstructorProvider'
 
@@ -15,6 +16,8 @@ function WeeklyScheduleContent() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [bookingLoading, setBookingLoading] = useState<string | null>(null)
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [bookingIdState, setBookingIdState] = useState<string | null>(null)
   const submittingRef = useRef(false)
 
   const handleBookClass = async (schedule: any) => {
@@ -117,7 +120,8 @@ function WeeklyScheduleContent() {
       if (bookingError) throw bookingError
 
       const bookingId = bookingResult?.[0]?.booking_id || 'N/A'
-      alert(`Successfully booked ${className} for ${nextClassDate.toLocaleDateString()}!\n\nYour Booking ID: ${bookingId}\n\nPlease save this ID for your records.`)
+      setBookingIdState(bookingId)
+      setShowConfirmation(true)
     } catch (error: any) {
       console.error('Booking error:', error)
       alert('Failed to book class. Please try again.')
@@ -153,128 +157,141 @@ function WeeklyScheduleContent() {
   const days = [0, 1, 2, 3, 4, 5, 6]
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-slate-600">
-      <div className="p-6 border-b border-gray-200 dark:border-slate-600">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-          <Calendar className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" />
-          Weekly Class Schedule
-        </h2>
-        <p className="text-gray-600 dark:text-slate-300 mt-1">Regular weekly classes - book your spot today!</p>
-      </div>
+    <>
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-slate-600">
+        <div className="p-6 border-b border-gray-200 dark:border-slate-600">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+            <Calendar className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" />
+            Weekly Class Schedule
+          </h2>
+          <p className="text-gray-600 dark:text-slate-300 mt-1">Regular weekly classes - book your spot today!</p>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-7 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-slate-600">
-        {days.map(day => (
-          <div key={day} className="p-4">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-center">
-              {getDayName(day)}
-            </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-7 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-slate-600">
+          {days.map(day => (
+            <div key={day} className="p-4">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-center">
+                {getDayName(day)}
+              </h3>
 
-            <div className="space-y-3">
-              {schedulesByDay[day]?.map(schedule => (
-                <div
-                  key={schedule.id}
-                  className="bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4 hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-slate-500"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-gray-900 dark:text-white text-sm leading-tight">
-                      {schedule.name || schedule.class_type.name}
-                    </h4>
-                    <span className={`px-2 py-1 text-xs rounded-full ${schedule.class_type.difficulty_level === 'beginner'
-                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                      : schedule.class_type.difficulty_level === 'intermediate'
-                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-                        : schedule.class_type.difficulty_level === 'all'
-                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                          : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                      }`}>
-                      {schedule.class_type.difficulty_level === 'all' ? 'All Levels' : (schedule.class_type.difficulty_level || '')}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-xs text-gray-600 dark:text-slate-300 mb-3">
-                    <div className="flex items-center">
-                      <Clock className="w-3 h-3 mr-1 text-blue-500 dark:text-blue-400" />
-                      {formatTime(schedule.start_time)} ({schedule.duration_minutes}min)
-                    </div>
-
-                    <div className="flex items-center">
-                      <Users className="w-3 h-3 mr-1 text-emerald-500 dark:text-emerald-400" />
-                      Max {schedule.max_participants} students
-                    </div>
-
-                    <div className="flex items-center">
-                      <Award className="w-3 h-3 mr-1 text-orange-500 dark:text-orange-400" />
-                      <InstructorLink
-                        instructor={{
-                          id: schedule.instructor_id || '',
-                          fullName: schedule.instructor?.full_name || 'Unknown Instructor',
-                          email: schedule.instructor?.email || '',
-                          bio: '',
-                          specialization: '',
-                          experience: 0,
-                          joinDate: '',
-                          profileImage: ''
-                        }}
-                        className="text-xs font-medium hover:text-blue-600 hover:underline transition-colors"
-                      />
-                    </div>
-
-                    {schedule.class_type.price && (
-                      <div className="text-blue-600 dark:text-blue-400 font-semibold">
-                        ₹{schedule.class_type.price}
-                      </div>
-                    )}
-                  </div>
-
-                  <Button
-                    onClick={() => handleBookClass(schedule)}
-                    loading={bookingLoading === schedule.id}
-                    disabled={bookingLoading === schedule.id}
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2"
+              <div className="space-y-3">
+                {schedulesByDay[day]?.map(schedule => (
+                  <div
+                    key={schedule.id}
+                    className="bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4 hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-slate-500"
                   >
-                    {bookingLoading === schedule.id ? 'Booking...' : 'Book Now'}
-                  </Button>
-                </div>
-              )) || (
-                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
-                    No classes scheduled
-                  </div>
-                )}
-            </div>
-          </div>
-        ))}
-      </div>
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm leading-tight">
+                        {schedule.name || schedule.class_type.name}
+                      </h4>
+                      <span className={`px-2 py-1 text-xs rounded-full ${schedule.class_type.difficulty_level === 'beginner'
+                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                        : schedule.class_type.difficulty_level === 'intermediate'
+                          ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                          : schedule.class_type.difficulty_level === 'all'
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                            : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                        }`}>
+                        {schedule.class_type.difficulty_level === 'all' ? 'All Levels' : (schedule.class_type.difficulty_level || '')}
+                      </span>
+                    </div>
 
-      <div className="p-6 bg-gray-50 dark:bg-slate-700 border-t border-gray-200 dark:border-slate-600">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">How Booking Works</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-slate-300">
-            <div className="flex flex-col items-center">
-              <div className="w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2">
-                <span className="text-white font-semibold">1</span>
+                    <div className="space-y-2 text-xs text-gray-600 dark:text-slate-300 mb-3">
+                      <div className="flex items-center">
+                        <Clock className="w-3 h-3 mr-1 text-blue-500 dark:text-blue-400" />
+                        {formatTime(schedule.start_time)} ({schedule.duration_minutes}min)
+                      </div>
+
+                      <div className="flex items-center">
+                        <Users className="w-3 h-3 mr-1 text-emerald-500 dark:text-emerald-400" />
+                        Max {schedule.max_participants} students
+                      </div>
+
+                      <div className="flex items-center">
+                        <Award className="w-3 h-3 mr-1 text-orange-500 dark:text-orange-400" />
+                        <InstructorLink
+                          instructor={{
+                            id: schedule.instructor_id || '',
+                            fullName: schedule.instructor?.full_name || 'Unknown Instructor',
+                            email: schedule.instructor?.email || '',
+                            bio: '',
+                            specialization: '',
+                            experience: 0,
+                            joinDate: '',
+                            profileImage: ''
+                          }}
+                          className="text-xs font-medium hover:text-blue-600 hover:underline transition-colors"
+                        />
+                      </div>
+
+                      {schedule.class_type.price && (
+                        <div className="text-blue-600 dark:text-blue-400 font-semibold">
+                          ₹{schedule.class_type.price}
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      onClick={() => handleBookClass(schedule)}
+                      loading={bookingLoading === schedule.id}
+                      disabled={bookingLoading === schedule.id}
+                      size="sm"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2"
+                    >
+                      {bookingLoading === schedule.id ? 'Booking...' : 'Book Now'}
+                    </Button>
+                  </div>
+                )) || (
+                    <div className="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
+                      No classes scheduled
+                    </div>
+                  )}
               </div>
-              <p className="text-gray-900 dark:text-white">Click "Book Now" on any class</p>
             </div>
-            <div className="flex flex-col items-center">
-              <div className="w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2">
-                <span className="text-white font-semibold">2</span>
+          ))}
+        </div>
+
+        <div className="p-6 bg-gray-50 dark:bg-slate-700 border-t border-gray-200 dark:border-slate-600">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">How Booking Works</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-slate-300">
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2">
+                  <span className="text-white font-semibold">1</span>
+                </div>
+                <p className="text-gray-900 dark:text-white">Click "Book Now" on any class</p>
               </div>
-              <p className="text-gray-900 dark:text-white">Sign in to your account</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2">
-                <span className="text-white font-semibold">3</span>
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2">
+                  <span className="text-white font-semibold">2</span>
+                </div>
+                <p className="text-gray-900 dark:text-white">Sign in to your account</p>
               </div>
-              <p className="text-gray-900 dark:text-white">Get instant confirmation</p>
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center mb-2">
+                  <span className="text-white font-semibold">3</span>
+                </div>
+                <p className="text-gray-900 dark:text-white">Get instant confirmation</p>
+              </div>
             </div>
+            <p className="mt-4 text-xs text-gray-500 dark:text-slate-300">
+              * Bookings are made for the next occurrence of the selected class
+            </p>
           </div>
-          <p className="mt-4 text-xs text-gray-500 dark:text-slate-300">
-            * Bookings are made for the next occurrence of the selected class
-          </p>
         </div>
       </div>
-    </div>
+      {showConfirmation && (
+        <div className="fixed inset-0 z-[220] flex items-start md:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="w-full max-w-3xl mx-4">
+            <BookingConfirmationCard
+              bookingId={bookingIdState}
+              onReturnHome={() => { window.location.href = '/' }}
+              onBookAnother={() => { setShowConfirmation(false); setBookingIdState(null) }}
+            />
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
