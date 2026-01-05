@@ -9,6 +9,7 @@ import { useClassSchedule } from '../hooks/useClassSchedule'
 import BookingConfirmationCard from './BookingConfirmationCard'
 import InstructorLink from './InstructorLink'
 import { InstructorProvider } from './InstructorProvider'
+import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 
 // Internal component that uses the instructor context
 function WeeklyScheduleContent() {
@@ -122,6 +123,18 @@ function WeeklyScheduleContent() {
       const bookingId = bookingResult?.[0]?.booking_id || 'N/A'
       setBookingIdState(bookingId)
       setShowConfirmation(true)
+      // Queue confirmation email (best-effort)
+      try {
+        await enqueueBookingConfirmationEmail({
+          recipient: user.email,
+          bookingId: bookingId,
+          subject: `Your Yogique Booking (${bookingId})`,
+          html: `<p>Thanks for booking ${className}. Your booking id is ${bookingId}.</p>`,
+          metadata: { booking_type: 'public_group' }
+        })
+      } catch (e) {
+        console.warn('Failed to enqueue booking confirmation email (WeeklySchedule):', e)
+      }
     } catch (error: any) {
       console.error('Booking error:', error)
       alert('Failed to book class. Please try again.')
