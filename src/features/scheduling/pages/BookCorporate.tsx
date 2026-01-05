@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../shared/lib/supabase'
+import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 import { COMMON_TIMEZONES, getUserTimezone } from '../../../shared/utils/timezoneUtils'
 import { useAuth } from '../../auth/contexts/AuthContext'
 
@@ -425,6 +426,18 @@ export function BookCorporate() {
             }
 
             setStep(4) // Success step
+            // Queue confirmation email (best-effort)
+            try {
+                await enqueueBookingConfirmationEmail({
+                    recipient: formData.email,
+                    bookingId: bookingIdValue,
+                    subject: `Your Yogique Booking (${bookingIdValue})`,
+                    html: `<p>Thanks for requesting a corporate program. Booking ID: ${bookingIdValue}.</p>`,
+                    metadata: { booking_type: 'corporate' }
+                })
+            } catch (e) {
+                console.warn('Failed to enqueue booking confirmation email (BookCorporate):', e)
+            }
         } catch (error: any) {
             setErrors({ general: error.message || 'An error occurred while submitting your request.' })
         } finally {

@@ -5,6 +5,7 @@ import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 // Avoid using useSettings hook here to prevent invalid hook call when
 // this component is executed in non-render contexts during async flows.
 import { supabase } from '../../../shared/lib/supabase'
+import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 import { COMMON_TIMEZONES, getUserTimezone } from '../../../shared/utils/timezoneUtils'
 import { useAuth } from '../../auth/contexts/AuthContext'
 import { generateCancelToken } from '../lib/generateCancelToken'
@@ -623,22 +624,13 @@ export function BookOneOnOne() {
                 // Instead of sending email directly from the UI, queue it so the
                 // notification worker/process can handle channels and retries.
                 try {
-                    const now = new Date().toISOString()
-                    await supabase.from('notifications_queue').insert({
-                        channel: 'email',
+                    await enqueueBookingConfirmationEmail({
                         recipient: formData.email,
+                        bookingId: bookingIdValue,
                         subject,
                         html: emailHtml,
                         attachments: attachmentsToSend || null,
-                        metadata: {
-                            booking_id: bookingIdValue,
-                            notification_type: 'class_confirmation'
-                        },
-                        status: 'pending',
-                        attempts: 0,
-                        run_after: now,
-                        created_at: now,
-                        updated_at: now
+                        metadata: { notification_type: 'class_confirmation' }
                     })
                 } catch (queueErr) {
                     console.error('Failed to queue booking confirmation email:', queueErr)
