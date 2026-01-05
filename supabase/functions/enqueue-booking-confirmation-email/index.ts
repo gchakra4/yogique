@@ -16,10 +16,29 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 serve(async (req) => {
   try {
-    const body = await req.json()
+    // Parse JSON body safely: handle empty body and malformed JSON gracefully
+    let body: any = null
+    try {
+      const txt = await req.text()
+      if (!txt) {
+        console.error('Empty request body')
+        return new Response(JSON.stringify({ error: 'invalid_payload', detail: 'empty_body' }), { status: 400 })
+      }
+      try {
+        body = JSON.parse(txt)
+      } catch (jsonErr) {
+        console.error('Failed to parse JSON body:', jsonErr, 'rawBody:', txt)
+        return new Response(JSON.stringify({ error: 'invalid_json', detail: String(jsonErr) }), { status: 400 })
+      }
+    } catch (readErr) {
+      console.error('Failed to read request body:', readErr)
+      return new Response(JSON.stringify({ error: 'read_body_failed', detail: String(readErr) }), { status: 400 })
+    }
+
     // expected body: { channel, recipient, subject?, text?, html?, attachments?, metadata?, run_after? }
     if (!body || !body.channel || !body.recipient) {
-      return new Response(JSON.stringify({ error: 'invalid_payload' }), { status: 400 })
+      console.error('Invalid payload shape', body)
+      return new Response(JSON.stringify({ error: 'invalid_payload', detail: 'missing channel or recipient' }), { status: 400 })
     }
 
     const now = new Date().toISOString()
