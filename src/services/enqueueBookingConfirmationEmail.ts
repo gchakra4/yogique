@@ -1,4 +1,4 @@
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../shared/lib/supabase'
+import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from '../shared/lib/supabase'
 
 type QueueRow = {
   channel: 'email' | 'sms' | 'whatsapp' | string

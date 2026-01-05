@@ -4,8 +4,8 @@ import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 // Avoid using useSettings hook here to prevent invalid hook call when
 // this component is executed in non-render contexts during async flows.
-import { supabase } from '../../../shared/lib/supabase'
 import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
+import { supabase } from '../../../shared/lib/supabase'
 import { COMMON_TIMEZONES, getUserTimezone } from '../../../shared/utils/timezoneUtils'
 import { useAuth } from '../../auth/contexts/AuthContext'
 import { generateCancelToken } from '../lib/generateCancelToken'
@@ -506,131 +506,37 @@ export function BookOneOnOne() {
                         ; (globalThis as any).__lastCancelUrl = `${baseUrl}/profile#my-bookings`
                 }
 
-                // Your provided HTML template (simple placeholder replacement)
-                const emailHtmlTemplate = `<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Booking Confirmation</title>
-        <style>
-            body { font-family: Arial, sans-serif; background-color: #0f1012; margin: 0; padding: 0; }
-            .container { max-width: 600px; margin: 40px auto; background: #181818; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
-            .header { background: linear-gradient(135deg, #222222, #000000); color: white; text-align: center; padding: 30px 20px; }
-            .header h1 { margin: 0; font-size: 28px; }
-            .content { padding: 25px 30px; color: #f5f5f5; }
-            .content p { line-height: 1.6; font-size: 16px; }
-            .booking-box { background: #242018; border-left: 5px solid #d9a441; padding: 15px 20px; margin: 20px 0; border-radius: 8px; }
-            .booking-box strong { font-size: 18px; color: #ffd470; }
-            .button { display: inline-block; margin-top: 25px; padding: 14px 24px; background: #d9a441; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
-            .footer { text-align: center; padding: 20px; font-size: 14px; color: #aaaaaa; }
-            @media only screen and (max-width: 480px) { .container { margin: 20px 12px; border-radius: 10px; } .header { padding: 20px 14px; } .header h1 { font-size: 22px; } .content { padding: 18px 16px; } .content p, .booking-box p, ul { font-size: 14px; } .button { display: block; width: 100%; text-align: center; padding: 14px 0; box-sizing: border-box; } }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-                <div class="header">
-                <img src="{{logo_src}}" alt="Yogique Logo" style="width:80px; margin-bottom:10px;" />
-                <h1>Yogique – Booking Confirmed</h1>
-            </div>
-            <div class="content">
-                <p>Hi {{user_name}},</p>
-                <p>Thank you for booking with us! We’re excited to have you. Below are your booking details for quick reference.</p>
-                                <div class="booking-box">
-                    <p><strong>Booking ID:</strong> {{booking_id}}</p>
-                    <p><strong>Preferred Start Date:</strong> {{preferred_start_date}}</p>
-                    <p><strong>Preferred Time:</strong> {{class_time}}</p>
-                    <p><strong>Class/Package Details:</strong> {{class_package_details}}</p>
-                    <p><strong>Timezone:</strong> {{timezone}}</p>
-                    <p><strong>Notes / Requests:</strong> {{booking_notes}}</p>
-                </div>
-                <ul style="margin: 20px 0; padding-left: 20px; font-size:16px; line-height:1.6;">
-                    <li>You'll receive a confirmation email within 24 hours</li>
-                    <li>We'll send you the video call link before your session</li>
-                    <li>Our team may call to discuss your specific needs</li>
-                </ul>
-                <p>If you have any questions, feel free to reply to this email or contact us at <a href="mailto:{{support_contact}}" style="color:#ffd470;">{{support_contact}}</a>.</p>
-                <a href="{{action_url}}" class="button">View Your Booking</a>
-                <p style="margin-top:8px; font-size:13px; color:#dddddd;">If you've changed your mind, you can <a href="{{cancel_url}}" style="color:#ffd470;">cancel your booking</a>. Please include a short note when cancelling so our team can follow up.</p>
-                <p style="margin-top:6px; font-size:12px; color:#bbbbbb;">Policy: <a href="{{policy_url}}" style="color:#ffd470;">Terms &amp; Cancellation Policy</a></p>
-            </div>
-            <div class="footer">© {{year}} Sampurnayogam LLP. All rights reserved.<br /><span style="font-size:12px; color:#999; line-height:1.4;">Yogique is a brand operating under the umbrella of Sampurnayogam LLP (a registered company). All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.</span></div>
-        </div>
-    </body>
-</html>`
-
-                // Attempt to fetch logo and include it as an inline CID attachment for better email client compatibility.
-                async function fetchImageAsBase64(url: string) {
-                    try {
-                        const resp = await fetch(url)
-                        if (!resp.ok) return null
-                        const blob = await resp.blob()
-                        const contentType = blob.type || 'application/octet-stream'
-                        const base64 = await new Promise<string | null>((resolve, reject) => {
-                            const reader = new FileReader()
-                            reader.onloadend = () => {
-                                if (!reader.result) return resolve(null)
-                                const parts = (reader.result as string).split(',')
-                                resolve(parts[1] || null)
-                            }
-                            reader.onerror = () => reject(new Error('Failed to read blob'))
-                            reader.readAsDataURL(blob)
-                        })
-                        if (!base64) return null
-                        return { base64, contentType }
-                    } catch (e) {
-                        return null
-                    }
-                }
-
-                const logoUrl = `${baseUrl}/images/Brand.png`
-                let attachmentsToSend: Array<{ filename: string; content: string; contentType?: string; cid?: string }> | undefined = undefined
-                let resolvedLogoSrc = `${baseUrl}/images/Brand.png`
-                try {
-                    const fetched = await fetchImageAsBase64(logoUrl)
-                    if (fetched && fetched.base64) {
-                        attachmentsToSend = [
-                            {
-                                filename: 'Brand.png',
-                                content: `data:${fetched.contentType};base64,${fetched.base64}`,
-                                contentType: fetched.contentType,
-                                cid: 'yq_logo'
-                            }
-                        ]
-                        resolvedLogoSrc = 'cid:yq_logo'
-                    }
-                } catch (e) {
-                    // ignore and fall back to absolute URL
-                }
-
-                const emailHtml = emailHtmlTemplate
-                    .replace(/{{user_name}}/g, userName)
-                    .replace(/{{booking_id}}/g, bookingIdValue)
-                    .replace(/{{preferred_start_date}}/g, formData.startDate || '')
-                    .replace(/{{class_package_details}}/g, classPackageDetails)
-                    .replace(/{{class_time}}/g, classTime)
-                    .replace(/{{support_contact}}/g, supportContact)
-                    .replace(/{{booking_notes}}/g, bookingNotes)
-                    .replace(/{{timezone}}/g, timezone)
-                    .replace(/{{policy_url}}/g, policyUrl)
-                    .replace(/{{cancel_url}}/g, ((globalThis as any).__lastCancelUrl as string) || actionUrl)
-                    .replace(/{{action_url}}/g, actionUrl)
-                    .replace(/{{year}}/g, String(year))
-                    .replace(/{{base_url}}/g, baseUrl)
-                    .replace(/{{logo_src}}/g, resolvedLogoSrc)
-
                 const subject = `Your Yogique Booking (${bookingIdValue})`
 
-                // Instead of sending email directly from the UI, queue it so the
-                // notification worker/process can handle channels and retries.
+                // Queue the booking confirmation using the central Edge Function template.
+                // Send only structured metadata; the function will render the shared template server-side.
                 try {
+                    const metadataPayload = {
+                        notification_type: 'class_confirmation',
+                        user_name: userName,
+                        booking_id: bookingIdValue,
+                        preferred_start_date: formData.startDate || '',
+                        class_package_details: classPackageDetails,
+                        class_time: classTime,
+                        support_contact: supportContact,
+                        booking_notes: bookingNotes,
+                        timezone: timezone,
+                        policy_url: policyUrl,
+                        cancel_url: (globalThis as any).__lastCancelUrl || actionUrl,
+                        action_url: actionUrl,
+                        year: String(year),
+                        base_url: baseUrl,
+                        logo_src: `${baseUrl}/images/Brand.png`
+                    }
+
                     await enqueueBookingConfirmationEmail({
                         recipient: formData.email,
                         bookingId: bookingIdValue,
                         subject,
-                        html: emailHtml,
-                        attachments: attachmentsToSend || null,
-                        metadata: { notification_type: 'class_confirmation' }
+                        // omit html so server renders the central template
+                        html: null,
+                        attachments: null,
+                        metadata: metadataPayload
                     })
                 } catch (queueErr) {
                     console.error('Failed to queue booking confirmation email:', queueErr)

@@ -1,9 +1,9 @@
 import { Building, Calendar, ChevronDown, ChevronUp, Clock, Mail, Phone, Search, Star, Users } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../shared/lib/supabase'
-import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 import { COMMON_TIMEZONES, getUserTimezone } from '../../../shared/utils/timezoneUtils'
 import { useAuth } from '../../auth/contexts/AuthContext'
 
@@ -432,7 +432,9 @@ export function BookCorporate() {
                     recipient: formData.email,
                     bookingId: bookingIdValue,
                     subject: `Your Yogique Booking (${bookingIdValue})`,
-                    html: `<p>Thanks for requesting a corporate program. Booking ID: ${bookingIdValue}.</p>`,
+                    // omit html so server renders the central template
+                    html: null,
+                    attachments: null,
                     metadata: { booking_type: 'corporate' }
                 })
             } catch (e) {

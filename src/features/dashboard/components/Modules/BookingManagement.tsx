@@ -11,10 +11,10 @@ import {
   X
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { enqueueNotification } from '../../../../services/enqueueBookingConfirmationEmail'
 import { Button } from '../../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../../shared/lib/supabase'
-import { enqueueNotification } from '../../../../services/enqueueBookingConfirmationEmail'
 
 interface ClassPackage {
   id: string
