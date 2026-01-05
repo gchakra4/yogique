@@ -1,9 +1,9 @@
 import { ChevronLeft, ChevronRight, Clock, Search, Users } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 import { Button } from '../../../shared/components/ui/Button'
 import { getCountryList } from '../../../shared/lib/phone'
 import { supabase } from '../../../shared/lib/supabase'
-import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 import { COMMON_TIMEZONES, getUserTimezone } from '../../../shared/utils/timezoneUtils'
 import { useAuth } from '../../auth/contexts/AuthContext'
 import BookingConfirmationCard from '../components/BookingConfirmationCard'
@@ -321,14 +321,28 @@ export function BookClass() {
       setBookingId(bookingId)
       setShowBookingForm(false)
       setShowConfirmation(true)
-      // Queue confirmation email (best-effort)
+      // Queue confirmation email (best-effort) — send metadata and let server render template
       try {
+        const baseUrl = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : ''
+        const metadataPayload = {
+          notification_type: 'class_confirmation',
+          user_name: formData.fullName || formData.email,
+          booking_id: bookingId,
+          preferred_start_date: selectedDate,
+          class_package_details: selectedPackage ? `${selectedPackage.name} — ₹${selectedPackage.price}` : 'N/A',
+          class_time: selectedTime,
+          booking_notes: formData.message || '',
+          timezone: formData.timezone || '',
+          base_url: baseUrl,
+          logo_src: `${baseUrl}/images/Brand.png`
+        }
+
         await enqueueBookingConfirmationEmail({
           recipient: formData.email,
           bookingId: bookingId,
           subject: `Your Yogique Booking (${bookingId})`,
-          html: `<p>Thanks for booking ${selectedPackage?.name || 'your class'}. Your booking id is ${bookingId}.</p>`,
-          metadata: { booking_type: 'private_group' }
+          html: null,
+          metadata: metadataPayload
         })
       } catch (e) {
         console.warn('Failed to enqueue booking confirmation email (BookClass):', e)

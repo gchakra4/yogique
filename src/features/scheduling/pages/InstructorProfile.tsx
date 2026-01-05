@@ -1,10 +1,10 @@
 import { ArrowLeft, Award, BookOpen, Calendar, ChevronRight, Clock, GraduationCap, Mail, MapPin, Phone, Star, User, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../shared/lib/supabase'
-import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 
 interface InstructorProfileData {
   // Basic Info
@@ -460,8 +460,19 @@ export default function InstructorProfile() {
           recipient: booking.email || booking.email || userProfile.email,
           bookingId: booking.booking_id || booking.id,
           subject: `Your Yogique Booking (${booking.booking_id || booking.id})`,
-          html: `<p>Thanks for booking ${schedule.class_type.name} with ${instructor?.full_name}. Booking ID: ${booking.booking_id || booking.id}.</p>`,
-          metadata: { booking_type: 'instructor_profile', instructor_id: instructor?.user_id }
+          html: null,
+          metadata: {
+            notification_type: 'class_confirmation',
+            user_name: userProfile.full_name,
+            booking_id: booking.booking_id || booking.id,
+            preferred_start_date: classDate.toISOString().split('T')[0],
+            class_package_details: schedule.class_type.name,
+            class_time: schedule.start_time,
+            instructor_name: instructor?.full_name || '',
+            instructor_id: instructor?.user_id || '',
+            base_url: (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '',
+            logo_src: `${(typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : ''}/images/Brand.png`
+          }
         })
       } catch (e) {
         console.warn('Failed to enqueue booking confirmation email (InstructorProfile):', e)

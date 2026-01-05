@@ -22,7 +22,7 @@ export function Header() {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
-    { name: 'Yogique for You', href: '/book/private-group' },
+    { name: 'Yogique for You', href: '/yogique-for-you' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Schedule', href: '/schedule' },
     { name: 'Learning', href: '/learning' },

@@ -1,6 +1,7 @@
 import { Award, Calendar, Clock, Users } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../shared/lib/supabase'
@@ -9,7 +10,6 @@ import { useClassSchedule } from '../hooks/useClassSchedule'
 import BookingConfirmationCard from './BookingConfirmationCard'
 import InstructorLink from './InstructorLink'
 import { InstructorProvider } from './InstructorProvider'
-import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 
 // Internal component that uses the instructor context
 function WeeklyScheduleContent() {
@@ -129,8 +129,18 @@ function WeeklyScheduleContent() {
           recipient: user.email,
           bookingId: bookingId,
           subject: `Your Yogique Booking (${bookingId})`,
-          html: `<p>Thanks for booking ${className}. Your booking id is ${bookingId}.</p>`,
-          metadata: { booking_type: 'public_group' }
+          html: null,
+          metadata: {
+            notification_type: 'class_confirmation',
+            user_name: fullName || user.email,
+            booking_id: bookingId,
+            preferred_start_date: classDate,
+            class_package_details: className,
+            class_time: schedule.start_time,
+            timezone: tz,
+            base_url: (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '',
+            logo_src: `${(typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : ''}/images/Brand.png`
+          }
         })
       } catch (e) {
         console.warn('Failed to enqueue booking confirmation email (WeeklySchedule):', e)
