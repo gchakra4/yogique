@@ -1,4 +1,4 @@
-import { supabase } from '../shared/lib/supabase'
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../shared/lib/supabase'
 
 type QueueRow = {
   channel: 'email' | 'sms' | 'whatsapp' | string
@@ -19,13 +19,23 @@ export async function enqueueNotification(row: QueueRow) {
   // Prefer calling a server-side wrapper to avoid exposing direct DB writes from the client.
   // Fall back to direct supabase insert if the wrapper is not available.
   try {
-    // Use Supabase Functions invoke to call the Edge Function server-side wrapper.
-    const res = await supabase.functions.invoke('enqueue-booking-confirmation-email', { body: row })
-    // `res` follows Supabase client format: it may contain `error` or `data`.
-    // If there's an error, throw to fallback to direct DB insert.
-    // @ts-ignore
-    if ((res as any).error) throw (res as any).error
-    return (res as any).data || res
+    // POST directly to the Supabase Functions REST endpoint with explicit JSON body and auth headers.
+    const fnUrl = `${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/enqueue-booking-confirmation-email`
+    const resp = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_ANON_KEY || '',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY || ''}`
+      },
+      body: JSON.stringify(row)
+    })
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => '')
+      throw new Error(`function_call_failed:${resp.status} ${txt}`)
+    }
+    const parsed = await resp.json().catch(() => null)
+    return parsed || { ok: true }
   } catch (e) {
     // wrapper failed — write directly as a fallback
     const now = new Date().toISOString()
