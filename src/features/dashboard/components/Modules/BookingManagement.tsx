@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '../../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../../shared/lib/supabase'
+import { enqueueNotification } from '../../../../services/enqueueBookingConfirmationEmail'
 
 interface ClassPackage {
   id: string
@@ -282,11 +283,15 @@ export function BookingManagement() {
 
     setIsNotifying(true)
     try {
-      // This would typically call an API or Edge Function
-      // For now we'll simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await enqueueNotification({
+        channel: 'email',
+        recipient: selectedBooking.email,
+        subject: `Update regarding your booking ${selectedBooking.id}`,
+        html: `<p>This is a notification regarding your booking ${selectedBooking.id}.</p>`,
+        metadata: { booking_id: selectedBooking.id, notification_type: 'admin_notification' }
+      })
 
-      setSuccessMessage(`Notification sent to ${selectedBooking.email}`)
+      setSuccessMessage(`Notification queued for ${selectedBooking.email}`)
       setTimeout(() => setSuccessMessage(''), 3000)
     } catch (error) {
       console.error('Error sending notification:', error)

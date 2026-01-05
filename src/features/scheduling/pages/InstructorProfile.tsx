@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 import { supabase } from '../../../shared/lib/supabase'
+import { enqueueBookingConfirmationEmail } from '../../../services/enqueueBookingConfirmationEmail'
 
 interface InstructorProfileData {
   // Basic Info
@@ -452,6 +453,19 @@ export default function InstructorProfile() {
         `Please save this Booking ID for your records!`
 
       alert(successMessage)
+
+      // Queue confirmation email (best-effort)
+      try {
+        await enqueueBookingConfirmationEmail({
+          recipient: booking.email || booking.email || userProfile.email,
+          bookingId: booking.booking_id || booking.id,
+          subject: `Your Yogique Booking (${booking.booking_id || booking.id})`,
+          html: `<p>Thanks for booking ${schedule.class_type.name} with ${instructor?.full_name}. Booking ID: ${booking.booking_id || booking.id}.</p>`,
+          metadata: { booking_type: 'instructor_profile', instructor_id: instructor?.user_id }
+        })
+      } catch (e) {
+        console.warn('Failed to enqueue booking confirmation email (InstructorProfile):', e)
+      }
 
       // Refresh data
       await fetchInstructorData()

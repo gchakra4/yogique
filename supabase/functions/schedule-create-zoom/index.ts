@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.201.0/http/server.ts";
+import { DateTime } from "https://esm.sh/luxon@3.4.0";
 import { callFunctionWithOptions, restGet, restPost } from '../shared/db.ts';
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -24,17 +25,16 @@ const corsHeaders = {
  */
 function minutesUntilClass(date: string, startTime: string, timezone: string): number | null {
   try {
-    // Parse as ISO datetime in the class's timezone
-    const classDateTime = new Date(`${date}T${startTime}`);
-    if (isNaN(classDateTime.getTime())) return null;
+    const zone = timezone || 'UTC';
+    const iso = `${date}T${startTime}`;
+    const classDt = DateTime.fromISO(iso, { zone });
+    if (!classDt.isValid) return null;
 
-    // For simplicity, assume timezone offset can be extracted or default to UTC
-    // In production, use a proper timezone library like luxon or date-fns-tz
-    const now = Date.now();
-    const classMs = classDateTime.getTime();
-    const diffMs = classMs - now;
-    return Math.round(diffMs / 60000);
-  } catch {
+    const nowUtc = DateTime.utc();
+    const minutesUntil = Math.round(classDt.toUTC().diff(nowUtc, 'minutes').minutes);
+    return minutesUntil;
+  } catch (e) {
+    console.error('minutesUntilClass error', e);
     return null;
   }
 }
