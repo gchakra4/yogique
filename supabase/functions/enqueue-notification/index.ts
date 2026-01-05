@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 import { serve } from 'https://deno.land/std@0.201.0/http/server.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
