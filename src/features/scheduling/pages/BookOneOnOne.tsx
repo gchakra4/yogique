@@ -1,6 +1,5 @@
 import { Calendar, ChevronDown, ChevronUp, Clock, Mail, Phone, Search, Star, User, Users, Video } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import EmailService from '../../../services/emailService'
 import { Button } from '../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
 // Avoid using useSettings hook here to prevent invalid hook call when
@@ -621,12 +620,29 @@ export function BookOneOnOne() {
 
                 const subject = `Your Yogique Booking (${bookingIdValue})`
 
-                // Fire-and-forget: don't block the UI if email fails
-                EmailService.sendTransactionalEmail(formData.email, subject, emailHtml, attachmentsToSend)
-                    .then(res => {
-                        if (!res.ok) console.warn('Failed to send booking confirmation email:', res.error)
+                // Instead of sending email directly from the UI, queue it so the
+                // notification worker/process can handle channels and retries.
+                try {
+                    const now = new Date().toISOString()
+                    await supabase.from('notifications_queue').insert({
+                        channel: 'email',
+                        recipient: formData.email,
+                        subject,
+                        html: emailHtml,
+                        attachments: attachmentsToSend || null,
+                        metadata: {
+                            booking_id: bookingIdValue,
+                            notification_type: 'class_confirmation'
+                        },
+                        status: 'pending',
+                        attempts: 0,
+                        run_after: now,
+                        created_at: now,
+                        updated_at: now
                     })
-                    .catch(err => console.error('Error sending booking confirmation email:', err))
+                } catch (queueErr) {
+                    console.error('Failed to queue booking confirmation email:', queueErr)
+                }
             } catch (emailErr) {
                 console.error('Error while preparing/sending confirmation email:', emailErr)
             }
