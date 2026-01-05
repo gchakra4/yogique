@@ -9,6 +9,9 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
+// notification-service is a generic gateway; template rendering for bookings
+// is handled in the dedicated `enqueue-booking-confirmation-email` function.
+
 function getRuntimeKey(req: Request): string {
   const apikey = req.headers.get("apikey") || "";
   if (apikey) return apikey;
