@@ -3,6 +3,14 @@ import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+// Optional from-address for booking confirmation emails (set in Supabase function env)
+const SEND_GUIDE_FROM_EMAIL = Deno.env.get('SEND_GUIDE_FROM_EMAIL') || null
+
+function isValidEmail(email: string | null) {
+  if (!email) return false
+  // basic RFC-like email validation
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
@@ -15,6 +23,12 @@ serve(async (req) => {
     }
 
     const now = new Date().toISOString()
+    // merge provided metadata and attach server-side sender if configured
+    const mergedMetadata = Object.assign({}, body.metadata || {})
+    if (isValidEmail(SEND_GUIDE_FROM_EMAIL)) {
+      mergedMetadata.from_email = SEND_GUIDE_FROM_EMAIL
+    }
+
     const payload = {
       channel: body.channel,
       recipient: body.recipient,
@@ -22,7 +36,7 @@ serve(async (req) => {
       text: body.text || null,
       html: body.html || null,
       attachments: body.attachments || null,
-      metadata: body.metadata || null,
+      metadata: Object.keys(mergedMetadata).length ? mergedMetadata : null,
       status: body.status || 'pending',
       attempts: typeof body.attempts === 'number' ? body.attempts : 0,
       run_after: body.run_after || now,
