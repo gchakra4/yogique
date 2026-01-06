@@ -1,0 +1,263 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - heading "DevTools Hub" [level=1] [ref=e5]
+    - navigation [ref=e6]:
+      - link "Home" [ref=e7] [cursor=pointer]:
+        - /url: /
+      - link "Admin Approvals" [ref=e8] [cursor=pointer]:
+        - /url: /admin/approvals
+  - generic [ref=e10]:
+    - banner [ref=e11]:
+      - generic [ref=e13]:
+        - link "Yogique Logo Yogique yoga beyond asanas" [ref=e14] [cursor=pointer]:
+          - /url: /
+          - img "Yogique Logo" [ref=e16]
+          - generic [ref=e17]:
+            - generic [ref=e18]: Yogique
+            - generic [ref=e19]: yoga beyond asanas
+        - navigation [ref=e20]:
+          - link "Home" [ref=e21] [cursor=pointer]:
+            - /url: /
+          - link "About" [ref=e22] [cursor=pointer]:
+            - /url: /about
+          - link "Yogique for You" [ref=e23] [cursor=pointer]:
+            - /url: /yogique-for-you
+          - link "Pricing" [ref=e24] [cursor=pointer]:
+            - /url: /pricing
+          - link "Schedule" [ref=e25] [cursor=pointer]:
+            - /url: /schedule
+          - link "Learning" [ref=e26] [cursor=pointer]:
+            - /url: /learning
+          - link "Contact" [ref=e27] [cursor=pointer]:
+            - /url: /contact
+        - generic [ref=e28]:
+          - button "Switch to dark mode" [ref=e29] [cursor=pointer]:
+            - img [ref=e30]
+          - button [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+          - button [ref=e40] [cursor=pointer]:
+            - img [ref=e42]
+            - img [ref=e45]
+    - generic [ref=e47]:
+      - generic [ref=e48]:
+        - navigation [ref=e50]:
+          - generic [ref=e52]:
+            - heading "Dashboard" [level=3] [ref=e53]
+            - generic [ref=e54]: ADMIN
+          - list [ref=e56]:
+            - listitem [ref=e57]:
+              - link "📊 Overview" [ref=e58] [cursor=pointer]:
+                - /url: /dashboard/overview
+                - generic [ref=e59]: 📊
+                - generic [ref=e60]: Overview
+            - listitem [ref=e61]:
+              - link "👥 User Management" [ref=e62] [cursor=pointer]:
+                - /url: /dashboard/user_management
+                - generic [ref=e63]: 👥
+                - generic [ref=e64]: User Management
+            - listitem [ref=e65]:
+              - link "🧑‍🏫 Instructor Management" [ref=e66] [cursor=pointer]:
+                - /url: /dashboard/instructor_management
+                - generic [ref=e67]: 🧑‍🏫
+                - generic [ref=e68]: Instructor Management
+            - listitem [ref=e69]:
+              - link "📋 Message Monitoring" [ref=e70] [cursor=pointer]:
+                - /url: /dashboard/message_monitor
+                - generic [ref=e71]: 📋
+                - generic [ref=e72]: Message Monitoring
+            - listitem [ref=e73]:
+              - link "💰 Rate Management" [ref=e74] [cursor=pointer]:
+                - /url: /dashboard/rate_management
+                - generic [ref=e75]: 💰
+                - generic [ref=e76]: Rate Management
+            - listitem [ref=e77]:
+              - link "💳 Transactions" [ref=e78] [cursor=pointer]:
+                - /url: /dashboard/transactions
+                - generic [ref=e79]: 💳
+                - generic [ref=e80]: Transactions
+            - listitem [ref=e81]:
+              - link "✏️ Class Management" [ref=e82] [cursor=pointer]:
+                - /url: /dashboard/class_assignment
+                - generic [ref=e83]: ✏️
+                - generic [ref=e84]: Class Management
+            - listitem [ref=e85]:
+              - link "⚙️ Business Settings" [ref=e86] [cursor=pointer]:
+                - /url: /dashboard/business_settings
+                - generic [ref=e87]: ⚙️
+                - generic [ref=e88]: Business Settings
+            - listitem [ref=e89]:
+              - link "📚 Article Management" [ref=e90] [cursor=pointer]:
+                - /url: /dashboard/article_management
+                - generic [ref=e91]: 📚
+                - generic [ref=e92]: Article Management
+            - listitem [ref=e93]:
+              - link "✏️ Article Editing" [ref=e94] [cursor=pointer]:
+                - /url: /dashboard/article_editing
+                - generic [ref=e95]: ✏️
+                - generic [ref=e96]: Article Editing
+            - listitem [ref=e97]:
+              - link "💳 Transactions" [ref=e98] [cursor=pointer]:
+                - /url: /dashboard/transaction_management
+                - generic [ref=e99]: 💳
+                - generic [ref=e100]: Transactions
+            - listitem [ref=e101]:
+              - link "📋 Class & Package Manager" [ref=e102] [cursor=pointer]:
+                - /url: /dashboard/class_type_manager
+                - generic [ref=e103]: 📋
+                - generic [ref=e104]: Class & Package Manager
+            - listitem [ref=e105]:
+              - link "📄 Invoice Management" [ref=e106] [cursor=pointer]:
+                - /url: /dashboard/invoice_management
+                - generic [ref=e107]: 📄
+                - generic [ref=e108]: Invoice Management
+            - listitem [ref=e109]:
+              - link "📄 Forms" [ref=e110] [cursor=pointer]:
+                - /url: /dashboard/forms
+                - generic [ref=e111]: 📄
+                - generic [ref=e112]: Forms
+            - listitem [ref=e113]:
+              - link "📋 Payment Links" [ref=e114] [cursor=pointer]:
+                - /url: /dashboard/payment_links_monitor
+                - generic [ref=e115]: 📋
+                - generic [ref=e116]: Payment Links
+            - listitem [ref=e117]:
+              - link "📅 Class Bookings" [ref=e118] [cursor=pointer]:
+                - /url: /dashboard/booking_management
+                - generic [ref=e119]: 📅
+                - generic [ref=e120]: Class Bookings
+            - listitem [ref=e121]:
+              - link "🗓️ Weekly Schedule" [ref=e122] [cursor=pointer]:
+                - /url: /dashboard/weekly_schedule
+                - generic [ref=e123]: 🗓️
+                - generic [ref=e124]: Weekly Schedule
+            - listitem [ref=e125]:
+              - link "📄 Form Submissions & Messages" [ref=e126] [cursor=pointer]:
+                - /url: /dashboard/form_submission
+                - generic [ref=e127]: 📄
+                - generic [ref=e128]: Form Submissions & Messages
+            - listitem [ref=e129]:
+              - link "📈 Classes Overview" [ref=e130] [cursor=pointer]:
+                - /url: /dashboard/admin_classes_overview
+                - generic [ref=e131]: 📈
+                - generic [ref=e132]: Classes Overview
+            - listitem [ref=e133]:
+              - link "📧 NewsLetter Management" [ref=e134] [cursor=pointer]:
+                - /url: /dashboard/newsletterManagement
+                - generic [ref=e135]: 📧
+                - generic [ref=e136]: NewsLetter Management
+            - listitem [ref=e137]:
+              - link "💬 Template Mappings" [ref=e138] [cursor=pointer]:
+                - /url: /dashboard/template_mappings
+                - generic [ref=e139]: 💬
+                - generic [ref=e140]: Template Mappings
+            - listitem [ref=e141]:
+              - link "📋 Audit Logs" [ref=e142] [cursor=pointer]:
+                - /url: /dashboard/audit_logs
+                - generic [ref=e143]: 📋
+                - generic [ref=e144]: Audit Logs
+        - generic [ref=e145]:
+          - generic [ref=e146]:
+            - button "Overview" [ref=e147] [cursor=pointer]
+            - button "User Management" [ref=e148] [cursor=pointer]
+            - button "Instructor Management" [ref=e149] [cursor=pointer]
+            - button "Message Monitoring" [disabled] [ref=e150]
+            - button "Rate Management" [ref=e151] [cursor=pointer]
+            - button "Transactions" [ref=e152] [cursor=pointer]
+            - button "Class Management" [disabled] [ref=e153]
+            - button "Business Settings" [ref=e154] [cursor=pointer]
+            - button "Article Management" [disabled] [ref=e155]
+            - button "Article Editing" [ref=e156] [cursor=pointer]
+            - button "Transactions" [disabled] [ref=e157]
+            - button "Class & Package Manager" [ref=e158] [cursor=pointer]
+            - button "Invoice Management" [disabled] [ref=e159]
+            - button "Forms" [ref=e160] [cursor=pointer]
+            - button "Payment Links" [disabled] [ref=e161]
+            - button "Class Bookings" [disabled] [ref=e162]
+            - button "Weekly Schedule" [disabled] [ref=e163]
+            - button "Form Submissions & Messages" [disabled] [ref=e164]
+            - button "Classes Overview" [ref=e165] [cursor=pointer]
+            - button "NewsLetter Management" [disabled] [ref=e166]
+            - button "Template Mappings" [ref=e167] [cursor=pointer]
+            - button "Audit Logs" [ref=e168] [cursor=pointer]
+          - generic [ref=e170]:
+            - heading "Overview" [level=2] [ref=e171]
+            - paragraph [ref=e172]: Dashboard overview with key metrics and summaries.
+      - contentinfo [ref=e173]:
+        - generic [ref=e174]:
+          - generic [ref=e175]:
+            - generic [ref=e176]:
+              - generic [ref=e177]:
+                - img "Yogique" [ref=e178]
+                - generic [ref=e179]:
+                  - generic [ref=e180]: Yogique
+                  - generic [ref=e181]: Yoga Beyond Asanas
+              - generic [ref=e182]:
+                - link [ref=e183] [cursor=pointer]:
+                  - /url: https://www.facebook.com/yogique.life
+                  - img [ref=e184]
+                - link [ref=e186] [cursor=pointer]:
+                  - /url: https://instagram.com/yogique.life
+                  - img [ref=e187]
+                - link [ref=e190] [cursor=pointer]:
+                  - /url: https://youtube.com/@yogiquelife
+                  - img [ref=e191]
+            - generic [ref=e194]:
+              - heading "Quick Links" [level=3] [ref=e195]
+              - list [ref=e196]:
+                - listitem [ref=e197]:
+                  - link "About Us" [ref=e198] [cursor=pointer]:
+                    - /url: /about
+                - listitem [ref=e199]:
+                  - link "Book Class" [ref=e200] [cursor=pointer]:
+                    - /url: /book/private-group
+                - listitem [ref=e201]:
+                  - link "Learning Center" [ref=e202] [cursor=pointer]:
+                    - /url: /learning
+                - listitem [ref=e203]:
+                  - link "Contact" [ref=e204] [cursor=pointer]:
+                    - /url: /contact
+                - listitem [ref=e205]:
+                  - link "Privacy Policy" [ref=e206] [cursor=pointer]:
+                    - /url: /privacy
+                - listitem [ref=e207]:
+                  - link "Terms of Service" [ref=e208] [cursor=pointer]:
+                    - /url: /terms
+                - listitem [ref=e209]:
+                  - link "Testimonials" [ref=e210] [cursor=pointer]:
+                    - /url: /testimonials
+            - generic [ref=e211]:
+              - heading "Contact Info" [level=3] [ref=e212]
+              - list [ref=e213]:
+                - listitem [ref=e214]:
+                  - img [ref=e215]
+                  - generic [ref=e218]: namaste@yogique.life
+                - listitem [ref=e219]:
+                  - img [ref=e220]
+                  - generic [ref=e222]: +91 8240262455
+                - listitem [ref=e223]:
+                  - img [ref=e224]
+                  - generic [ref=e227]: 15 Garia Station Road Kolkata, West Bengal, India
+          - generic [ref=e231]:
+            - generic [ref=e232]:
+              - generic [ref=e233]: Name (Optional)
+              - textbox "Name (Optional)" [ref=e234]:
+                - /placeholder: Your name
+            - generic [ref=e235]:
+              - generic [ref=e236]: Email Address *
+              - textbox "Email Address *" [ref=e237]:
+                - /placeholder: your@email.com
+            - button "Subscribe to Newsletter" [ref=e238] [cursor=pointer]
+            - paragraph [ref=e239]: We respect your privacy. Unsubscribe at any time.
+          - generic [ref=e241]:
+            - paragraph [ref=e242]: Yogique is a brand operating under the umbrella of Sampurnayogam LLP (a registered company). All services, including online B2C classes and programs, are offered by Sampurnayogam LLP.
+            - paragraph [ref=e243]: "Sampurnayogam LLP • LLPIN: ACS-6592 • Registered Office: 15 Garia Station Road, Kolkata, West Bengal, India"
+            - paragraph [ref=e244]:
+              - text: © 2026 Yogique • Sampurnayogam LLP. All rights reserved.
+              - link "Privacy Policy" [ref=e245] [cursor=pointer]:
+                - /url: /privacy
+              - link "Terms of Service" [ref=e246] [cursor=pointer]:
+                - /url: /terms
+```

@@ -2,7 +2,7 @@
 
 This document tracks phases, user stories, acceptance criteria, owners, statuses, and rollback steps for the enterprise migration described in `ENTERPRISE_ARCHITECTURE_PLAN.md`.
 
-Last updated: 2026-01-06
+Last updated: 2026-01-07
 Owner: GitHub Copilot (implementation)
 
 ---
@@ -177,20 +177,64 @@ Rollback steps:
 - Recent changes (dev):
   - `supabase/migrations/008_enable_rls_policies.sql` created and applied in dev to enable RLS and add conservative stubs.
   - `supabase/migrations/009_add_rls_policies_details.sql` added detailed corporate/billing policies.
-  - `supabase/migrations/010_add_missing_rls_policies.sql` created to add conservative per-table policies where missing (idempotent, uses DO $$ checks).
-  - `supabase/migrations/011_create_shared_users_and_seed.sql` created to add `shared.users` and seed/sync from `auth.users` (idempotent). The user ran this in dev and `shared.users` is present and seeded.
+  - `supabase/migrations/010_add_missing_rls_policies.sql` created to add conservative per-table policies where missing (idempotent; uses DO $$ blocks and `pg_policies`/`information_schema` existence checks).
+  - `supabase/migrations/011_create_shared_users_and_seed.sql` created to add `shared.users` and seed/sync from `auth.users` (idempotent). Seed logic uses `raw_user_meta_data`, `raw_app_meta_data`, and `role` with `COALESCE` fallbacks to tolerate schema drift; user executed this in dev and `shared.users` is present and seeded.
   - `scripts/policies/validate_rls.cjs` created and extended to cover `billing`, `corporate` and `shared` tables; the user ran the validator locally and confirmed the expected policies are present in dev (including `service_role_allow` entries).
+
+  - Implementation and fixes applied during iteration:
+    - Idempotence pattern: all policy and table creation migrations use `DO $$ ... END $$;` blocks and explicit existence checks (no unsupported `CREATE POLICY IF NOT EXISTS`).
+    - Dollar-quote collisions fixed by using unique inner tags (avoid nested `$$` conflicts when `EXECUTE $sql$` is used).
+    - Split invalid combined `FOR UPDATE, DELETE` policy attempts into two separate policies (one for `UPDATE` with `WITH CHECK`, one for `DELETE` with `USING`) to satisfy Postgres syntax.
+    - Conservative `service_role_allow` policies added as temporary fallbacks; they remain until app-level smoke tests pass.
+    - Seed `shared.users` uses `COALESCE(u.raw_user_meta_data, u.raw_app_meta_data, '{}'::jsonb)` and extracts `phone`, `first_name`, `last_name`, `company_id`, and `role` safely.
+
+  - User validation outputs (dev):
+    - Validator reported expected policies present for key tables, e.g. `billing.invoices`, `billing.payments`, `corporate.corporate_bookings`, `corporate.approvals`, `shared.users`, and `shared.notifications_queue` including `service_role_allow` stubs and table-specific policies.
 
 - Validation and next steps:
   - User-run integration smoke tests are required in dev to verify app flows with current conservative policies.
   - After smoke tests pass, remove or tighten `service_role_allow` policies per-table to enforce least privilege.
   - Optionally add a CI workflow to run `scripts/policies/validate_rls.cjs` on PRs before merge (not implemented yet).
 
+  ### Recent Activity (Phase 4) — 2026-01-07
+
+  - Diagnostics: Ran Playwright diagnostic and smoke tests against the dev frontend (`https://dev.yogique.life`). The diagnostic run confirmed the SPA and static assets are served and that client-side authentication stores a valid Supabase session in `localStorage` (key like `sb-*-auth-token`).
+  - Observed behavior: After UI sign-in the client stored a valid session but did not automatically navigate to a dashboard route in the headed browser; a fallback full-page navigation to `/dashboard` was required and succeeded.
+  - Blocking issue for smoke flow: The deployed Netlify frontend does not expose the local dev `/api/*` proxy routes used by the repo smoke tests (POST to `/api/companies` returned non-ok), so the end-to-end smoke flow fails at the API step.
+
+  Actions taken (today):
+  - Patched `e2e/tests/smoke.spec.ts` to surface inline login errors, dump `localStorage` when no navigation/error is observed, and attempt a fallback navigation to `/dashboard` when a Supabase session exists.
+  - Generated a Playwright trace for the failing smoke run: `test-results\\smoke-smoke-auth-sign-in-→-1bfad-booking-→-invoice-→-payment\\trace.zip` (use `npx playwright show-trace <trace.zip>` to inspect).
+
+  Immediate implications for Phase 4 and smoke testing:
+  - Because RLS policies are currently conservative and include `service_role_allow` fallbacks, the primary gating item for production policy hardening remains successful smoke tests across auth, company creation, bookings, invoice generation and payments.
+  - The failing smoke step is an infrastructure/deployment mismatch (missing `/api/*` routes) rather than an RLS policy denial — therefore proceed by either fixing the deployment to expose the required functions or adapting tests to call the Supabase REST/Edge Function endpoints directly using the access token from `localStorage`.
+
+  Recommended next steps (pick one to start tomorrow):
+  1. Short-term test fix: Update smoke tests to call the Supabase REST API or deployed Edge Functions directly (use the extracted `access_token`), so tests don't rely on Netlify dev proxy routes.
+  2. Deploy fix: Restore/deploy the missing serverless API routes on the deployed host so `/api/*` calls succeed and the existing smoke flow remains unchanged.
+  3. Trace inspection: Open the Playwright trace locally to capture console stack traces and failing XHR/response bodies; this will confirm whether any client runtime errors remain to be fixed before policy hardening.
+
+  Once smoke tests pass against the dev deployment:
+  - Remove or tighten `service_role_allow` policies per-table and re-run the validator and smoke tests.
+  - Record validator outputs as CI artifacts and proceed with staging promotion.
+
+
 - Validation steps (staging/dev):
   - Add conservative stubs with `service_role_allow` and deny-by-default placeholders for user policies as done in dev.
   - Run integration and service-role jobs to confirm functionality.
   - Harden policies to real auth expressions using `auth.uid()` and `shared.users` mapping once app flows validated.
   - Repeat the process in production Supabase project (user-run).
+
+### P4 — Outstanding / next steps (must not be skipped before production)
+
+- Run full integration smoke tests in dev (user-run): verify sign-in, company creation, booking flows, invoice generation, payments, and background jobs.
+- After smoke tests, remove or tighten `service_role_allow` policies per-table and re-run smoke tests.
+- Re-run `scripts/policies/validate_rls.cjs` and record outputs as CI artifacts or in `docs/PHASES_TRACKING.md` before promoting to staging/production.
+- Reconcile migration ordering and history with the production DB to avoid duplicate prefixes or applied migrations; test all migrations in a staging copy of production.
+- Ensure `supabase/migrations/011_create_shared_users_and_seed.sql` can handle production volume (batching or chunked updates if needed) or run as a controlled job.
+- Add the CI secret `DEV_DATABASE_URL` (rotated CI-only key) if you enable the RLS validator job in CI; prefer a read-only replica or least-privilege role for CI validation.
+- Prepare rollback steps for policy hardening (document exact `ALTER TABLE ... DISABLE ROW LEVEL SECURITY` commands and snapshots to restore if necessary).
 
 ---
 
@@ -251,6 +295,34 @@ Rollback steps:
 ## How I'll update this file
 - I will update the `Status` and `Done` fields as I complete each story.
 - Completed items will include a short note with link to migrations, scripts, or PRs.
+
+---
+
+## Recent Activity — 2026-01-07
+- Ran Playwright diagnostics and smoke test iterations to validate app flows against the dev deployment (`https://dev.yogique.life`).
+  - Files exercised: `e2e/tests/diag.spec.ts` and `e2e/tests/smoke.spec.ts` (test patched to surface inline login errors, dump `localStorage`, and attempt a fallback navigation to `/dashboard`).
+  - Observations:
+    - `diag.spec.ts` confirmed the app serves index and static assets and reported successful GETs for static resources and a read to the Supabase REST `business_settings` endpoint.
+    - After UI sign-in, a valid Supabase session object was present in `localStorage` (key like `sb-*-auth-token`) — authentication succeeded client-side.
+    - The client did not automatically navigate to a dashboard route after sign-in in the headed browser; the test performed a fallback `page.goto('/dashboard')` which reached the dashboard path.
+    - The subsequent smoke flow failed at the API step: POST to `/api/companies` returned non-ok (the deployed Netlify site does not expose the local dev `/api/*` proxy routes), causing the smoke test to fail. A Playwright trace was produced for the failing run at:
+      - `test-results\smoke-smoke-auth-sign-in-→-1bfad-booking-→-invoice-→-payment\trace.zip`
+  - Actions taken today:
+    - Patched `e2e/tests/smoke.spec.ts` to (a) wait for either dashboard navigation or an inline error, (b) dump `localStorage` when no navigation/error appears, and (c) attempt fallback navigation to `/dashboard` when a Supabase session is present.
+    - Ran the updated smoke test headed with tracing to capture runtime behavior and generate an actionable trace.
+  - Short-term diagnosis: client-side auth succeeds and stores a session, but the deployed frontend relies on either a full page reload or serverless functions not present at `/api/*`. The failing API calls explain why the full smoke flow cannot complete against this Netlify deployment.
+
+Next steps (first things to pick up tomorrow):
+- Inspect the Playwright trace (`npx playwright show-trace <trace.zip>`) to capture console stack traces and failing XHR responses in detail.
+- Decide test approach: either (A) update smoke tests to call Supabase REST/Edge Functions directly (using the access token extracted from `localStorage`) or (B) deploy/restore the missing serverless API routes so `/api/*` calls succeed on the deployed host. I recommend (A) as a short-term path to validate flows without requiring Netlify functions to be present.
+- Re-run smoke tests with environment variables set locally: `E2E_BASE_URL`, `SMOKE_USER_EMAIL`, `SMOKE_USER_PASSWORD` (the repo-run smoke test skips when these are unset).
+- After smoke tests pass, proceed with policy hardening (remove `service_role_allow` stubs) and re-run the validator.
+
+Artifacts & pointers:
+- Patched test: `e2e/tests/smoke.spec.ts`
+- Diagnostic test: `e2e/tests/diag.spec.ts`
+- Trace artifact (latest failing smoke run): `test-results\smoke-smoke-auth-sign-in-→-1bfad-booking-→-invoice-→-payment\trace.zip`
+
 
 ---
 
