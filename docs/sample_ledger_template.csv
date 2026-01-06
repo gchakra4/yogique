@@ -1,0 +1,2 @@
+ledger_id,date,description,reference_id,invoice_number,invoice_id,amount,currency,status,payment_method,paid_at,notes
+L-0001,2026-01-06,Invoice issued,REF123,YG-2026-001,480be191-0a3c-40fc-be08-599fb689efa7,5000.00,INR,issued,razorpay,2026-01-06T09:00:00Z,"sample row for reconciliation"

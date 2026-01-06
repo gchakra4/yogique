@@ -116,8 +116,18 @@ serve(async (req) => {
     }
 
     const now = new Date().toISOString()
+    // Accept `metadata` as object or a JSON string (some producers store it stringified).
+    let parsedMetadata: any = body.metadata
+    if (typeof parsedMetadata === 'string') {
+      try {
+        parsedMetadata = JSON.parse(parsedMetadata)
+      } catch (e) {
+        console.warn('enqueue: metadata was a string but failed to parse, falling back to empty object', e)
+        parsedMetadata = {}
+      }
+    }
     // merge provided metadata and attach server-side sender if configured
-    const mergedMetadata = Object.assign({}, body.metadata || {})
+    const mergedMetadata = Object.assign({}, parsedMetadata || {})
     if (isValidEmail(SEND_GUIDE_FROM_EMAIL)) {
       mergedMetadata.from_email = SEND_GUIDE_FROM_EMAIL
     }
