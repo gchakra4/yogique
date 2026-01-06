@@ -1,3 +1,41 @@
+name: RLS Validator (optional)
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/policies/**'
+
+jobs:
+  rls-validate:
+    name: Run RLS validator (when DEV_DATABASE_URL is present)
+    runs-on: ubuntu-latest
+    # Only run validator if the DEV_DATABASE_URL secret is set to avoid exposing service-role keys
+    if: ${{ secrets.DEV_DATABASE_URL != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run RLS validator
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+        run: |
+          mkdir -p artifacts
+          node scripts/policies/validate_rls.cjs > artifacts/rls_output.txt 2>&1
+
+      - name: Upload validator output artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rls-validator-output
+          path: artifacts/rls_output.txt
 name: RLS Validation and Static Checks
 on:
   pull_request:
