@@ -94,21 +94,21 @@ function AppRoutes() {
   const ROLE_PRIORITY: UserRole[] = ['super_admin', 'admin', 'instructor', 'yoga_acharya', 'energy_exchange_lead', 'sangha_guide', 'user']
 
   // Compose a dashboardUser with a role property for UniversalDashboard
-  // Choose effective role using configured priority, and also attach full role list
-  const dashboardUser: any | null = user && userRoles.length > 0
-    ? (() => {
-      const effective = (userRoles.find(r => ROLE_PRIORITY.includes(r as UserRole)) || userRoles[0]) as UserRole
-      return {
-        id: user.id,
-        email: user.email || '',
-        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-        role: effective,
-        roles: userRoles as UserRole[],
-        isActive: !!user.email_confirmed_at,
-        createdAt: new Date(user.created_at),
-        updatedAt: new Date(user.updated_at || user.created_at)
-      }
-    })()
+  // Default to 'user' when there are no explicit roles assigned
+  const rolesList: UserRole[] = (userRoles && userRoles.length > 0) ? (userRoles as UserRole[]) : ['user']
+  const effectiveRole: UserRole = (rolesList.find(r => ROLE_PRIORITY.includes(r as UserRole)) || rolesList[0]) as UserRole
+
+  const dashboardUser: any | null = user
+    ? {
+      id: user.id,
+      email: user.email || '',
+      name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+      role: effectiveRole,
+      roles: rolesList,
+      isActive: !!user.email_confirmed_at,
+      createdAt: new Date(user.created_at),
+      updatedAt: new Date(user.updated_at || user.created_at)
+    }
     : null
 
   return (
