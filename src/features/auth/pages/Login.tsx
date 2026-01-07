@@ -115,18 +115,15 @@ export function Login() {
         const user_id = sessionData.session?.user?.id
 
         if (user_id && jwt) {
-          await fetch(`${SUPABASE_URL}/functions/v1/assign_default_user_role`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${jwt}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              user_id,
-              role_id,
-              assigned_by
+          try {
+            const { data: fnData, error: fnError } = await supabase.functions.invoke('assign_default_user_role', {
+              body: JSON.stringify({ user_id, role_id, assigned_by }),
+              headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' }
             })
-          })
+            if (fnError) console.error('Error assigning role (function):', fnError)
+          } catch (fnErr) {
+            console.error('Failed to call assign_default_user_role function:', fnErr)
+          }
         }
 
         alert('Account created successfully! Please check your email for verification.')

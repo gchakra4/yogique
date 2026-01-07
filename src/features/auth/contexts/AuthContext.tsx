@@ -102,18 +102,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userId = sessionData?.session?.user?.id
 
       if (jwt && userId) {
-        await fetch(`${SUPABASE_URL}/functions/v1/assign_default_user_role`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${jwt}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            role_id: 'user',
-            assigned_by: 'system'
+        try {
+          const { data: fnData, error: fnError } = await supabase.functions.invoke('assign_default_user_role', {
+            body: JSON.stringify({ user_id: userId, role_id: 'user', assigned_by: 'system' }),
+            headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' }
           })
-        })
+          if (fnError) console.error('Error assigning role (function):', fnError)
+        } catch (fnErr) {
+          console.error('Failed to call assign_default_user_role function:', fnErr)
+        }
       }
     } catch (roleErr) {
       // Do not fail signup if role assignment fails; log for debugging
