@@ -1,6 +1,6 @@
 import { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../../../shared/lib/supabase';
+import { supabase, SUPABASE_URL } from '../../../shared/lib/supabase';
 
 interface UserRoleData {
   roles: {
@@ -92,6 +92,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
+
+    // Attempt to assign the default `user` role after signup.
+    // For email/password signups a session may not be immediately available (email confirmation required),
+    // so this call will be best-effort and will not block the signup flow.
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const jwt = sessionData?.session?.access_token
+      const userId = sessionData?.session?.user?.id
+
+      if (jwt && userId) {
+        await fetch(`${SUPABASE_URL}/functions/v1/assign_default_user_role`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${jwt}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            role_id: 'user',
+            assigned_by: 'system'
+          })
+        })
+      }
+    } catch (roleErr) {
+      // Do not fail signup if role assignment fails; log for debugging
+      console.error('Failed to assign default role after signup:', roleErr)
+    }
   }
 
   const signOut = async () => {
