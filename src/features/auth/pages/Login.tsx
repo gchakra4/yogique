@@ -2,7 +2,7 @@ import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../../../shared/components/ui/Button'
-import { supabase, SUPABASE_URL } from '../../../shared/lib/supabase'
+import { supabase } from '../../../shared/lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
 export function Login() {
@@ -116,7 +116,7 @@ export function Login() {
 
         if (user_id && jwt) {
           try {
-            const { data: fnData, error: fnError } = await supabase.functions.invoke('assign_default_user_role', {
+            const { error: fnError } = await supabase.functions.invoke('assign_default_user_role', {
               body: JSON.stringify({ user_id, role_id, assigned_by }),
               headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' }
             })
