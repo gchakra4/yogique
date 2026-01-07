@@ -64,21 +64,16 @@ export function AuthCallback() {
                         // Assign default user role
                         try {
                             const jwt = data.session.access_token
-
-                            await fetch(`${SUPABASE_URL}/functions/v1/assign_default_user_role`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${jwt}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    user_id: data.session.user.id,
-                                    role_id: 'user',
-                                    assigned_by: 'system'
+                            try {
+                                const { data: fnData, error: fnError } = await supabase.functions.invoke('assign_default_user_role', {
+                                    body: JSON.stringify({ user_id: data.session.user.id, role_id: 'user', assigned_by: 'system' }),
+                                    headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' }
                                 })
-                            })
-
-                            console.log('✅ Default role assigned to social auth user')
+                                if (fnError) console.error('Error assigning role (function):', fnError)
+                                else console.log('✅ Default role assigned to social auth user')
+                            } catch (fnErr) {
+                                console.error('Failed to call assign_default_user_role function:', fnErr)
+                            }
                         } catch (roleError) {
                             console.error('Error assigning role:', roleError)
                         }
