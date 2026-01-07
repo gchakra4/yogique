@@ -1,6 +1,6 @@
 import { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, SUPABASE_URL } from '../../../shared/lib/supabase';
+import { supabase } from '../../../shared/lib/supabase';
 
 interface UserRoleData {
   roles: {
@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (jwt && userId) {
         try {
-          const { data: fnData, error: fnError } = await supabase.functions.invoke('assign_default_user_role', {
+          const { error: fnError } = await supabase.functions.invoke('assign_default_user_role', {
             body: JSON.stringify({ user_id: userId, role_id: 'user', assigned_by: 'system' }),
             headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' }
           })

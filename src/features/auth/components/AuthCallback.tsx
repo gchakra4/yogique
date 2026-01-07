@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner'
-import { supabase, SUPABASE_URL } from '../../../shared/lib/supabase'
+import { supabase } from '../../../shared/lib/supabase'
 
 export function AuthCallback() {
     const [loading, setLoading] = useState(true)
@@ -65,7 +65,7 @@ export function AuthCallback() {
                         try {
                             const jwt = data.session.access_token
                             try {
-                                const { data: fnData, error: fnError } = await supabase.functions.invoke('assign_default_user_role', {
+                                const { error: fnError } = await supabase.functions.invoke('assign_default_user_role', {
                                     body: JSON.stringify({ user_id: data.session.user.id, role_id: 'user', assigned_by: 'system' }),
                                     headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' }
                                 })
