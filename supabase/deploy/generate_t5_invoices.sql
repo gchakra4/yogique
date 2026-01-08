@@ -53,6 +53,7 @@ BEGIN
             b.access_status,
             b.status,
             b.is_recurring,
+            b.booking_type,
             b.first_name,
             b.last_name,
             b.email,
@@ -239,8 +240,18 @@ BEGIN
                     RAISE NOTICE '✅ Invoice generated: % for booking % (month %)', 
                         v_invoice_number, v_booking.booking_id, v_target_month;
 
-                    -- 2. Ensure container exists for this booking/month and then generate monthly classes
-                    v_container_code := 'T5-' || v_booking.booking_id || '-' || v_target_month;
+                    -- 2. Ensure container exists for this booking/month - use type-aware container codes
+                    -- Individual: {bookingId}-{YYYY-MM}
+                    -- Groups: {instructorId}-{packageId}-{YYYY-MM}
+                    IF COALESCE(v_booking.booking_type, 'individual') = 'individual' THEN
+                        v_container_code := v_booking.booking_id || '-' || v_target_month;
+                    ELSE
+                        -- Group class: use instructor+package pattern
+                        v_container_code := SUBSTRING(v_booking.instructor_id::text, 1, 8) || '-' || 
+                                          SUBSTRING(v_booking.class_package_id::text, 1, 8) || '-' || 
+                                          v_target_month;
+                    END IF;
+                    
                     v_container_display := COALESCE(v_booking.first_name || ' ' || v_booking.last_name, v_booking.booking_id) || ' (' || v_target_month || ')';
 
                     SELECT id INTO v_container_id
@@ -262,10 +273,10 @@ BEGIN
                             ) VALUES (
                                 v_container_code,
                                 v_container_display,
-                                'individual',
+                                COALESCE(v_booking.booking_type, 'individual'),
                                 v_booking.instructor_id,
                                 v_booking.class_package_id,
-                                1,
+                                CASE WHEN COALESCE(v_booking.booking_type, 'individual') = 'individual' THEN 1 ELSE 10 END,
                                 v_booking.user_id,
                                 now(),
                                 now()
