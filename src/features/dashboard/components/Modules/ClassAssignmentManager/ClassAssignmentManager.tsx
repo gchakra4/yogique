@@ -378,6 +378,8 @@ export function ClassAssignmentManager() {
         const groups = new Map<string, {
             key: string
             type: string
+            containerId: string | null
+            containerCode: string | null
             assignments: ClassAssignment[]
             groupInfo: {
                 instructor_name: string
@@ -390,32 +392,46 @@ export function ClassAssignmentManager() {
         }>()
 
         filteredAssignments.forEach(assignment => {
-            // Create group keys based on assignment type
+            // PHASE 6: Group by class_container_id as single source of truth
+            // Container ID is the primary grouping mechanism
+            const containerId = assignment.class_container_id || null
+            const containerCode = assignment.class_container?.container_code || null
+            
+            // Use container_id if available, fallback to old logic for orphaned assignments
             let groupKey: string
             let groupType: string
 
-            switch (assignment.schedule_type) {
-                case 'weekly':
-                    // Group by instructor + class type + recurring pattern
-                    groupKey = `weekly_${assignment.instructor_id}_${assignment.class_type_id}`
-                    groupType = 'weekly'
-                    break
-                case 'monthly':
-                    // Group by instructor + package (monthly sessions for same package should stay together)
-                    groupKey = `monthly_${assignment.instructor_id}_${assignment.package_id || assignment.class_type_id || 'unknown'}`
-                    groupType = 'monthly'
-                    break
-                case 'crash':
-                    // Group by instructor + package (crash courses should stay together regardless of dates or bookings)
-                    groupKey = `crash_${assignment.instructor_id}_${assignment.package_id || assignment.class_type_id || 'unknown'}`
-                    groupType = 'crash_course'
-                    break
-                case 'adhoc':
-                default:
-                    // Don't group adhoc assignments - each is individual
-                    groupKey = `adhoc_${assignment.id}`
-                    groupType = 'adhoc'
-                    break
+            if (containerId) {
+                // Primary path: Group by container
+                groupKey = `container_${containerId}`
+                // Derive type from container type
+                const containerType = assignment.class_container?.container_type
+                groupType = containerType === 'individual' ? 'adhoc' :
+                           containerType === 'public_group' ? 'monthly' :
+                           containerType === 'private_group' ? 'monthly' :
+                           containerType === 'crash_course' ? 'crash_course' :
+                           assignment.schedule_type || 'adhoc'
+            } else {
+                // Fallback path: Legacy grouping for orphaned assignments (should be rare)
+                switch (assignment.schedule_type) {
+                    case 'weekly':
+                        groupKey = `legacy_weekly_${assignment.instructor_id}_${assignment.class_type_id}`
+                        groupType = 'weekly'
+                        break
+                    case 'monthly':
+                        groupKey = `legacy_monthly_${assignment.instructor_id}_${assignment.package_id || assignment.class_type_id || 'unknown'}`
+                        groupType = 'monthly'
+                        break
+                    case 'crash':
+                        groupKey = `legacy_crash_${assignment.instructor_id}_${assignment.package_id || assignment.class_type_id || 'unknown'}`
+                        groupType = 'crash_course'
+                        break
+                    case 'adhoc':
+                    default:
+                        groupKey = `legacy_adhoc_${assignment.id}`
+                        groupType = 'adhoc'
+                        break
+                }
             }
 
             if (!groups.has(groupKey)) {
@@ -432,6 +448,8 @@ export function ClassAssignmentManager() {
                 groups.set(groupKey, {
                     key: groupKey,
                     type: groupType,
+                    containerId,
+                    containerCode,
                     assignments: [],
                     groupInfo: {
                         instructor_name: assignment.instructor_profile?.full_name || 'Unknown Instructor',

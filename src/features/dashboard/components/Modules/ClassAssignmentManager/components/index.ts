@@ -16,4 +16,9 @@ export { MultipleBookingSelector } from './MultipleBookingSelector'
 export { QuickBookingForm } from './QuickBookingForm'
 export { default as SimpleAssignmentList } from './SimpleAssignmentList'
 export { SimplifiedAssignmentForm } from './SimplifiedAssignmentForm'
+// Container Management Components (Phase 6)
+export { ContainerCreationModal } from './ContainerCreationModal'
+export { ContainerCapacityEditModal } from './ContainerCapacityEditModal'
+export { ContainerCapacityIndicator, ContainerCapacityBadge } from './ContainerCapacityIndicator'
+
 
