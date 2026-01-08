@@ -36,6 +36,13 @@ export const useClassAssignmentData = () => {
                     *,
                     assignment_bookings (
                         booking_id
+                    ),
+                    class_container:class_containers (
+                        id,
+                        container_code,
+                        container_type,
+                        max_booking_count,
+                        current_booking_count
                     )
                 `).order('assigned_at', { ascending: false }),
                 supabase.from('class_schedules').select('*').eq('is_active', true).order('day_of_week', { ascending: true }),

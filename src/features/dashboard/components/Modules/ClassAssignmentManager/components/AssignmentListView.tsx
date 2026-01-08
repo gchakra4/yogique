@@ -1,13 +1,16 @@
-import { Calendar, ChevronDown, ChevronRight, Clock, IndianRupee, MapPin, Trash2, User } from 'lucide-react'
+import { Calendar, ChevronDown, ChevronRight, Clock, IndianRupee, MapPin, Trash2, User, Package } from 'lucide-react'
 import { useState } from 'react'
 import { ClassAssignment, getPrimaryClientDisplay } from '../types'
 import { formatDate, formatTime, getStatusStyle } from '../utils'
 import { ClientDisplay } from './ClientDisplay'
 import { LoadingSpinner } from './LoadingSpinner'
+import { ContainerCapacityBadge } from './ContainerCapacityIndicator'
 
 interface AssignmentGroup {
     key: string
     type: string
+    containerId: string | null
+    containerCode: string | null
     assignments: ClassAssignment[]
     groupInfo: {
         instructor_name: string
@@ -102,6 +105,13 @@ export const AssignmentListView = ({
                                                     {group.type === 'crash_course' ? 'Crash Course' :
                                                         group.type.charAt(0).toUpperCase() + group.type.slice(1)}
                                                 </span>
+                                                {/* Container Code Badge */}
+                                                {group.containerCode && (
+                                                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 border border-indigo-300 rounded text-xs font-medium bg-indigo-50 text-indigo-800">
+                                                        <Package size={12} />
+                                                        <span>{group.containerCode}</span>
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="flex items-center mt-1 text-sm text-gray-600 space-x-4">
                                                 <span className="flex items-center">
@@ -123,13 +133,22 @@ export const AssignmentListView = ({
                                         </div>
                                     </div>
                                 </div>
-                                {/* Payment Summary for Group */}
-                                <div className="text-right">
-                                    <div className="text-lg font-semibold text-green-600">
-                                        ₹{group.groupInfo.total_revenue.toFixed(2)}
-                                    </div>
-                                    <div className="text-sm text-gray-500">
-                                        {group.groupInfo.assignment_count} class{group.groupInfo.assignment_count !== 1 ? 'es' : ''}
+                                {/* Payment Summary and Container Capacity for Group */}
+                                <div className="flex items-center space-x-4">
+                                    {/* Container Capacity Indicator */}
+                                    {group.assignments[0]?.class_container && 
+                                     group.assignments[0].class_container.display_name && (
+                                        <ContainerCapacityBadge 
+                                            container={group.assignments[0].class_container as any}
+                                        />
+                                    )}
+                                    <div className="text-right">
+                                        <div className="text-lg font-semibold text-green-600">
+                                            ₹{group.groupInfo.total_revenue.toFixed(2)}
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                            {group.groupInfo.assignment_count} class{group.groupInfo.assignment_count !== 1 ? 'es' : ''}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

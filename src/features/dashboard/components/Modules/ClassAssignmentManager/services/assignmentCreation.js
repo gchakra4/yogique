@@ -907,6 +907,70 @@ export class AssignmentCreationService {
         const bookingIds = formData.booking_ids && formData.booking_ids.length > 0
             ? formData.booking_ids
             : (formData.booking_id ? [formData.booking_id] : []);
+        // Resolve or create a class_container BEFORE insert (to satisfy NOT NULL constraint)
+        let resolvedContainerId = null;
+        try {
+            const currentUserId = await getCurrentUserId();
+            const firstBooking = bookingIds[0] && bookingIds[0].trim();
+            if (firstBooking) {
+                const containerCode = `T5-${firstBooking}-${calendarMonth}`;
+                // Try to find existing container
+                try {
+                    const { data: existing, error: findErr } = await supabase
+                        .from('class_containers')
+                        .select('id')
+                        .eq('container_code', containerCode)
+                        .limit(1)
+                        .single();
+                    if (!findErr && existing && existing.id) {
+                        resolvedContainerId = existing.id;
+                    }
+                }
+                catch (e) {
+                    console.warn('Error querying for existing container:', e);
+                }
+                // Create if missing
+                if (!resolvedContainerId) {
+                    try {
+                        const bookingType = formData.booking_type || 'individual';
+                        const maxCount = bookingType === 'individual' ? 1 : 999;
+                        const { data: newCont, error: createErr } = await supabase
+                            .from('class_containers')
+                            .insert([{
+                                container_code: containerCode,
+                                container_type: bookingType,
+                                display_name: containerCode,
+                                package_id: formData.package_id || null,
+                                instructor_id: formData.instructor_id || null,
+                                max_booking_count: maxCount,
+                                created_by: currentUserId,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString()
+                            }])
+                            .select('id')
+                            .single();
+                        if (!createErr && newCont && newCont.id) {
+                            resolvedContainerId = newCont.id;
+                        }
+                        else if (createErr) {
+                            console.warn('Failed to create container for monthly assignments:', createErr);
+                        }
+                    }
+                    catch (e) {
+                        console.warn('Exception creating container for monthly assignments:', e);
+                    }
+                }
+            }
+        }
+        catch (err) {
+            console.warn('Container resolution for monthly assignments failed:', err);
+        }
+        // Attach class_container_id to all assignments before insert
+        if (resolvedContainerId) {
+            assignments.forEach((a) => {
+                a.class_container_id = resolvedContainerId;
+            });
+        }
         const cleanedAssignments = await cleanAssignmentsBatch(assignments, bookingIds, 'monthly', formData.booking_type || 'individual');
         const { data: insertedAssignments, error } = await supabase
             .from('class_assignments')
@@ -933,6 +997,19 @@ export class AssignmentCreationService {
                 }
                 catch (recErr) {
                     console.warn('Failed to mark bookings as recurring:', recErr);
+                }
+                // Attach container id to assignment_bookings junction table
+                if (resolvedContainerId) {
+                    try {
+                        const assignmentIds = insertedAssignments.map(a => a.id);
+                        await supabase
+                            .from('assignment_bookings')
+                            .update({ class_container_id: resolvedContainerId })
+                            .in('assignment_id', assignmentIds);
+                    }
+                    catch (e) {
+                        console.warn('Failed to attach class_container_id to assignment_bookings:', e);
+                    }
                 }
                 // 🆕 PHASE 4: Generate first month invoice automatically
                 try {
