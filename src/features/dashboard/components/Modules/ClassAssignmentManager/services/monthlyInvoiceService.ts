@@ -454,8 +454,9 @@ export async function getPackageMonthlyPrice(packageId: string): Promise<number>
         .eq('id', packageId)
         .single()
     
-    if (error) {
-        throw new Error(`Package not found: ${packageId}`)
+    if (error || !data) {
+        console.warn(`Package query failed for ${packageId}:`, error)
+        return 0
     }
     
     return data.total_price || 0
