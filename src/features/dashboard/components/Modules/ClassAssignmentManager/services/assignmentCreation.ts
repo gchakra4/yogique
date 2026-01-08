@@ -1141,6 +1141,80 @@ export class AssignmentCreationService {
                     console.warn('Failed to mark bookings as recurring:', recErr)
                 }
 
+                // Resolve or create a class_container for these monthly assignments and attach it
+                try {
+                    const currentUserId = await getCurrentUserId()
+                    const firstBooking = bookingIds[0] && bookingIds[0].trim()
+                    if (firstBooking) {
+                        const containerCode = `T5-${firstBooking}-${calendarMonth}`
+
+                        // Try to find existing container
+                        let resolvedContainerId: string | null = null
+                        try {
+                            const { data: existing, error: findErr } = await supabase
+                                .from('class_containers')
+                                .select('id')
+                                .eq('container_code', containerCode)
+                                .limit(1)
+                                .single()
+
+                            if (!findErr && existing && existing.id) {
+                                resolvedContainerId = existing.id
+                            }
+                        } catch (e) {
+                            console.warn('Error querying for existing container:', e)
+                        }
+
+                        // Create if missing
+                        if (!resolvedContainerId) {
+                            try {
+                                const { data: newCont, error: createErr } = await supabase
+                                    .from('class_containers')
+                                    .insert([{
+                                        container_code: containerCode,
+                                        display_name: containerCode,
+                                        package_id: formData.package_id || null,
+                                        instructor_id: formData.instructor_id || null,
+                                        max_booking_count: 999,
+                                        created_by: currentUserId,
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString()
+                                    }])
+                                    .select('id')
+                                    .single()
+
+                                if (!createErr && newCont && newCont.id) {
+                                    resolvedContainerId = newCont.id
+                                } else if (createErr) {
+                                    console.warn('Failed to create container for monthly assignments:', createErr)
+                                }
+                            } catch (e) {
+                                console.warn('Exception creating container for monthly assignments:', e)
+                            }
+                        }
+
+                        // Attach container id to assignments and assignment_bookings
+                        if (resolvedContainerId) {
+                            try {
+                                const assignmentIds = insertedAssignments.map(a => a.id)
+                                await supabase
+                                    .from('class_assignments')
+                                    .update({ class_container_id: resolvedContainerId })
+                                    .in('id', assignmentIds)
+
+                                await supabase
+                                    .from('assignment_bookings')
+                                    .update({ class_container_id: resolvedContainerId })
+                                    .in('assignment_id', assignmentIds)
+                            } catch (e) {
+                                console.warn('Failed to attach class_container_id to monthly assignments or assignment_bookings:', e)
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Container resolution for monthly assignments failed:', err)
+                }
+
                 // 🆕 PHASE 4: Generate first month invoice automatically
                 try {
                     await this.generateFirstMonthInvoices(bookingIds, formData.start_date, formData.package_id)
