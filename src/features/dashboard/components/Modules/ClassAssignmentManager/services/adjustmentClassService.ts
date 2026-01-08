@@ -188,7 +188,6 @@ export async function analyzeMonthlyShortfall(
         .from('class_assignments')
         .select('id, date, schedule_type')
         .eq('instructor_id', instructorId)
-        .eq('calendar_month', calendarMonth)
         .eq('schedule_type', 'monthly')
 
     if (error) {
