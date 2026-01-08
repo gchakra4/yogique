@@ -435,14 +435,24 @@ export function ClassAssignmentManager() {
             }
 
             if (!groups.has(groupKey)) {
-                // For package-based assignments, prefer package name over class type name
-                let displayName: string
+                // Determine display name with better fallback logic
+                let displayName: string = 'Unknown Class'
+                
+                // Try package name first
                 if (assignment.package?.name) {
                     displayName = assignment.package.name
-                } else if (assignment.class_type?.name) {
+                }
+                // Then class type name
+                else if (assignment.class_type?.name) {
                     displayName = assignment.class_type.name
-                } else {
-                    displayName = 'Unknown Class'
+                }
+                // For container-grouped assignments, use container display_name if available
+                else if (assignment.class_container?.display_name) {
+                    displayName = assignment.class_container.display_name
+                }
+                // Last resort: try to build from container code
+                else if (containerCode) {
+                    displayName = `Container ${containerCode}`
                 }
 
                 groups.set(groupKey, {
