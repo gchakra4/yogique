@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, CheckSquare, Filter, FileText, List, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { BarChart3, Calendar, CheckSquare, FileText, Filter, List, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ResponsiveActionButton } from '../../../../../shared/components/ui/ResponsiveActionButton'
@@ -1110,13 +1110,13 @@ export function ClassAssignmentManager() {
                                     setGeneratingInvoices(true);
                                     const monthInput = document.getElementById('invoice-month') as HTMLInputElement;
                                     const calendarMonth = monthInput?.value || new Date().toISOString().slice(0, 7);
-                                    
+
                                     try {
                                         // Call the RPC function to generate invoices
                                         const { data, error } = await supabase.rpc('generate_monthly_invoices', {
                                             p_calendar_month: calendarMonth
                                         });
-                                        
+
                                         if (error) {
                                             alert('Error generating invoices: ' + error.message);
                                         } else {
