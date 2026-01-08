@@ -2,8 +2,8 @@
  * useContainers Hook - Manage container state and operations
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { fetchContainers, createContainer, updateContainerCapacity, deactivateContainer } from '../services/containerService';
+import { useCallback, useEffect, useState } from 'react';
+import { createContainer, deactivateContainer, fetchContainers, updateContainerCapacity } from '../services/containerService';
 import type { ClassContainer, CreateContainerRequest, UpdateContainerCapacityRequest } from '../types/container.types';
 
 interface UseContainersOptions {

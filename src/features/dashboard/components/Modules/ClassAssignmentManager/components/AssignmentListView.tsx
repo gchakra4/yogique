@@ -1,10 +1,10 @@
-import { Calendar, ChevronDown, ChevronRight, Clock, IndianRupee, MapPin, Trash2, User, Package } from 'lucide-react'
+import { Calendar, ChevronDown, ChevronRight, Clock, IndianRupee, MapPin, Package, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { ClassAssignment, getPrimaryClientDisplay } from '../types'
 import { formatDate, formatTime, getStatusStyle } from '../utils'
 import { ClientDisplay } from './ClientDisplay'
-import { LoadingSpinner } from './LoadingSpinner'
 import { ContainerCapacityBadge } from './ContainerCapacityIndicator'
+import { LoadingSpinner } from './LoadingSpinner'
 
 interface AssignmentGroup {
     key: string
@@ -97,10 +97,10 @@ export const AssignmentListView = ({
                                                     {group.groupInfo.class_type_name}
                                                 </h3>
                                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${group.type === 'weekly' ? 'bg-blue-100 text-blue-800' :
-                                                        group.type === 'monthly' ? 'bg-green-100 text-green-800' :
-                                                            group.type === 'crash_course' ? 'bg-red-100 text-red-800' :
-                                                                group.type === 'package' ? 'bg-purple-100 text-purple-800' :
-                                                                    'bg-gray-100 text-gray-800'
+                                                    group.type === 'monthly' ? 'bg-green-100 text-green-800' :
+                                                        group.type === 'crash_course' ? 'bg-red-100 text-red-800' :
+                                                            group.type === 'package' ? 'bg-purple-100 text-purple-800' :
+                                                                'bg-gray-100 text-gray-800'
                                                     }`}>
                                                     {group.type === 'crash_course' ? 'Crash Course' :
                                                         group.type.charAt(0).toUpperCase() + group.type.slice(1)}
@@ -136,12 +136,12 @@ export const AssignmentListView = ({
                                 {/* Payment Summary and Container Capacity for Group */}
                                 <div className="flex items-center space-x-4">
                                     {/* Container Capacity Indicator */}
-                                    {group.assignments[0]?.class_container && 
-                                     group.assignments[0].class_container.display_name && (
-                                        <ContainerCapacityBadge 
-                                            container={group.assignments[0].class_container as any}
-                                        />
-                                    )}
+                                    {group.assignments[0]?.class_container &&
+                                        group.assignments[0].class_container.display_name && (
+                                            <ContainerCapacityBadge
+                                                container={group.assignments[0].class_container as any}
+                                            />
+                                        )}
                                     <div className="text-right">
                                         <div className="text-lg font-semibold text-green-600">
                                             ₹{group.groupInfo.total_revenue.toFixed(2)}
@@ -228,8 +228,8 @@ export const AssignmentListView = ({
                                                         </div>
                                                         {assignment.payment_status && (
                                                             <div className={`text-xs ${assignment.payment_status === 'paid' ? 'text-green-600' :
-                                                                    assignment.payment_status === 'pending' ? 'text-yellow-600' :
-                                                                        'text-red-600'
+                                                                assignment.payment_status === 'pending' ? 'text-yellow-600' :
+                                                                    'text-red-600'
                                                                 }`}>
                                                                 {assignment.payment_status}
                                                             </div>

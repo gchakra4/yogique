@@ -4,11 +4,11 @@
 
 import { supabase } from '../../../../../../shared/lib/supabase';
 import type {
-  ClassContainer,
-  CreateContainerRequest,
-  UpdateContainerCapacityRequest,
-  ContainerCapacityInfo,
-  ContainerValidationResult
+    ClassContainer,
+    ContainerCapacityInfo,
+    ContainerValidationResult,
+    CreateContainerRequest,
+    UpdateContainerCapacityRequest
 } from '../types/container.types';
 
 /**

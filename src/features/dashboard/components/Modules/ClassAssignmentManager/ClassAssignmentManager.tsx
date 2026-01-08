@@ -396,7 +396,7 @@ export function ClassAssignmentManager() {
             // Container ID is the primary grouping mechanism
             const containerId = assignment.class_container_id || null
             const containerCode = assignment.class_container?.container_code || null
-            
+
             // Use container_id if available, fallback to old logic for orphaned assignments
             let groupKey: string
             let groupType: string
@@ -407,10 +407,10 @@ export function ClassAssignmentManager() {
                 // Derive type from container type
                 const containerType = assignment.class_container?.container_type
                 groupType = containerType === 'individual' ? 'adhoc' :
-                           containerType === 'public_group' ? 'monthly' :
-                           containerType === 'private_group' ? 'monthly' :
-                           containerType === 'crash_course' ? 'crash_course' :
-                           assignment.schedule_type || 'adhoc'
+                    containerType === 'public_group' ? 'monthly' :
+                        containerType === 'private_group' ? 'monthly' :
+                            containerType === 'crash_course' ? 'crash_course' :
+                                assignment.schedule_type || 'adhoc'
             } else {
                 // Fallback path: Legacy grouping for orphaned assignments (should be rare)
                 switch (assignment.schedule_type) {

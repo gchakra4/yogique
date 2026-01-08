@@ -2,8 +2,8 @@
  * useContainerValidation Hook - Container capacity validation logic
  */
 
-import { useState, useCallback } from 'react';
-import { validateCapacityChange, getContainerCapacityInfo } from '../services/containerService';
+import { useCallback, useState } from 'react';
+import { getContainerCapacityInfo, validateCapacityChange } from '../services/containerService';
 import type { ContainerValidationResult } from '../types/container.types';
 
 export function useContainerValidation() {
