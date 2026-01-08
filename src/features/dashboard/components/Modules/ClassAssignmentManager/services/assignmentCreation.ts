@@ -1142,7 +1142,7 @@ export class AssignmentCreationService {
                             .from('class_containers')
                             .insert([{
                                 container_code: containerCode,
-                                container_type: 'monthly_subscription',
+                                container_type: formData.booking_type || 'individual',
                                 display_name: containerCode,
                                 package_id: formData.package_id || null,
                                 instructor_id: formData.instructor_id || null,
