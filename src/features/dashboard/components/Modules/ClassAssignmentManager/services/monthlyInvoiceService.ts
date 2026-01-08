@@ -450,7 +450,7 @@ export async function setBillingCycleAnchor(
 export async function getPackageMonthlyPrice(packageId: string): Promise<number> {
     const { data, error } = await supabase
         .from('class_packages')
-        .select('total_price')
+        .select('price')
         .eq('id', packageId)
         .single()
     
@@ -459,7 +459,7 @@ export async function getPackageMonthlyPrice(packageId: string): Promise<number>
         return 0
     }
     
-    return data.total_price || 0
+    return data.price || 0
 }
 
 // ============================================================================
