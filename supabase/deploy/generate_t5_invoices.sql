@@ -5,7 +5,12 @@
 -- Called by: Edge function generate-t5-invoices (daily cron at 1 AM UTC)
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION generate_t5_invoices()
+-- Drop previous overloads to avoid ambiguity
+DROP FUNCTION IF EXISTS generate_t5_invoices() CASCADE;
+DROP FUNCTION IF EXISTS generate_t5_invoices(uuid, boolean) CASCADE;
+DROP FUNCTION IF EXISTS generate_t5_invoices_impl(uuid, boolean) CASCADE;
+
+CREATE OR REPLACE FUNCTION generate_t5_invoices_impl(p_booking_id uuid DEFAULT NULL, p_dry_run boolean DEFAULT true)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -52,13 +57,18 @@ BEGIN
             b.last_name,
             b.email,
             b.class_package_id,
-            b.instructor_id,
-            b.start_time,
-            b.end_time,
+            -- safely coerce instructor to uuid only if instructor_id is null and instructor looks like a uuid string
+            (CASE
+                WHEN b.instructor_id IS NOT NULL THEN b.instructor_id
+                WHEN b.instructor ~ '^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$' THEN b.instructor::uuid
+                ELSE NULL
+            END) AS instructor_id,
+            -- start_time/end_time removed (may not exist on bookings); assignments will use NULL if unavailable
             b.preferred_days,
             cp.class_count,
-            cp.total_amount
-        FROM bookings b
+            cp.price AS package_price,
+            b.price AS booking_price
+                FROM bookings b
         JOIN class_packages cp ON cp.id = b.class_package_id
         WHERE b.is_recurring = true
           AND b.status IN ('confirmed', 'active')
@@ -67,6 +77,7 @@ BEGIN
           AND b.class_package_id IS NOT NULL
           AND b.preferred_days IS NOT NULL
           AND array_length(b.preferred_days, 1) > 0
+                    AND (p_booking_id IS NULL OR b.id = p_booking_id)
     LOOP
         v_total_checked := v_total_checked + 1;
         v_classes_generated := 0;
@@ -160,20 +171,40 @@ BEGIN
                     v_tax_rate numeric;
                     v_tax_amount numeric;
                     v_total_amount numeric;
+                    -- variables for container and class generation (flattened into this block)
+                    v_container_id uuid;
+                    v_container_code text;
+                    v_container_display text;
+                    v_current_date date;
+                    v_day_of_week integer;
+                    v_preferred_day text;
+                    v_classes_needed integer;
+                    v_assignment_code text;
                 BEGIN
-                    v_per_class_amount := v_booking.total_amount / v_booking.class_count;
-                    v_base_amount := v_booking.total_amount;
+                    -- Determine base amount: prefer explicit booking price, fall back to package price
+                    v_base_amount := COALESCE(v_booking.booking_price, v_booking.package_price, 0);
+                    -- Safely compute per-class amount
+                    IF v_booking.class_count IS NULL OR v_booking.class_count = 0 THEN
+                        v_per_class_amount := v_base_amount;
+                    ELSE
+                        v_per_class_amount := v_base_amount / v_booking.class_count;
+                    END IF;
                     v_tax_rate := 0.18; -- 18% GST
                     v_tax_amount := ROUND(v_base_amount * v_tax_rate, 2);
                     v_total_amount := v_base_amount + v_tax_amount;
                     
-                    INSERT INTO invoices (
+                    -- compute invoice number and insert
+                    v_invoice_number := 'T5-' || v_booking.booking_id || '-' || v_target_month;
+
+                    IF NOT p_dry_run THEN
+                        INSERT INTO invoices (
                         booking_id,
                         user_id,
                         billing_month,
                         billing_period_start,
                         billing_period_end,
-                        base_amount,
+                        invoice_number,
+                        amount,
                         tax_rate,
                         tax_amount,
                         total_amount,
@@ -188,6 +219,7 @@ BEGIN
                         v_target_month,
                         v_month_start,
                         v_month_end,
+                        v_invoice_number,
                         v_base_amount,
                         v_tax_rate,
                         v_tax_amount,
@@ -197,40 +229,78 @@ BEGIN
                         'INR',
                         now(),
                         now()
-                    )
-                    RETURNING id, invoice_number INTO v_invoice_id, v_invoice_number;
+                        )
+                        RETURNING id, invoice_number INTO v_invoice_id, v_invoice_number;
+                    ELSE
+                        -- dry-run: set would-be invoice id; invoice_number already prepared
+                        v_invoice_id := NULL;
+                    END IF;
                     
                     RAISE NOTICE '✅ Invoice generated: % for booking % (month %)', 
                         v_invoice_number, v_booking.booking_id, v_target_month;
-                    
-                    -- 2. Generate monthly classes based on preferred_days
-                    DECLARE
-                        v_current_date date;
-                        v_day_of_week integer;
-                        v_preferred_day text;
-                        v_classes_needed integer;
-                    BEGIN
-                        v_current_date := v_month_start;
-                        v_classes_needed := v_booking.class_count;
-                        v_assignment_ids := ARRAY[]::uuid[];
-                        
-                        WHILE v_current_date <= v_month_end AND v_classes_generated < v_classes_needed LOOP
-                            v_day_of_week := EXTRACT(DOW FROM v_current_date)::integer; -- 0=Sunday, 6=Saturday
-                            
-                            -- Convert day number to day name for preferred_days check
-                            v_preferred_day := CASE v_day_of_week
-                                WHEN 0 THEN 'sunday'
-                                WHEN 1 THEN 'monday'
-                                WHEN 2 THEN 'tuesday'
-                                WHEN 3 THEN 'wednesday'
-                                WHEN 4 THEN 'thursday'
-                                WHEN 5 THEN 'friday'
-                                WHEN 6 THEN 'saturday'
-                            END;
-                            
-                            -- Check if this day is in preferred_days
-                            IF v_preferred_day = ANY(v_booking.preferred_days) THEN
-                                -- Insert class assignment
+
+                    -- 2. Ensure container exists for this booking/month and then generate monthly classes
+                    v_container_code := 'T5-' || v_booking.booking_id || '-' || v_target_month;
+                    v_container_display := COALESCE(v_booking.first_name || ' ' || v_booking.last_name, v_booking.booking_id) || ' (' || v_target_month || ')';
+
+                    SELECT id INTO v_container_id
+                    FROM class_containers
+                    WHERE container_code = v_container_code;
+
+                    IF v_container_id IS NULL THEN
+                        IF NOT p_dry_run THEN
+                            INSERT INTO class_containers (
+                                container_code,
+                                display_name,
+                                container_type,
+                                instructor_id,
+                                package_id,
+                                max_booking_count,
+                                created_by,
+                                created_at,
+                                updated_at
+                            ) VALUES (
+                                v_container_code,
+                                v_container_display,
+                                'individual',
+                                v_booking.instructor_id,
+                                v_booking.class_package_id,
+                                1,
+                                v_booking.user_id,
+                                now(),
+                                now()
+                            ) RETURNING id INTO v_container_id;
+                        ELSE
+                            -- dry-run: leave container_id NULL to indicate would-be-created
+                            v_container_id := NULL;
+                        END IF;
+                    END IF;
+
+                    -- 2a. Generate monthly classes based on preferred_days
+                    v_current_date := v_month_start;
+                    v_classes_needed := v_booking.class_count;
+                    v_assignment_ids := ARRAY[]::uuid[];
+
+                    WHILE v_current_date <= v_month_end AND v_classes_generated < v_classes_needed LOOP
+                        v_day_of_week := EXTRACT(DOW FROM v_current_date)::integer; -- 0=Sunday, 6=Saturday
+
+                        -- Convert day number to day name for preferred_days check
+                        v_preferred_day := CASE v_day_of_week
+                            WHEN 0 THEN 'sunday'
+                            WHEN 1 THEN 'monday'
+                            WHEN 2 THEN 'tuesday'
+                            WHEN 3 THEN 'wednesday'
+                            WHEN 4 THEN 'thursday'
+                            WHEN 5 THEN 'friday'
+                            WHEN 6 THEN 'saturday'
+                        END;
+
+                        -- Check if this day is in preferred_days
+                        IF v_preferred_day = ANY(v_booking.preferred_days) THEN
+                            -- generate a unique assignment code for this generated class
+                            v_assignment_code := 'ASG-' || v_booking.booking_id || '-' || to_char(v_current_date, 'YYYYMMDD') || '-' || (v_classes_generated + 1)::text;
+                            -- Insert class assignment (attach to container) or simulate in dry-run
+                            IF NOT p_dry_run THEN
                                 INSERT INTO class_assignments (
                                     package_id,
                                     class_package_id,
@@ -238,6 +308,7 @@ BEGIN
                                     start_time,
                                     end_time,
                                     instructor_id,
+                                    class_container_id,
                                     payment_amount,
                                     schedule_type,
                                     assigned_by,
@@ -245,50 +316,54 @@ BEGIN
                                     class_status,
                                     payment_status,
                                     instructor_status,
-                                    calendar_month,
-                                    is_adjustment,
+                                    assignment_code,
                                     created_at,
                                     updated_at
                                 ) VALUES (
                                     v_booking.class_package_id,
                                     v_booking.class_package_id,
                                     v_current_date,
-                                    v_booking.start_time,
-                                    v_booking.end_time,
+                                        NULL,
+                                        NULL,
                                     v_booking.instructor_id,
+                                    v_container_id,
                                     v_per_class_amount,
                                     'monthly',
-                                    'system_automated',
+                                    v_booking.user_id,
                                     'individual',
                                     'scheduled',
                                     'pending',
                                     'pending',
-                                    v_target_month,
-                                    false,
+                                    v_assignment_code,
                                     now(),
                                     now()
                                 )
                                 RETURNING id INTO v_assignment_id;
-                                
-                                v_assignment_ids := array_append(v_assignment_ids, v_assignment_id);
-                                v_classes_generated := v_classes_generated + 1;
-                                
-                                -- Link assignment to booking
+
+                                -- Link assignment to booking and record container
                                 INSERT INTO assignment_bookings (
                                     assignment_id,
-                                    booking_id
+                                    booking_id,
+                                    class_container_id
                                 ) VALUES (
                                     v_assignment_id,
-                                    v_booking.id
+                                    v_booking.booking_id,
+                                    v_container_id
                                 );
+                            ELSE
+                                -- dry-run: do not insert, set assignment id to NULL (but count it)
+                                v_assignment_id := NULL;
                             END IF;
-                            
-                            v_current_date := v_current_date + 1;
-                        END LOOP;
-                        
-                        RAISE NOTICE '✅ Generated % classes for booking % (month %)', 
-                            v_classes_generated, v_booking.booking_id, v_target_month;
-                    END;
+
+                            v_assignment_ids := array_append(v_assignment_ids, v_assignment_id);
+                            v_classes_generated := v_classes_generated + 1;
+                        END IF;
+
+                        v_current_date := v_current_date + 1;
+                    END LOOP;
+
+                    RAISE NOTICE '✅ Generated % classes for booking % (month %)', 
+                        v_classes_generated, v_booking.booking_id, v_target_month;
                 END;
                 
                 v_total_generated := v_total_generated + 1;
@@ -334,9 +409,33 @@ BEGIN
 END;
 $$;
 
--- Grant execute to service_role only
+-- Grant execute to service_role only on impl
+REVOKE ALL ON FUNCTION generate_t5_invoices_impl(uuid, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION generate_t5_invoices_impl(uuid, boolean) TO service_role;
+
+COMMENT ON FUNCTION generate_t5_invoices_impl(p_booking_id uuid, p_dry_run boolean) IS 
+'PHASE 8: Generate invoices AND monthly classes 5 days before billing cycle for recurring bookings. Called by daily cron job.';
+
+-- SQL wrapper: zero-arg (dry-run)
+CREATE OR REPLACE FUNCTION generate_t5_invoices()
+RETURNS jsonb
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+    SELECT generate_t5_invoices_impl(NULL, true);
+$$;
+
+-- SQL wrapper: two-arg forwarding to impl
+CREATE OR REPLACE FUNCTION generate_t5_invoices(p_booking_id uuid, p_dry_run boolean)
+RETURNS jsonb
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+    SELECT generate_t5_invoices_impl(p_booking_id, p_dry_run);
+$$;
+
+-- Grant execute to service_role on wrappers
 REVOKE ALL ON FUNCTION generate_t5_invoices() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION generate_t5_invoices() TO service_role;
-
-COMMENT ON FUNCTION generate_t5_invoices() IS 
-'PHASE 8: Generate invoices AND monthly classes 5 days before billing cycle for recurring bookings. Called by daily cron job.';
+REVOKE ALL ON FUNCTION generate_t5_invoices(uuid, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION generate_t5_invoices(uuid, boolean) TO service_role;
