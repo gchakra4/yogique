@@ -1138,15 +1138,17 @@ export class AssignmentCreationService {
                 // Create if missing
                 if (!resolvedContainerId) {
                     try {
+                        const bookingType = formData.booking_type || 'individual'
+                        const maxCount = bookingType === 'individual' ? 1 : 999
                         const { data: newCont, error: createErr } = await supabase
                             .from('class_containers')
                             .insert([{
                                 container_code: containerCode,
-                                container_type: formData.booking_type || 'individual',
+                                container_type: bookingType,
                                 display_name: containerCode,
                                 package_id: formData.package_id || null,
                                 instructor_id: formData.instructor_id || null,
-                                max_booking_count: 999,
+                                max_booking_count: maxCount,
                                 created_by: currentUserId,
                                 created_at: new Date().toISOString(),
                                 updated_at: new Date().toISOString()
