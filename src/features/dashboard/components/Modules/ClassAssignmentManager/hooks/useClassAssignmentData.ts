@@ -50,7 +50,7 @@ export const useClassAssignmentData = () => {
                     assignment_bookings (
                         booking_id
                     ),
-                    class_container:class_containers (
+                    class_container:class_containers!class_assignments_class_container_id_fkey (
                         id,
                         container_code,
                         container_type,
