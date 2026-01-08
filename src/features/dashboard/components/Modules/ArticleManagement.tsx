@@ -126,12 +126,12 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
 
       if (editingArticle) {
         // Update existing article
+        const updatePayload = { ...articleData, updated_at: new Date().toISOString() } as any
+        if ('template' in updatePayload) delete updatePayload.template
+
         let query = supabase
           .from('articles')
-          .update({
-            ...articleData,
-            updated_at: new Date().toISOString()
-          })
+          .update(updatePayload)
           .eq('id', editingArticle.id)
 
         // Add author check for mantra curators
@@ -153,9 +153,12 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
           updated_at: new Date().toISOString()
         }
 
+        const sanitized = { ...newArticleData } as any
+        if ('template' in sanitized) delete sanitized.template
+
         const { error } = await supabase
           .from('articles')
-          .insert([newArticleData])
+          .insert([sanitized])
 
         if (error) throw error
       }
