@@ -174,6 +174,11 @@ const cleanAssignmentData = async (data) => {
             throw new Error(`Invalid ${field.replace('_', ' ')} format. Please refresh the page and try again.`);
         }
     });
+    // Remove fields not present in the DB schema to avoid client-side schema cache errors
+    if ('calendar_month' in cleaned)
+        delete cleaned.calendar_month;
+    if ('is_adjustment' in cleaned)
+        delete cleaned.is_adjustment;
     console.log('Original data:', JSON.stringify(data, null, 2));
     console.log('Cleaned data:', JSON.stringify(cleaned, null, 2));
     return cleaned;
@@ -604,6 +609,69 @@ export class AssignmentCreationService {
         const assignmentBookingIds = formData.booking_ids && formData.booking_ids.length > 0
             ? formData.booking_ids
             : (formData.booking_id ? [formData.booking_id] : []);
+        // Determine and attach a class_container_id for this assignment based on first linked booking + month
+        let resolvedContainerId = null;
+        if (assignmentBookingIds.length > 0) {
+            const firstBookingId = assignmentBookingIds[0];
+            try {
+                const billingMonth = (formData.date && formData.date.length >= 7) ? formData.date.slice(0, 7) : new Date().toISOString().slice(0, 7);
+                const containerCode = `T5-${firstBookingId}-${billingMonth}`;
+                // Try to find existing container
+                const { data: existingContainer, error: existingErr } = await supabase
+                    .from('class_containers')
+                    .select('id')
+                    .eq('container_code', containerCode)
+                    .limit(1)
+                    .single();
+                if (existingErr) {
+                    // not fatal - we'll attempt to create below
+                    console.warn('Error checking existing container:', existingErr);
+                }
+                if (existingContainer && existingContainer.id) {
+                    resolvedContainerId = existingContainer.id;
+                }
+                else {
+                    // Create a minimal container record (non-destructive)
+                    const displayName = `${(formData.client_name && formData.client_name.trim() !== '') ? formData.client_name : firstBookingId} (${billingMonth})`;
+                    const { data: newContainer, error: createErr } = await supabase
+                        .from('class_containers')
+                        .insert([{
+                            container_code: containerCode,
+                            display_name: displayName,
+                            container_type: 'individual',
+                            instructor_id: (formData.instructor_id && formData.instructor_id.trim() !== '') ? formData.instructor_id : null,
+                            package_id: (formData.package_id && formData.package_id.trim() !== '') ? formData.package_id : null,
+                            max_booking_count: 1,
+                            created_by: currentUserId,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }])
+                        .select('id')
+                        .single();
+                    if (createErr) {
+                        console.warn('Failed to create container for assignment:', createErr);
+                    }
+                    else if (newContainer && newContainer.id) {
+                        resolvedContainerId = newContainer.id;
+                    }
+                }
+            }
+            catch (err) {
+                console.warn('Container resolution error:', err);
+            }
+        }
+        // Attach container id to assignment row if resolved
+        if (resolvedContainerId) {
+            try {
+                await supabase
+                    .from('class_assignments')
+                    .update({ class_container_id: resolvedContainerId })
+                    .eq('id', insertedAssignment.id);
+            }
+            catch (err) {
+                console.warn('Failed to attach class_container_id to assignment:', err);
+            }
+        }
         if (assignmentBookingIds.length > 0) {
             try {
                 await createAssignmentBookings(insertedAssignment.id, assignmentBookingIds);
@@ -611,6 +679,18 @@ export class AssignmentCreationService {
                 for (const bookingId of assignmentBookingIds) {
                     if (bookingId && bookingId.trim() !== '') {
                         await this.updateBookingStatus(bookingId, 'completed');
+                    }
+                }
+                // Populate assignment_bookings.class_container_id for the created links
+                if (resolvedContainerId) {
+                    try {
+                        await supabase
+                            .from('assignment_bookings')
+                            .update({ class_container_id: resolvedContainerId })
+                            .eq('assignment_id', insertedAssignment.id);
+                    }
+                    catch (abErr) {
+                        console.warn('Failed to update assignment_bookings with class_container_id:', abErr);
                     }
                 }
             }

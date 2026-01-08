@@ -213,6 +213,9 @@ const cleanAssignmentData = async (data: any): Promise<any> => {
             throw new Error(`Invalid ${field.replace('_', ' ')} format. Please refresh the page and try again.`)
         }
     })
+    // Remove fields not present in the DB schema to avoid client-side schema cache errors
+    if ('calendar_month' in cleaned) delete cleaned.calendar_month
+    if ('is_adjustment' in cleaned) delete cleaned.is_adjustment
 
     console.log('Original data:', JSON.stringify(data, null, 2))
     console.log('Cleaned data:', JSON.stringify(cleaned, null, 2))
