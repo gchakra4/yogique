@@ -727,13 +727,26 @@ export class AssignmentCreationService {
             ? formData.booking_ids
             : (formData.booking_id ? [formData.booking_id] : [])
 
-        // Determine and attach a class_container_id for this assignment based on first linked booking + month
+        // Determine and attach a class_container_id for this assignment
         let resolvedContainerId: string | null = null
         if (assignmentBookingIds.length > 0) {
             const firstBookingId = assignmentBookingIds[0]
+            const bookingType = formData.booking_type || 'individual'
             try {
                 const billingMonth = (formData.date && formData.date.length >= 7) ? formData.date.slice(0, 7) : new Date().toISOString().slice(0, 7)
-                const containerCode = `T5-${firstBookingId}-${billingMonth}`
+                
+                // Container code pattern depends on booking type:
+                // - Individual: {bookingId}-{YYYY-MM}
+                // - Groups: {instructorId}-{packageId}-{YYYY-MM} or UUID-based
+                let containerCode: string
+                if (bookingType === 'individual') {
+                    containerCode = `${firstBookingId}-${billingMonth}`
+                } else {
+                    // For groups, use instructor+package or generate unique code
+                    const instructorPart = formData.instructor_id ? formData.instructor_id.substring(0, 8) : 'UNK'
+                    const packagePart = formData.package_id ? formData.package_id.substring(0, 8) : 'GRP'
+                    containerCode = `${instructorPart}-${packagePart}-${billingMonth}`
+                }
 
                 // Try to find existing container
                 const { data: existingContainer, error: existingErr } = await supabase
@@ -752,16 +765,17 @@ export class AssignmentCreationService {
                     resolvedContainerId = existingContainer.id
                 } else {
                     // Create a minimal container record (non-destructive)
-                    const displayName = `${(formData.client_name && formData.client_name.trim() !== '') ? formData.client_name : firstBookingId} (${billingMonth})`
+                    const displayName = `${(formData.client_name && formData.client_name.trim() !== '') ? formData.client_name : containerCode} (${billingMonth})`
+                    const maxCount = bookingType === 'individual' ? 1 : 30 // Groups default to 30
                     const { data: newContainer, error: createErr } = await supabase
                         .from('class_containers')
                         .insert([{
                             container_code: containerCode,
                             display_name: displayName,
-                            container_type: 'individual',
+                            container_type: bookingType,
                             instructor_id: (formData.instructor_id && formData.instructor_id.trim() !== '') ? formData.instructor_id : null,
                             package_id: (formData.package_id && formData.package_id.trim() !== '') ? formData.package_id : null,
-                            max_booking_count: 1,
+                            max_booking_count: maxCount,
                             created_by: currentUserId,
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString()
@@ -1116,54 +1130,64 @@ export class AssignmentCreationService {
         try {
             const currentUserId = await getCurrentUserId()
             const firstBooking = bookingIds[0] && bookingIds[0].trim()
-            if (firstBooking) {
-                const containerCode = `T5-${firstBooking}-${calendarMonth}`
+            const bookingType = formData.booking_type || 'individual'
+            
+            // Container code pattern depends on booking type:
+            // - Individual: T5-{bookingId}-{YYYY-MM}
+            // - Groups: T5-{instructorId}-{packageId}-{YYYY-MM}
+            let containerCode: string
+            if (bookingType === 'individual' && firstBooking) {
+                containerCode = `T5-${firstBooking}-${calendarMonth}`
+            } else {
+                // For groups, use instructor+package pattern
+                const instructorPart = formData.instructor_id ? formData.instructor_id.substring(0, 8) : 'UNK'
+                const packagePart = formData.package_id ? formData.package_id.substring(0, 8) : 'GRP'
+                containerCode = `T5-${instructorPart}-${packagePart}-${calendarMonth}`
+            }
 
-                // Try to find existing container
+            // Try to find existing container
+            try {
+                const { data: existing, error: findErr } = await supabase
+                    .from('class_containers')
+                    .select('id')
+                    .eq('container_code', containerCode)
+                    .limit(1)
+                    .single()
+
+                if (!findErr && existing && existing.id) {
+                    resolvedContainerId = existing.id
+                }
+            } catch (e) {
+                console.warn('Error querying for existing container:', e)
+            }
+
+            // Create if missing
+            if (!resolvedContainerId) {
                 try {
-                    const { data: existing, error: findErr } = await supabase
+                    const maxCount = bookingType === 'individual' ? 1 : 30 // Groups default to 30
+                    const { data: newCont, error: createErr } = await supabase
                         .from('class_containers')
+                        .insert([{
+                            container_code: containerCode,
+                            container_type: bookingType,
+                            display_name: containerCode,
+                            package_id: formData.package_id || null,
+                            instructor_id: formData.instructor_id || null,
+                            max_booking_count: maxCount,
+                            created_by: currentUserId,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }])
                         .select('id')
-                        .eq('container_code', containerCode)
-                        .limit(1)
                         .single()
 
-                    if (!findErr && existing && existing.id) {
-                        resolvedContainerId = existing.id
+                    if (!createErr && newCont && newCont.id) {
+                        resolvedContainerId = newCont.id
+                    } else if (createErr) {
+                        console.warn('Failed to create container for monthly assignments:', createErr)
                     }
                 } catch (e) {
-                    console.warn('Error querying for existing container:', e)
-                }
-
-                // Create if missing
-                if (!resolvedContainerId) {
-                    try {
-                        const bookingType = formData.booking_type || 'individual'
-                        const maxCount = bookingType === 'individual' ? 1 : 999
-                        const { data: newCont, error: createErr } = await supabase
-                            .from('class_containers')
-                            .insert([{
-                                container_code: containerCode,
-                                container_type: bookingType,
-                                display_name: containerCode,
-                                package_id: formData.package_id || null,
-                                instructor_id: formData.instructor_id || null,
-                                max_booking_count: maxCount,
-                                created_by: currentUserId,
-                                created_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString()
-                            }])
-                            .select('id')
-                            .single()
-
-                        if (!createErr && newCont && newCont.id) {
-                            resolvedContainerId = newCont.id
-                        } else if (createErr) {
-                            console.warn('Failed to create container for monthly assignments:', createErr)
-                        }
-                    } catch (e) {
-                        console.warn('Exception creating container for monthly assignments:', e)
-                    }
+                    console.warn('Exception creating container for monthly assignments:', e)
                 }
             }
         } catch (err) {

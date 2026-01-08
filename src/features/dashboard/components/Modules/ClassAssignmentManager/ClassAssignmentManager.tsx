@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, CheckSquare, Filter, List, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { BarChart3, Calendar, CheckSquare, Filter, FileText, List, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ResponsiveActionButton } from '../../../../../shared/components/ui/ResponsiveActionButton'
@@ -81,6 +81,10 @@ export function ClassAssignmentManager() {
     // Selection state for multi-delete
     const [selectedAssignments, setSelectedAssignments] = useState<Set<string>>(new Set())
     const [isSelectMode, setIsSelectMode] = useState(false)
+
+    // Manual invoice generation state
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+    const [generatingInvoices, setGeneratingInvoices] = useState(false)
 
     // Tabs scroll handler (for small screens)
     const tabsScrollRef = useRef<HTMLDivElement | null>(null)
@@ -437,7 +441,7 @@ export function ClassAssignmentManager() {
             if (!groups.has(groupKey)) {
                 // Determine display name with better fallback logic
                 let displayName: string = 'Unknown Class'
-                
+
                 // Try package name first
                 if (assignment.package?.name) {
                     displayName = assignment.package.name
@@ -816,6 +820,10 @@ export function ClassAssignmentManager() {
                         <RefreshCw className={`w-4 h-4 mr-2 ${loadingStates.fetchingData ? 'animate-spin' : ''}`} />
                         Refresh
                     </ResponsiveActionButton>
+                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-purple-600 text-white hover:bg-purple-700 shadow-none transform-none" onClick={() => setShowInvoiceModal(true)} disabled={generatingInvoices}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        {generatingInvoices ? 'Generating...' : 'Generate Invoices'}
+                    </ResponsiveActionButton>
                     <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-emerald-500 text-white hover:bg-emerald-600 shadow-none transform-none" onClick={() => setShowAssignForm(true)}>
                         <Plus className="w-4 h-4 mr-2" />
                         New Assignment
@@ -1053,6 +1061,84 @@ export function ClassAssignmentManager() {
                 onSave={saveAssignment}
                 onRefresh={fetchData}
             />
+
+            {/* Manual Invoice Generation Modal */}
+            {showInvoiceModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-semibold text-gray-900">Generate Monthly Invoices</h2>
+                            <button
+                                onClick={() => setShowInvoiceModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                                disabled={generatingInvoices}
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <p className="text-sm text-gray-600 mb-4">
+                            This will generate invoices for all active bookings for the specified month.
+                            Use this for the first billing cycle. Subsequent months will be handled automatically by T-5 automation.
+                        </p>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Calendar Month *
+                            </label>
+                            <input
+                                type="month"
+                                id="invoice-month"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={generatingInvoices}
+                                defaultValue={new Date().toISOString().slice(0, 7)}
+                            />
+                        </div>
+
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowInvoiceModal(false)}
+                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                disabled={generatingInvoices}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    setGeneratingInvoices(true);
+                                    const monthInput = document.getElementById('invoice-month') as HTMLInputElement;
+                                    const calendarMonth = monthInput?.value || new Date().toISOString().slice(0, 7);
+                                    
+                                    try {
+                                        // Call the RPC function to generate invoices
+                                        const { data, error } = await supabase.rpc('generate_monthly_invoices', {
+                                            p_calendar_month: calendarMonth
+                                        });
+                                        
+                                        if (error) {
+                                            alert('Error generating invoices: ' + error.message);
+                                        } else {
+                                            alert(`Successfully generated invoices for ${calendarMonth}. Generated: ${data || 0} invoices.`);
+                                            setShowInvoiceModal(false);
+                                            fetchData(); // Refresh the data
+                                        }
+                                    } catch (err) {
+                                        alert('Exception generating invoices: ' + (err instanceof Error ? err.message : String(err)));
+                                    } finally {
+                                        setGeneratingInvoices(false);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+                                disabled={generatingInvoices}
+                            >
+                                {generatingInvoices ? 'Generating...' : 'Generate Invoices'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
