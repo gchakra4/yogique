@@ -23,7 +23,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ title = 'App', childre
                 </div>
             </header>
 
-            <main className="flex-1 overflow-auto pb-20">{children}</main>
+            <main className="flex-1 overflow-auto pb-20 px-4">{children}</main>
 
             <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-700 md:hidden shadow-lg" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)' }}>
                 <div className="flex items-center justify-around px-2 py-2">

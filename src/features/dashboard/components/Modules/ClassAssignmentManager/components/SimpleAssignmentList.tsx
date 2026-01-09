@@ -73,26 +73,26 @@ export function SimpleAssignmentList() {
                 <button onClick={fetchSimple} className="px-3 py-1.5 text-sm rounded border bg-white hover:bg-gray-50">Refresh</button>
             </div>
             <div className="overflow-auto border rounded-lg">
-                <table className="min-w-full text-sm">
+                <table className="min-w-full text-xs sm:text-sm">
                     <thead className="bg-gray-50 text-gray-700">
                         <tr>
-                            <th className="px-3 py-2 text-left">Date</th>
-                            <th className="px-3 py-2 text-left">Time</th>
-                            <th className="px-3 py-2 text-left">Schedule</th>
-                            <th className="px-3 py-2 text-left">Instructor</th>
-                            <th className="px-3 py-2 text-left">Status</th>
-                            <th className="px-3 py-2 text-left">Notes</th>
+                            <th className="px-3 py-2 text-left text-xs sm:text-sm">Date</th>
+                            <th className="px-3 py-2 text-left text-xs sm:text-sm">Time</th>
+                            <th className="px-3 py-2 text-left text-xs sm:text-sm">Schedule</th>
+                            <th className="px-3 py-2 text-left text-xs sm:text-sm">Instructor</th>
+                            <th className="px-3 py-2 text-left text-xs sm:text-sm">Status</th>
+                            <th className="px-3 py-2 text-left text-xs sm:text-sm">Notes</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y">
                         {rows.map(r => (
                             <tr key={r.id} className="hover:bg-gray-50">
-                                <td className="px-3 py-2">{fmt(r.date)}</td>
-                                <td className="px-3 py-2">{fmt(r.start_time)}{r.end_time ? ` - ${r.end_time}` : ''}</td>
-                                <td className="px-3 py-2">{fmt(r.schedule_type)}</td>
-                                <td className="px-3 py-2">{fmt(r.instructor_id)}</td>
-                                <td className="px-3 py-2">{fmt(r.class_status)}</td>
-                                <td className="px-3 py-2 max-w-[360px] truncate" title={r.notes || ''}>{fmt(r.notes)}</td>
+                                <td className="px-3 py-2 text-xs sm:text-sm">{fmt(r.date)}</td>
+                                <td className="px-3 py-2 text-xs sm:text-sm">{fmt(r.start_time)}{r.end_time ? ` - ${r.end_time}` : ''}</td>
+                                <td className="px-3 py-2 text-xs sm:text-sm">{fmt(r.schedule_type)}</td>
+                                <td className="px-3 py-2 text-xs sm:text-sm">{fmt(r.instructor_id)}</td>
+                                <td className="px-3 py-2 text-xs sm:text-sm">{fmt(r.class_status)}</td>
+                                <td className="px-3 py-2 max-w-[360px] truncate text-xs sm:text-sm" title={r.notes || ''}>{fmt(r.notes)}</td>
                             </tr>
                         ))}
                     </tbody>
