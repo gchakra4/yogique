@@ -1,4 +1,4 @@
-import { Calendar, ChevronDown, ChevronRight, Clock, IndianRupee, MapPin, Package, Trash2, User } from 'lucide-react'
+import { Calendar, ChevronDown, ChevronRight, Clock, MapPin, Package, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { ClassAssignment, getPrimaryClientDisplay } from '../types'
 import { formatDate, formatTime, getStatusStyle } from '../utils'
@@ -221,22 +221,7 @@ export const AssignmentListView = ({
 
                                                 {/* Payment Amount and Actions */}
                                                 <div className="mt-2 sm:mt-0 flex items-center space-x-4">
-                                                    <div className="text-right">
-                                                        <div className="flex items-center text-lg font-semibold text-green-600">
-                                                            <IndianRupee className="w-4 h-4" />
-                                                            ₹{assignment.payment_amount.toFixed(2)}
-                                                        </div>
-                                                        {assignment.payment_status && (
-                                                            <div className={`text-xs ${assignment.payment_status === 'paid' ? 'text-green-600' :
-                                                                assignment.payment_status === 'pending' ? 'text-yellow-600' :
-                                                                    'text-red-600'
-                                                                }`}>
-                                                                {assignment.payment_status}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Delete button - appears on hover */}
+                                    {/* Payment amount hidden per requirement */}
                                                     {!isSelectMode && (
                                                         <button
                                                             onClick={(e) => {

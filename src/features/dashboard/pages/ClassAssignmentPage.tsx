@@ -21,7 +21,7 @@ const ClassAssignmentPage: React.FC = () => {
     useEffect(() => {
         const detect = () => {
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone
-            setUseMobileShell(isStandalone || window.innerWidth <= 640)
+            setUseMobileShell(isStandalone || window.innerWidth <= 768)
         }
         detect()
         window.addEventListener('resize', detect)
