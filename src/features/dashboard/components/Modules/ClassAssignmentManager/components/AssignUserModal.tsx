@@ -1,7 +1,7 @@
 import { Save, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { supabase } from '../../../../../../shared/lib/supabase'
+import { useState } from 'react'
 import { QuickBookingForm } from './QuickBookingForm'
+import { BookingSelector } from '../../../../../../shared/components/ui/BookingSelector'
 
 interface AssignUserModalProps {
     isOpen: boolean
@@ -12,32 +12,9 @@ interface AssignUserModalProps {
 }
 
 export const AssignUserModal = ({ isOpen, onClose, defaultPackageId, onAssigned }: AssignUserModalProps) => {
-    const [loading, setLoading] = useState(false)
-    const [publicBookings, setPublicBookings] = useState<any[]>([])
     const [selectedBookingId, setSelectedBookingId] = useState('')
+    const [loading] = useState(false)
     const [showCreate, setShowCreate] = useState(false)
-
-    useEffect(() => {
-        if (!isOpen) return
-        const load = async () => {
-            setLoading(true)
-            try {
-                const { data } = await supabase
-                    .from('bookings')
-                    .select('*')
-                    .eq('booking_type', 'public_group')
-                    .order('created_at', { ascending: false })
-                    .limit(50)
-
-                setPublicBookings(data || [])
-            } catch (e) {
-                console.warn('Failed to load public bookings', e)
-            } finally {
-                setLoading(false)
-            }
-        }
-        load()
-    }, [isOpen])
 
     if (!isOpen) return null
 
@@ -56,22 +33,13 @@ export const AssignUserModal = ({ isOpen, onClose, defaultPackageId, onAssigned 
                     </div>
 
                     <div className="px-6 py-4 space-y-4">
-                        {loading && (
-                            <div className="px-2 py-1 text-sm text-gray-600">Loading public bookings…</div>
-                        )}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Choose Existing Public Booking</label>
-                            <select
-                                value={selectedBookingId}
-                                onChange={(e) => setSelectedBookingId(e.target.value)}
-                                disabled={loading}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="">-- Select booking --</option>
-                                {publicBookings.map(b => (
-                                    <option key={b.id} value={b.booking_id}>{b.first_name} {b.last_name} — {b.email} ({b.booking_id})</option>
-                                ))}
-                            </select>
+                            <BookingSelector
+                                selectedBookingId={selectedBookingId}
+                                onBookingSelect={(id) => setSelectedBookingId(id)}
+                                bookingType={'public_group'}
+                            />
                         </div>
 
                         <div className="text-center text-sm text-gray-600">OR</div>

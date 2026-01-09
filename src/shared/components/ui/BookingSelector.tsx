@@ -16,6 +16,7 @@ interface Booking {
   experience_level: string
   special_requests: string
   status: string
+  is_recurring?: boolean
   created_at: string
 }
 
@@ -40,12 +41,16 @@ interface BookingSelectorProps {
   selectedBookingId: string
   onBookingSelect: (bookingId: string, clientName: string, clientEmail: string) => void
   disabled?: boolean
+  bookingsProp?: any[]
+  bookingType?: string
 }
 
 export function BookingSelector({ 
   selectedBookingId, 
   onBookingSelect, 
-  disabled = false 
+  disabled = false,
+  bookingsProp,
+  bookingType
 }: BookingSelectorProps) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,6 +62,12 @@ export function BookingSelector({
   const [loadingDetails, setLoadingDetails] = useState(false)
 
   useEffect(() => {
+    if (bookingsProp && bookingsProp.length > 0) {
+      setBookings(bookingsProp as Booking[])
+      setLoading(false)
+      return
+    }
+
     fetchBookings()
   }, [])
 
@@ -74,12 +85,19 @@ export function BookingSelector({
       setLoading(true)
       
       // Fetch bookings that don't have assignments yet (exclude 'completed' and 'cancelled' status)
-      const { data, error } = await supabase
+      let query: any = supabase
         .from('bookings')
         .select('*')
         .in('status', ['confirmed', 'pending', 'rescheduled'])
         .order('created_at', { ascending: false })
         .limit(100)
+
+      // apply booking_type filter when provided
+      if (bookingType && bookingType.length > 0) {
+        query = query.eq('booking_type', bookingType as any)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
       setBookings(data || [])
@@ -236,6 +254,11 @@ export function BookingSelector({
                             <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">
                               {booking.booking_id}
                             </span>
+                            {booking.is_recurring && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Recurring
+                              </span>
+                            )}
                             <span className={`
                               px-2 py-0.5 rounded-full text-xs font-medium
                               ${booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
