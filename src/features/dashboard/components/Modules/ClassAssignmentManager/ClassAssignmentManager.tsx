@@ -378,7 +378,7 @@ export function ClassAssignmentManager() {
             // Hide past classes that remain in 'pending' status (avoid showing stale pending items)
             try {
                 const assignmentDate = assignment.date ? new Date(assignment.date + 'T00:00:00') : null
-                if (assignmentDate && assignmentDate < today && assignment.class_status === 'pending') return false
+                if (assignmentDate && assignmentDate < today && assignment.payment_status === 'pending') return false
             } catch (e) {
                 // ignore parsing errors and keep the assignment
             }
