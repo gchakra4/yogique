@@ -833,7 +833,9 @@ export function ClassAssignmentManager() {
                     <h1 className="text-2xl font-bold text-gray-900">Class Assignment Manager</h1>
                     <p className="text-gray-600">Manage class assignments, schedules, and payments</p>
                 </div>
-                <div className="w-full sm:w-auto flex items-center justify-center sm:justify-end space-x-3 mt-2 sm:mt-0">
+
+                {/* Desktop / wide screens: original large CTAs */}
+                <div className="hidden sm:flex w-full sm:w-auto items-center justify-center sm:justify-end space-x-3 mt-2 sm:mt-0">
                     <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-blue-600 text-white hover:bg-blue-700 shadow-none transform-none" onClick={() => fetchData()} disabled={loadingStates.fetchingData}>
                         <RefreshCw className={`w-4 h-4 mr-2 ${loadingStates.fetchingData ? 'animate-spin' : ''}`} />
                         Refresh
@@ -850,19 +852,53 @@ export function ClassAssignmentManager() {
                         Bulk Add to Group
                     </ResponsiveActionButton>
                 </div>
+
+                {/* Mobile compact toolbar: small icons only */}
+                <div className="flex sm:hidden items-center space-x-2">
+                    <button
+                        aria-label="refresh"
+                        className="p-2 bg-white rounded-lg shadow-sm"
+                        onClick={() => fetchData()}
+                    >
+                        <RefreshCw className={`w-5 h-5 ${loadingStates.fetchingData ? 'animate-spin' : ''}`} />
+                    </button>
+                    <button
+                        aria-label="invoices"
+                        className="p-2 bg-white rounded-lg shadow-sm"
+                        onClick={() => setShowInvoiceModal(true)}
+                    >
+                        <FileText className="w-5 h-5" />
+                    </button>
+                    <button
+                        aria-label="bulk add"
+                        className="p-2 bg-white rounded-lg shadow-sm"
+                        onClick={() => setShowBulkAddModal(true)}
+                    >
+                        <List className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
+
+            {/* Mobile FAB: new assignment (floating) */}
+            <button
+                className="fixed bottom-28 right-4 z-50 sm:hidden bg-teal-500 text-white px-4 py-3 rounded-full shadow-lg text-lg"
+                onClick={() => { setShowAssignForm(true); setAssignModalMode('chooser'); setAssignInitialBookingId('') }}
+                aria-label="New Assignment"
+            >
+                +
+            </button>
 
             {/* Search and Filters */}
             <div className="mb-6 space-y-4">
                 <div className="flex items-center space-x-4">
-                    <div className="flex-1 relative">
+                    <div className="flex-1 relative sticky top-16 z-40 sm:static bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-md">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <input
                             type="text"
                             placeholder="Search assignments..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                     <Button variant="outline" onClick={() => setShowFilters(true)}>
