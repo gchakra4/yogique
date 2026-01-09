@@ -112,54 +112,51 @@ export function BookingSelector({
     try {
       setLoadingDetails(true)
 
-      // Call the PostgreSQL function to get booking details
-      const { data, error } = await supabase
-        .rpc('get_booking_details', { booking_id_param: bookingId })
+      // First, query the bookings table directly for a reliable base payload.
+      try {
+        const { data: row, error: rowErr } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('booking_id', bookingId)
+          .limit(1)
+          .maybeSingle()
 
-      if (error) throw error
-
-      // RPC may return an array or a single object depending on how the
-      // Postgres function is written. Handle both shapes.
-      if (data) {
-        if (Array.isArray(data)) {
-          setBookingDetails(data[0] || null)
-        } else {
-          setBookingDetails(data as BookingDetails)
+        if (!rowErr && row) {
+          const mapped: BookingDetails = {
+            booking_id: row.booking_id || row.id,
+            client_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+            client_email: row.email || '',
+            client_phone: row.phone || '',
+            requested_class: row.class_name || row.requested_class || '',
+            requested_date: row.class_date || row.requested_date || '',
+            requested_time: row.class_time || row.requested_time || '',
+            experience_level: row.experience_level || '',
+            special_requests: row.special_requests || '',
+            booking_status: row.status || '',
+            has_assignment: !!row.has_assignment,
+            assignment_date: row.assignment_date || '',
+            assignment_time: row.assignment_time || '',
+            assigned_instructor: row.assigned_instructor || ''
+          }
+          setBookingDetails(mapped)
         }
+      } catch (e) {
+        console.warn('Booking table fetch failed', e)
       }
 
-      // If RPC returned nothing usable, fall back to selecting from bookings table.
-      if (!bookingDetails) {
-        try {
-          const { data: row, error: rowErr } = await supabase
-            .from('bookings')
-            .select('*')
-            .eq('booking_id', bookingId)
-            .limit(1)
-            .maybeSingle()
-
-          if (!rowErr && row) {
-            const mapped: BookingDetails = {
-              booking_id: row.booking_id || row.id,
-              client_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
-              client_email: row.email || '',
-              client_phone: row.phone || '',
-              requested_class: row.class_name || row.requested_class || '',
-              requested_date: row.class_date || row.requested_date || '',
-              requested_time: row.class_time || row.requested_time || '',
-              experience_level: row.experience_level || '',
-              special_requests: row.special_requests || '',
-              booking_status: row.status || '',
-              has_assignment: !!row.has_assignment,
-              assignment_date: row.assignment_date || '',
-              assignment_time: row.assignment_time || '',
-              assigned_instructor: row.assigned_instructor || ''
-            }
-            setBookingDetails(mapped)
+      // Optionally call the RPC to get richer/enriched booking details.
+      try {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('get_booking_details', { booking_id_param: bookingId })
+        if (!rpcErr && rpcData) {
+          if (Array.isArray(rpcData)) {
+            setBookingDetails(rpcData[0] || null)
+          } else {
+            setBookingDetails(rpcData as BookingDetails)
           }
-        } catch (e) {
-          console.warn('Fallback booking fetch failed', e)
         }
+      } catch (e) {
+        // Non-fatal; we keep the bookings-table result if RPC fails.
+        console.warn('RPC booking details call failed', e)
       }
     } catch (error) {
       console.error('Error fetching booking details:', error)
