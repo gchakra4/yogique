@@ -30,6 +30,7 @@ import { BookLanding } from './features/marketing/pages/BookLanding';
 import { Contact } from './features/marketing/pages/Contact.jsx';
 import { Home } from './features/marketing/pages/Home';
 import { Privacy } from './features/marketing/pages/Privacy';
+import TeachingMethod from './features/marketing/pages/TeachingMethod';
 import { Terms } from './features/marketing/pages/Terms';
 import { Testimonials } from './features/marketing/pages/Testimonials';
 import Unsubscribe from './features/marketing/pages/Unsubscribe';
@@ -169,6 +170,7 @@ function AppRoutes() {
               <Route path="/testimonials" element={<Testimonials />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/teaching-method" element={<TeachingMethod />} />
               {/* Removed /book-class route; links now point to external URL */}
               <Route path="/contact" element={<Contact />} />
               <Route path="/learning" element={<Learning />} />
