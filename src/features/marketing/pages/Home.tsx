@@ -136,11 +136,39 @@ export function Home() {
     }
   ]
 
+  const layers = [
+    {
+      icon: <Activity className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
+      title: "Body",
+      subtitle: "Annamaya"
+    },
+    {
+      icon: <Wind className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />,
+      title: "Energy",
+      subtitle: "Pranamaya"
+    },
+    {
+      icon: <Eye className="w-6 h-6 text-purple-600 dark:text-purple-400" />,
+      title: "Mind",
+      subtitle: "Manomaya"
+    },
+    {
+      icon: <Brain className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
+      title: "Intellect",
+      subtitle: "Vijnanamaya"
+    },
+    {
+      icon: <Heart className="w-6 h-6 text-pink-600 dark:text-pink-400" />,
+      title: "Bliss",
+      subtitle: "Anandamaya"
+    }
+  ]
+
   const testimonials = [
     {
       name: "Kasturi Ray",
       location: "Kolkata, India",
-      position: "Student",
+      position: "Yoga Practitioner",
       content: "Joining Yogique has been a life changing experience since the past six months. Yog, meditation and individual attendtion by Bratati is giving new way of holistic well being. Thank You 🙏",
       image: "/images/testimonial_Kasturi_Ray.jpg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
       rating: 5,
@@ -149,7 +177,7 @@ export function Home() {
     {
       name: "Rina",
       location: "Auckland, New Zealand",
-      position: "Student",
+      position: "Yoga Practitioner",
       content: "I was visiting my niece in India and joined her in session with Bratati. Hearing the correct pronunciation of the Asanas, experiencing the working of an online class inspired me to revive my yoga practice. I feel fortunate to learn yoga with Bratati’s guidance and instructions. Her attention to posture, gradually build strength and balance helps me improve wellbeing. Her pleasant and kind, yet encouraging approach goes a long way in sustaining my commitment to yoga.  The  added tips on poses are gentle reminders to make it practical and doable in the daily routine.",
       image: "/images/Testimonial_Rina.jpg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
       rating: 5,
@@ -164,14 +192,18 @@ export function Home() {
     }
   ]
 
-  // Carousel ref and scroll helpers for testimonials
-  const testimonialsRef = useRef<HTMLDivElement | null>(null)
-  const scrollTestimonials = (direction: 'next' | 'prev') => {
-    const el = testimonialsRef.current
-    if (!el) return
-    const amount = Math.max(Math.floor(el.clientWidth * 0.8), 320)
-    el.scrollBy({ left: direction === 'next' ? amount : -amount, behavior: 'smooth' })
-  }
+  // Simple fade slider state for testimonials
+  const [activeTestimonial, setActiveTestimonial] = useState(0)
+  const [pauseAuto, setPauseAuto] = useState(false)
+
+  const goNextTestimonial = () => setActiveTestimonial((i) => (i + 1) % testimonials.length)
+  const goPrevTestimonial = () => setActiveTestimonial((i) => (i - 1 + testimonials.length) % testimonials.length)
+
+  useEffect(() => {
+    if (pauseAuto) return
+    const id = setInterval(goNextTestimonial, 6000)
+    return () => clearInterval(id)
+  }, [pauseAuto, testimonials.length])
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900">
@@ -360,7 +392,7 @@ export function Home() {
 
       <SectionDivider />
 
-      {/* Integrated Yogic Experience (short) */}
+      {/* Integrated Yogic Experience (teaser) */}
       <section className="py-20 bg-gradient-to-br from-indigo-100 via-blue-100 to-cyan-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Reveal>
@@ -370,6 +402,20 @@ export function Home() {
             </div>
             <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4">Integrated Yogic Experience</h2>
             <p className="text-lg text-gray-600 dark:text-slate-300 max-w-2xl mx-auto mb-6">A layered teaching method that blends stability and ease to transform body, breath and mind.</p>
+            <div className="mt-8 mb-8 md:mb-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6">
+              {layers.map((layer, idx) => (
+                <div
+                  key={idx}
+                  className="group p-4 rounded-xl bg-white/70 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="mb-2">{layer.icon}</div>
+                    <div className="font-semibold text-gray-900 dark:text-white">{layer.title}</div>
+                    <div className="text-xs text-gray-600 dark:text-slate-400">{layer.subtitle}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
             <Link to="/teaching-method">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg inline-flex items-center gap-2">
                 Discover Our Teaching Method
@@ -409,83 +455,98 @@ export function Home() {
       <SectionDivider />
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-slate-800 dark:to-slate-900">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Reveal className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">What Our Global Community Says</h2>
-            <p className="text-xl text-gray-600 dark:text-slate-300">
+      <section className="py-24 bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal className="text-center mb-16">
+            <h2 className="text-5xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight">What Our Global Community Says</h2>
+            <p className="text-xl md:text-2xl text-gray-600 dark:text-slate-300 max-w-3xl mx-auto">
               Real stories from professionals who transformed their lives with Yogique
             </p>
           </Reveal>
 
-          <div className="relative">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => scrollTestimonials('prev')}
-                aria-label="Previous testimonials"
-                className="hidden md:inline-flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-md hover:shadow-lg border border-gray-100 dark:border-slate-700"
-              >
-                <ArrowRight className="w-4 h-4 rotate-180" />
-              </button>
-
-              <div
-                ref={testimonialsRef}
-                className="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth py-4 px-2"
-              >
-                {testimonials.map((testimonial, index) => (
-                  <div key={index} className="min-w-[300px] md:min-w-[540px] snap-start">
-                    <Reveal delay={100 + index * 50}>
-                      <div className="relative group">
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 dark:border-slate-700">
-                          <div className="grid md:grid-cols-[auto_1fr] gap-0">
-                            <div className="relative bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 p-8 md:p-10 flex flex-col items-center justify-center min-w-[280px] border-r border-gray-100 dark:border-slate-700">
-                              <div className="absolute top-4 left-4 text-blue-200 dark:text-blue-900/30 text-6xl font-serif leading-none">"</div>
-
-                              <img
-                                src={testimonial.image}
-                                alt={testimonial.name}
-                                className="w-20 h-20 rounded-full object-cover ring-4 ring-white dark:ring-slate-700 shadow-lg mb-4 relative z-10"
-                              />
-                              <h4 className="font-bold text-gray-900 dark:text-white text-lg text-center mb-1">{testimonial.name}</h4>
-                              <p className="text-sm text-gray-600 dark:text-slate-400 text-center mb-2">{testimonial.position}</p>
-                              <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                                <Globe className="w-3 h-3" />
-                                {testimonial.location}
-                              </p>
-
-                              <div className="flex gap-0.5 text-yellow-400 dark:text-yellow-300 mt-4">
-                                {[...Array(5)].map((_, i) => (
-                                  <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                                  </svg>
-                                ))}
-                              </div>
+          {/* Fade Slider */}
+          <div
+            className="relative max-w-5xl mx-auto"
+            onMouseEnter={() => setPauseAuto(true)}
+            onMouseLeave={() => setPauseAuto(false)}
+          >
+            {/* Slides */}
+            <div className="relative min-h-[720px] md:min-h-[460px] lg:min-h-[500px]">
+              {testimonials.map((t, i) => {
+                const isActive = i === activeTestimonial
+                return (
+                  <div
+                    key={i}
+                    aria-hidden={!isActive}
+                    className={`absolute inset-0 transition-opacity duration-700 ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                  >
+                    <div className="h-full">
+                      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border-2 border-gray-100 dark:border-slate-700 h-full overflow-visible md:overflow-hidden">
+                        <div className="grid md:grid-cols-[280px_1fr] h-full">
+                          {/* Left: Profile */}
+                          <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-emerald-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-emerald-900/20 p-5 md:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-slate-700">
+                            <div className="absolute top-3 left-4 text-blue-300/40 dark:text-blue-700/40 text-7xl font-serif leading-none select-none">"</div>
+                            <div className="relative z-10 mb-5">
+                              <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-emerald-400 rounded-full blur-lg opacity-40"></div>
+                              <img src={t.image} alt={t.name} className="relative w-24 h-24 rounded-full object-cover ring-4 ring-white dark:ring-slate-700 shadow-2xl" />
                             </div>
+                            <h4 className="font-bold text-gray-900 dark:text-white text-xl text-center mb-1">{t.name}</h4>
+                            {t.position && <p className="text-sm text-gray-600 dark:text-slate-400 text-center mb-2">{t.position}</p>}
+                            <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                              <Globe className="w-3.5 h-3.5" />
+                              <span className="font-medium">{t.location}</span>
+                            </p>
+                          </div>
 
-                            <div className="p-8 md:p-10 flex items-center">
-                              <div>
-                                <p className="text-gray-700 dark:text-slate-300 text-base leading-relaxed italic font-serif">
-                                  "{testimonial.content}"
-                                </p>
+                          {/* Right: Quote */}
+                          <div className="p-5 sm:p-6 md:p-10 flex items-center">
+                            <div className="w-full">
+                              <p className="text-gray-700 dark:text-slate-300 text-sm sm:text-base md:text-lg leading-relaxed italic font-serif">
+                                “{t.content}”
+                              </p>
+                              <div className="mt-6">
+                                <Link to="/testimonials" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold text-sm transition-colors group">
+                                  Read more stories
+                                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                </Link>
                               </div>
                             </div>
                           </div>
-
-                          <div className="h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-blue-400 group-hover:from-emerald-400 group-hover:via-blue-400 group-hover:to-emerald-400 transition-all duration-500"></div>
                         </div>
+                        <div className="h-1.5 bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-500" />
                       </div>
-                    </Reveal>
+                    </div>
                   </div>
-                ))}
-              </div>
+                )
+              })}
+            </div>
 
-              <button
-                onClick={() => scrollTestimonials('next')}
-                aria-label="Next testimonials"
-                className="hidden md:inline-flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-md hover:shadow-lg border border-gray-100 dark:border-slate-700"
-              >
-                <ArrowRight className="w-4 h-4" />
-              </button>
+            {/* Controls */}
+            <button
+              onClick={goPrevTestimonial}
+              aria-label="Previous testimonial"
+              className="absolute left-0 -translate-x-1 md:-left-4 top-1/2 -translate-y-1/2 z-30 inline-flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-xl hover:shadow-2xl hover:scale-110 border-2 border-gray-200 dark:border-slate-600 transition-all duration-300"
+            >
+              <ArrowRight className="w-5 h-5 rotate-180 text-blue-600 dark:text-blue-400" />
+            </button>
+            <button
+              onClick={goNextTestimonial}
+              aria-label="Next testimonial"
+              className="absolute right-0 translate-x-1 md:-right-4 top-1/2 -translate-y-1/2 z-30 inline-flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-xl hover:shadow-2xl hover:scale-110 border-2 border-gray-200 dark:border-slate-600 transition-all duration-300"
+            >
+              <ArrowRight className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </button>
+
+            {/* Dots */}
+            <div className="mt-6 flex items-center justify-center gap-2">
+              {testimonials.map((_, i) => (
+                <button
+                  key={i}
+                  aria-label={`Go to testimonial ${i + 1}`}
+                  className={`h-2.5 rounded-full transition-all ${i === activeTestimonial ? 'w-8 bg-blue-600 dark:bg-blue-400' : 'w-2.5 bg-gray-300 dark:bg-slate-600'}`}
+                  onClick={() => setActiveTestimonial(i)}
+                />
+              ))}
             </div>
           </div>
 
