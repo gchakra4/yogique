@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Footer } from '../../../shared/components/layout/Footer'
 import { Header } from '../../../shared/components/layout/Header'
+import MobileShell from '../../../shared/components/ui/MobileShell'
 const ClassAssignmentManager = React.lazy(() => import('../components/Modules/ClassAssignmentManager'))
 
 const ClassAssignmentPage: React.FC = () => {
@@ -16,6 +17,17 @@ const ClassAssignmentPage: React.FC = () => {
         })
     }, [])
 
+    const [useMobileShell, setUseMobileShell] = useState(false)
+    useEffect(() => {
+        const detect = () => {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone
+            setUseMobileShell(isStandalone || window.innerWidth <= 640)
+        }
+        detect()
+        window.addEventListener('resize', detect)
+        return () => window.removeEventListener('resize', detect)
+    }, [])
+
     return (
         <div className="min-h-screen bg-white dark:bg-slate-900">
             <Header />
@@ -25,11 +37,19 @@ const ClassAssignmentPage: React.FC = () => {
                     <p className="text-gray-600 mt-2">Create monthly, crash course, or single-class assignments. All assignments require a booking.</p>
                 </div>
 
-                <div className="bg-white p-4 rounded shadow-sm">
-                    <React.Suspense fallback={<div>Loading class assignments...</div>}>
-                        <ClassAssignmentManager />
-                    </React.Suspense>
-                </div>
+                {useMobileShell ? (
+                    <MobileShell title="Class Assignments">
+                        <React.Suspense fallback={<div>Loading class assignments...</div>}>
+                            <ClassAssignmentManager />
+                        </React.Suspense>
+                    </MobileShell>
+                ) : (
+                    <div className="bg-white p-4 rounded shadow-sm">
+                        <React.Suspense fallback={<div>Loading class assignments...</div>}>
+                            <ClassAssignmentManager />
+                        </React.Suspense>
+                    </div>
+                )}
             </main>
             <Footer />
         </div>

@@ -127,6 +127,40 @@ export function BookingSelector({
           setBookingDetails(data as BookingDetails)
         }
       }
+
+      // If RPC returned nothing usable, fall back to selecting from bookings table.
+      if (!bookingDetails) {
+        try {
+          const { data: row, error: rowErr } = await supabase
+            .from('bookings')
+            .select('*')
+            .eq('booking_id', bookingId)
+            .limit(1)
+            .maybeSingle()
+
+          if (!rowErr && row) {
+            const mapped: BookingDetails = {
+              booking_id: row.booking_id || row.id,
+              client_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+              client_email: row.email || '',
+              client_phone: row.phone || '',
+              requested_class: row.class_name || row.requested_class || '',
+              requested_date: row.class_date || row.requested_date || '',
+              requested_time: row.class_time || row.requested_time || '',
+              experience_level: row.experience_level || '',
+              special_requests: row.special_requests || '',
+              booking_status: row.status || '',
+              has_assignment: !!row.has_assignment,
+              assignment_date: row.assignment_date || '',
+              assignment_time: row.assignment_time || '',
+              assigned_instructor: row.assigned_instructor || ''
+            }
+            setBookingDetails(mapped)
+          }
+        } catch (e) {
+          console.warn('Fallback booking fetch failed', e)
+        }
+      }
     } catch (error) {
       console.error('Error fetching booking details:', error)
     } finally {
