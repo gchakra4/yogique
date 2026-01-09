@@ -1,4 +1,6 @@
 import { Award, Heart, Target, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Button } from '../../../shared/components/ui/Button'
 
 export function About() {
   const values = [
@@ -121,7 +123,11 @@ export function About() {
                 <p>
                   In every class, our instructors offer thoughtful options and modifications, helping you move with stability (sthira), ease (sukha), and confidence.
                 </p>
-
+                <p>
+                  <Link to="/teaching-method">
+                    <Button className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md">Discover Our Teaching Method</Button>
+                  </Link>
+                </p>
                 <p>
                   Our teachers are trained to observe, cue, and adapt with care — creating personalized growth pathways in both group classes and one-to-one sessions. Wherever you are in your journey, we’re here to support you with presence, precision, and compassion.
                 </p>
