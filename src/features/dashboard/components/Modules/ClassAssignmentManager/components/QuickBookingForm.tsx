@@ -5,9 +5,12 @@ import { supabase } from '../../../../../../shared/lib/supabase'
 interface QuickBookingFormProps {
     onBookingCreated: (bookingId: string) => void
     onCancel: () => void
+    // optional defaults for creating a booking from another UI
+    initialBookingType?: 'individual' | 'private_group' | 'public_group' | 'corporate'
+    initialClassPackageId?: string
 }
 
-export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFormProps) => {
+export const QuickBookingForm = ({ onBookingCreated, onCancel, initialBookingType, initialClassPackageId }: QuickBookingFormProps) => {
     // Helper: persistent debug log (stores logs in localStorage so they survive refresh)
     const debugLog = (tag: string, payload?: any) => {
         try {
@@ -30,8 +33,8 @@ export const QuickBookingForm = ({ onBookingCreated, onCancel }: QuickBookingFor
         last_name: '',
         email: '',
         phone: '',
-        booking_type: 'individual' as 'individual' | 'private_group' | 'public_group' | 'corporate',
-        class_package_id: ''
+        booking_type: initialBookingType || 'individual' as 'individual' | 'private_group' | 'public_group' | 'corporate',
+        class_package_id: initialClassPackageId || ''
     })
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')

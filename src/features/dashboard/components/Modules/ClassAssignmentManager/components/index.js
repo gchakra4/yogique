@@ -14,6 +14,7 @@ export { LoadingSpinner } from './LoadingSpinner';
 export { ManualCalendarSelector } from './ManualCalendarSelector';
 export { MultipleBookingSelector } from './MultipleBookingSelector';
 export { QuickBookingForm } from './QuickBookingForm';
+export { AssignUserModal } from './AssignUserModal';
 export { default as SimpleAssignmentList } from './SimpleAssignmentList';
 export { SimplifiedAssignmentForm } from './SimplifiedAssignmentForm';
 // Container Management Components (Phase 6)
