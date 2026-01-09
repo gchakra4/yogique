@@ -51,7 +51,7 @@ export function AssignmentCard({ assignment, onAction, onViewDetails }: Assignme
   const isPending = status === 'pending'
   const isWeeklySchedule = assignment.schedule_type === 'weekly'
 
-    return (
+  return (
     <div className="bg-white dark:bg-slate-800 rounded-md border border-gray-200 dark:border-slate-700 hover:shadow transition-all duration-150 text-sm sm:text-base">
       <div className="p-3">
         <div className="flex items-start justify-between mb-4">
@@ -133,7 +133,7 @@ export function AssignmentCard({ assignment, onAction, onViewDetails }: Assignme
                   <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">Reschedule Requested:</p>
-                      <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-300">
+                    <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-300">
                       {assignment.reschedule_requested_date && new Date(assignment.reschedule_requested_date).toLocaleDateString()}
                       {assignment.reschedule_requested_time && ` at ${assignment.reschedule_requested_time}`}
                     </p>
@@ -225,8 +225,8 @@ export function AssignmentCard({ assignment, onAction, onViewDetails }: Assignme
           <div className="flex items-center gap-2 text-sm">
             <span className="text-gray-600 dark:text-slate-400">Payment Status:</span>
             <span className={`font-medium ${assignment.payment_status === 'paid'
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : 'text-orange-600 dark:text-orange-400'
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : 'text-orange-600 dark:text-orange-400'
               }`}>
               {assignment.payment_status?.charAt(0).toUpperCase() + assignment.payment_status?.slice(1) || 'Pending'}
             </span>
