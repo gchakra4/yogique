@@ -20,7 +20,7 @@ interface RoleBasedAnalyticsViewProps {
 }
 
 export const RoleBasedAnalyticsView = ({ assignments, instructors }: RoleBasedAnalyticsViewProps) => {
-    const [userRole, setUserRole] = useState<UserRole>('user')
+    const [, setUserRole] = useState<UserRole>('user')
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {

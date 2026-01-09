@@ -65,10 +65,6 @@ export function SimpleAssignmentList() {
     }
 
     const fmt = (v: any): string => v ?? '—'
-    const fmtAmt = (v: any): string => {
-        const n = (typeof v === 'number') ? v : Number.parseFloat(v)
-        return Number.isFinite(n) ? n.toFixed(2) : '—'
-    }
 
     return (
         <div className="p-4">
