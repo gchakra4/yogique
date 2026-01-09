@@ -531,15 +531,15 @@ export function BookingManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Customer
                   </th>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
-                        onClick={() => setBookingSort(prev => prev === 'asc' ? 'desc' : (prev === 'desc' ? null : 'asc'))}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span>Booking Number</span>
-                          <span className="text-xs text-gray-400">{bookingSort === 'asc' ? '▲' : bookingSort === 'desc' ? '▼' : ''}</span>
-                        </div>
-                      </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    onClick={() => setBookingSort(prev => prev === 'asc' ? 'desc' : (prev === 'desc' ? null : 'asc'))}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span>Booking Number</span>
+                      <span className="text-xs text-gray-400">{bookingSort === 'asc' ? '▲' : bookingSort === 'desc' ? '▼' : ''}</span>
+                    </div>
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Class
                   </th>

@@ -2,6 +2,7 @@ import { IndianRupee, Plus, Save, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Booking, ClassType, Package, UserProfile } from '../types'
 import { AssignUserModal } from './AssignUserModal'
+import { BookingSelector } from '../../../../../../shared/components/ui/BookingSelector'
 import { Button } from './Button'
 import { LoadingSpinner } from './LoadingSpinner'
 import { QuickBookingForm } from './QuickBookingForm'
@@ -213,20 +214,11 @@ export const SimplifiedAssignmentForm = ({
 
                                 {!showQuickBooking ? (
                                     <div className="space-y-3">
-                                        <select
-                                            value={selectedBookingId}
-                                            onChange={(e) => setSelectedBookingId(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
-                                        >
-                                            <option value="">-- Select existing booking --</option>
-                                            {bookings
-                                                .filter(b => ['pending', 'confirmed'].includes(b.status))
-                                                .map(booking => (
-                                                    <option key={booking.id} value={booking.booking_id}>
-                                                        {booking.first_name} {booking.last_name} - {booking.email} ({booking.booking_type})
-                                                    </option>
-                                                ))}
-                                        </select>
+                                        <BookingSelector
+                                            selectedBookingId={selectedBookingId}
+                                            onBookingSelect={(id) => setSelectedBookingId(id)}
+                                            bookingsProp={bookings.filter(b => ['pending', 'confirmed'].includes(b.status) && b.booking_type !== 'public_group')}
+                                        />
 
                                         <button
                                             type="button"
