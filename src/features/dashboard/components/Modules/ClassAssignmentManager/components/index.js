@@ -5,6 +5,7 @@ export { AssignmentListView } from './AssignmentListView';
 export { AssignmentTypeSelector } from './AssignmentTypeSelector';
 export { AssignUserModal } from './AssignUserModal';
 export { BookingSelector } from './BookingSelector';
+export { BulkAddUsersModal } from './BulkAddUsersModal';
 export { Button } from './Button';
 export { CalendarView } from './CalendarView';
 export { ClassDetailsPopup } from './ClassDetailsPopup';
@@ -17,7 +18,6 @@ export { MultipleBookingSelector } from './MultipleBookingSelector';
 export { QuickBookingForm } from './QuickBookingForm';
 export { default as SimpleAssignmentList } from './SimpleAssignmentList';
 export { SimplifiedAssignmentForm } from './SimplifiedAssignmentForm';
-export { BulkAddUsersModal } from './BulkAddUsersModal';
 // Container Management Components (Phase 6)
 export { ContainerCapacityEditModal } from './ContainerCapacityEditModal';
 export { ContainerCapacityBadge, ContainerCapacityIndicator } from './ContainerCapacityIndicator';

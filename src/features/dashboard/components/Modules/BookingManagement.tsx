@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { enqueueNotification } from '../../../../services/enqueueBookingConfirmationEmail'
 import { Button } from '../../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
@@ -31,6 +32,7 @@ interface ClassPackage {
 
 interface Booking {
   id: string
+  booking_id?: string
   user_id: string
   class_name: string
   instructor: string
@@ -73,17 +75,47 @@ export function BookingManagement() {
   const [selectedPackage, setSelectedPackage] = useState<ClassPackage | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [bookingNumberFilter, setBookingNumberFilter] = useState('')
+  const [bookingSort, setBookingSort] = useState<'asc' | 'desc' | null>(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('all')
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null)
   const [isNotifying, setIsNotifying] = useState(false)
   const [updatedBooking, setUpdatedBooking] = useState<Partial<Booking>>({})
   const [successMessage, setSuccessMessage] = useState('')
+  const location = useLocation()
 
   useEffect(() => {
     fetchBookings()
     fetchAllPackages() // Still need this for the edit dropdown
   }, [])
+
+  // If the URL contains a booking_id query param, open details modal (deep link)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const bid = params.get('booking_id') || params.get('bookingId')
+    if (!bid) return
+
+    // If bookings already loaded, try to find and open
+    if (bookings && bookings.length > 0) {
+      const found = bookings.find(b => (b.booking_id && b.booking_id === bid) || b.id === bid)
+      if (found) {
+        handleViewBooking(found)
+        return
+      }
+    }
+
+    // Fallback: fetch bookings and try again
+    (async () => {
+      try {
+        await fetchBookings()
+        const fresh = (bookings || []).find(b => (b.booking_id && b.booking_id === bid) || b.id === bid)
+        if (fresh) handleViewBooking(fresh)
+      } catch (e) {
+        // ignore
+      }
+    })()
+  }, [location.search])
 
   const fetchBookings = async () => {
     try {
@@ -337,8 +369,8 @@ export function BookingManagement() {
     )
   }
 
-  // Filter bookings based on search term and filters
-  const filteredBookings = bookings.filter(booking => {
+  // Filter bookings based on search term, booking-number filter and other filters
+  let filteredBookings = bookings.filter(booking => {
     const matchesSearch = searchTerm === '' ||
       `${booking.first_name} ${booking.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -372,6 +404,21 @@ export function BookingManagement() {
 
     return matchesSearch && matchesStatus && matchesDate
   })
+
+  // Apply booking number filtering if present
+  if (bookingNumberFilter && bookingNumberFilter.trim() !== '') {
+    const q = bookingNumberFilter.trim().toLowerCase()
+    filteredBookings = filteredBookings.filter(b => (b.booking_id || b.id || '').toLowerCase().includes(q))
+  }
+
+  // Apply sorting by booking number when requested
+  const displayedBookings = bookingSort ? [...filteredBookings].sort((a, b) => {
+    const aKey = (a.booking_id || a.id || '').toLowerCase()
+    const bKey = (b.booking_id || b.id || '').toLowerCase()
+    if (aKey < bKey) return bookingSort === 'asc' ? -1 : 1
+    if (aKey > bKey) return bookingSort === 'asc' ? 1 : -1
+    return 0
+  }) : filteredBookings
 
   if (loading) {
     return (
@@ -412,6 +459,19 @@ export function BookingManagement() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Booking number filter */}
+          <div className="w-56">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Filter by Booking #"
+                value={bookingNumberFilter}
+                onChange={(e) => setBookingNumberFilter(e.target.value)}
+                className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -471,6 +531,15 @@ export function BookingManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Customer
                   </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                        onClick={() => setBookingSort(prev => prev === 'asc' ? 'desc' : (prev === 'desc' ? null : 'asc'))}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <span>Booking Number</span>
+                          <span className="text-xs text-gray-400">{bookingSort === 'asc' ? '▲' : bookingSort === 'desc' ? '▼' : ''}</span>
+                        </div>
+                      </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Class
                   </th>
@@ -489,7 +558,7 @@ export function BookingManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredBookings.map((booking) => (
+                {displayedBookings.map((booking) => (
                   <tr key={booking.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
@@ -499,6 +568,23 @@ export function BookingManagement() {
                         <div className="text-sm text-gray-500">{booking.email}</div>
                         {booking.phone && <div className="text-sm text-gray-500">{booking.phone}</div>}
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <a
+                        href={`/dashboard/booking_management?booking_id=${encodeURIComponent(booking.booking_id || booking.id)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-left inline-block"
+                        onClick={(e) => {
+                          // allow same-tab opening via click with ctrl/meta not pressed
+                          if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return
+                          e.preventDefault()
+                          handleViewBooking(booking)
+                        }}
+                      >
+                        <div className="text-sm text-blue-600 hover:underline">{booking.booking_id || booking.id}</div>
+                        <div className="text-xs text-gray-500">Open in new tab</div>
+                      </a>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">{booking.class_name}</div>
