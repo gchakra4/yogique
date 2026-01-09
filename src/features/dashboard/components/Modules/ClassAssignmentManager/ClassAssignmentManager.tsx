@@ -925,7 +925,7 @@ export function ClassAssignmentManager() {
                     <style>{`.class-assignment-hide-scrollbar::-webkit-scrollbar{display:none}`}</style>
                     <div className="flex items-center justify-between gap-3">
                         <div
-                            className="overflow-x-auto class-assignment-hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0"
+                            className="overflow-x-auto class-assignment-hide-scrollbar px-0"
                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                             ref={tabsScrollRef}
                             onScroll={updateTabsIndicator}

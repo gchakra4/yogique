@@ -447,12 +447,9 @@ export const EditAssignmentModal = ({
                                 </div>
                             )}
 
-                            {/* Payment Information */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Payment Information - Hidden from UI but preserved in backend */}
+                            <div className="hidden">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Payment Amount (₹)
-                                    </label>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -464,9 +461,6 @@ export const EditAssignmentModal = ({
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Payment Status
-                                    </label>
                                     <select
                                         value={formData.payment_status}
                                         onChange={(e) => handleInputChange('payment_status', e.target.value)}
@@ -494,20 +488,7 @@ export const EditAssignmentModal = ({
                                 />
                             </div>
 
-                            {/* Payment Summary */}
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                                <h4 className="text-sm font-medium text-green-800 mb-2">Payment Summary</h4>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <span className="text-green-600">Total Amount:</span>
-                                        <span className="ml-2 font-medium">₹{formData.payment_amount.toFixed(2)}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-green-600">Students:</span>
-                                        <span className="ml-2 font-medium">{studentCount}</span>
-                                    </div>
-                                </div>
-                            </div>
+                            {/* Payment Summary - Hidden from UI */}
                         </div>
                     </div>
 

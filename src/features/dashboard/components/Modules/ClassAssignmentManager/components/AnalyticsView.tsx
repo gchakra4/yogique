@@ -141,7 +141,7 @@ export const AnalyticsView = ({ assignments, instructors }: AnalyticsViewProps) 
     }
 
     return (
-        <div className="w-full max-w-none -mx-4 sm:-mx-6 px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+        <div className="w-full max-w-none mx-0 px-0 sm:px-4 py-4 sm:py-6 space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center">
                     <BarChart3 className="w-6 h-6 mr-2" />
