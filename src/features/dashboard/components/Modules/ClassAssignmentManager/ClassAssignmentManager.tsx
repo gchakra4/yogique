@@ -8,12 +8,14 @@ import {
     AnalyticsView,
     AssignmentForm,
     AssignmentListView,
+    BulkAddUsersModal,
     Button,
     CalendarView,
     ClassDetailsPopup,
     EditAssignmentModal,
     SimplifiedAssignmentForm
 } from './components'
+import NewAssignmentChooser from './components/NewAssignmentChooser'
 import { useClassAssignmentData, useFormHandler } from './hooks'
 import { AssignmentCreationService } from './services/assignmentCreation'
 import {
@@ -29,8 +31,7 @@ import {
 } from './utils'
 
 export function ClassAssignmentManager() {
-    // Feature flag: use simplified form (NEW UX)
-    const USE_SIMPLIFIED_FORM = true
+    // New assignment chooser flow (simplified UX)
 
     // Data fetching hook
     const {
@@ -62,7 +63,10 @@ export function ClassAssignmentManager() {
 
     // UI state
     const [showAssignForm, setShowAssignForm] = useState(false)
+    const [assignModalMode, setAssignModalMode] = useState<'chooser' | 'simplified' | 'full'>('chooser')
+    const [assignInitialBookingId, setAssignInitialBookingId] = useState('')
     const [saving, setSaving] = useState(false)
+    const [showBulkAddModal, setShowBulkAddModal] = useState(false)
     const [activeView, setActiveView] = useState<'list' | 'calendar' | 'analytics'>('list')
     const [showFilters, setShowFilters] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
@@ -838,9 +842,12 @@ export function ClassAssignmentManager() {
                         <FileText className="w-4 h-4 mr-2" />
                         {generatingInvoices ? 'Generating...' : 'Generate Invoices'}
                     </ResponsiveActionButton>
-                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-emerald-500 text-white hover:bg-emerald-600 shadow-none transform-none" onClick={() => setShowAssignForm(true)}>
+                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-emerald-500 text-white hover:bg-emerald-600 shadow-none transform-none" onClick={() => { setShowAssignForm(true); setAssignModalMode('chooser'); setAssignInitialBookingId('') }}>
                         <Plus className="w-4 h-4 mr-2" />
                         New Assignment
+                    </ResponsiveActionButton>
+                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-yellow-500 text-white hover:bg-yellow-600 shadow-none transform-none" onClick={() => setShowBulkAddModal(true)}>
+                        Bulk Add to Group
                     </ResponsiveActionButton>
                 </div>
             </div>
@@ -1012,8 +1019,18 @@ export function ClassAssignmentManager() {
                 </div>
             </div>
 
-            {/* Assignment Form Modal */}
-            {USE_SIMPLIFIED_FORM ? (
+            {/* Assignment Form Modal: show chooser first, then relevant form */}
+            {showAssignForm && assignModalMode === 'chooser' && (
+                <NewAssignmentChooser
+                    onClose={() => setShowAssignForm(false)}
+                    onOpenSimplified={(bookingId?: string) => {
+                        setAssignInitialBookingId(bookingId || '')
+                        setAssignModalMode('simplified')
+                    }}
+                />
+            )}
+
+            {showAssignForm && assignModalMode === 'simplified' && (
                 <SimplifiedAssignmentForm
                     isVisible={showAssignForm}
                     classTypes={classTypes}
@@ -1021,11 +1038,14 @@ export function ClassAssignmentManager() {
                     instructors={instructors}
                     bookings={bookings}
                     saving={saving}
-                    onClose={() => setShowAssignForm(false)}
+                    onClose={() => { setShowAssignForm(false); setAssignModalMode('chooser'); setAssignInitialBookingId('') }}
                     onSubmit={createAssignmentSimplified}
                     onBookingCreated={fetchData}
+                    initialSelectedBookingId={assignInitialBookingId}
                 />
-            ) : (
+            )}
+
+            {showAssignForm && assignModalMode === 'full' && (
                 <AssignmentForm
                     isVisible={showAssignForm}
                     formData={formData}
@@ -1037,11 +1057,20 @@ export function ClassAssignmentManager() {
                     scheduleTemplates={scheduleTemplates}
                     bookings={bookings}
                     saving={saving}
-                    onClose={() => setShowAssignForm(false)}
+                    onClose={() => { setShowAssignForm(false); setAssignModalMode('chooser'); setAssignInitialBookingId('') }}
                     onSubmit={createAssignment}
                     onInputChange={handleInputChange}
                     onTimeChange={handleTimeChange}
                     onDurationChange={handleDurationChange}
+                />
+            )}
+
+            {showBulkAddModal && (
+                <BulkAddUsersModal
+                    isOpen={showBulkAddModal}
+                    onClose={() => setShowBulkAddModal(false)}
+                    assignments={assignments}
+                    onDone={() => { fetchData(); setShowBulkAddModal(false) }}
                 />
             )}
 
