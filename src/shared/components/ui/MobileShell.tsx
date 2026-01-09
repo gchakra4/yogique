@@ -25,7 +25,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ title = 'App', childre
 
             <main className="flex-1 overflow-auto pb-20">{children}</main>
 
-            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-700 md:hidden shadow-lg" style={{paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)'}}>
+            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-700 md:hidden shadow-lg" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)' }}>
                 <div className="flex items-center justify-around px-2 py-2">
                     <button className="flex-1 py-3 text-gray-600 dark:text-gray-300 text-sm font-medium">Back</button>
                     <button className="flex-1 py-3 bg-teal-500 text-white rounded-lg text-sm font-medium mx-2">+ New</button>

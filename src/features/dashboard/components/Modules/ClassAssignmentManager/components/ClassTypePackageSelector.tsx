@@ -1,4 +1,4 @@
-import { ClassType, Package, FormData } from '../types'
+import { ClassType, FormData, Package } from '../types'
 
 interface ClassTypePackageSelectorProps {
     formData: FormData
@@ -8,12 +8,12 @@ interface ClassTypePackageSelectorProps {
     errors: Record<string, string>
 }
 
-export const ClassTypePackageSelector = ({ 
-    formData, 
-    classTypes, 
-    packages, 
-    onInputChange, 
-    errors 
+export const ClassTypePackageSelector = ({
+    formData,
+    classTypes,
+    packages,
+    onInputChange,
+    errors
 }: ClassTypePackageSelectorProps) => {
     // Don't show for template assignments
     if (formData.assignment_type === 'weekly' && formData.selected_template_id) {
@@ -85,7 +85,7 @@ export const ClassTypePackageSelector = ({
                     <option value="">Select Package</option>
                     {getFilteredPackages().map(pkg => (
                         <option key={pkg.id} value={pkg.id}>
-                            {pkg.name} - {pkg.class_count} classes (₹{pkg.price})
+                            {pkg.name} - {pkg.class_count} classes
                         </option>
                     ))}
                 </select>
@@ -110,7 +110,7 @@ export const ClassTypePackageSelector = ({
                                 <p>{selectedPackage.description}</p>
                                 <p>Duration: {selectedPackage.duration}</p>
                                 <p>Classes: {selectedPackage.class_count}</p>
-                                <p>Price: ₹{selectedPackage.price}</p>
+                                <p>Price: —</p>
                                 {selectedPackage.validity_days && (
                                     <p>Valid for: {selectedPackage.validity_days} days</p>
                                 )}

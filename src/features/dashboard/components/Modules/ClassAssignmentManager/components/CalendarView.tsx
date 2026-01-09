@@ -1,4 +1,4 @@
-import { Calendar, ChevronLeft, ChevronRight, IndianRupee, Trash2, User } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { ClassAssignment, getPrimaryClientDisplay } from '../types'
 import { formatDate, formatTime, getStatusStyle } from '../utils'
@@ -262,11 +262,7 @@ export const CalendarView = ({
                                                                     {assignment.instructor_profile?.full_name || 'Instructor'}
                                                                 </div>
 
-                                                                {/* Payment Amount */}
-                                                                <div className="text-[10px] sm:text-xs opacity-75 truncate flex items-center">
-                                                                    <IndianRupee className="w-3 h-3 mr-1" />
-                                                                    ₹{assignment.payment_amount.toFixed(0)}
-                                                                </div>
+                                                                {/* Payment hidden in calendar compact view */}
 
                                                                 {/* Client Name if available */}
                                                                 {getPrimaryClientDisplay(assignment) && (
