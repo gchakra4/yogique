@@ -97,12 +97,12 @@ function isDateInPast(dateString: string): boolean {
  */
 async function getCrashCoursePackageDetails(packageId: string): Promise<{
     classCount: number
-    validityDays: number
+    validityDays: number | null
     name: string
 } | null> {
     const { data, error } = await supabase
         .from('class_packages')
-        .select('class_count, validity_days, name')
+        .select('class_count, validity_days, duration, name')
         .eq('id', packageId)
         .single()
 
@@ -111,9 +111,27 @@ async function getCrashCoursePackageDetails(packageId: string): Promise<{
         return null
     }
 
+    let validityDays: number | null = data.validity_days || null
+    
+    // If validity_days is null, try to parse from duration field
+    if (!validityDays && data.duration) {
+        const durationMatch = data.duration.match(/^(\d+)\s+(day|days|week|weeks|month|months)$/i)
+        if (durationMatch) {
+            const number = parseInt(durationMatch[1])
+            const unit = durationMatch[2].toLowerCase()
+            if (unit.startsWith('day')) {
+                validityDays = number
+            } else if (unit.startsWith('week')) {
+                validityDays = number * 7
+            } else if (unit.startsWith('month')) {
+                validityDays = number * 30 // Approximate
+            }
+        }
+    }
+
     return {
         classCount: data.class_count || 0,
-        validityDays: data.validity_days || 30, // Default 30 days
+        validityDays: validityDays,
         name: data.name || 'Unknown'
     }
 }
@@ -162,30 +180,45 @@ export async function validateCrashCourseDates(
     const validityDays = request.validityDays || packageDetails.validityDays
     const classCount = request.classCount || packageDetails.classCount
 
-    // 2. Calculate validity window
-    const validity = calculateCrashCourseValidity(request.startDate, validityDays)
-
-    console.log(`📅 Crash Course Validation - Package: ${packageDetails.name}`)
-    console.log(`📅 Validity Window: ${validity.startDate} to ${validity.endDate} (${validityDays} days)`)
+    // 2. Calculate validity window (only if validity_days is specified)
+    let validity: { startDate: string; endDate: string } | null = null
+    if (validityDays && validityDays > 0) {
+        validity = calculateCrashCourseValidity(request.startDate, validityDays)
+        console.log(`📅 Crash Course Validation - Package: ${packageDetails.name}`)
+        console.log(`📅 Validity Window: ${validity.startDate} to ${validity.endDate} (${validityDays} days)`)
+    } else {
+        console.log(`📅 Crash Course Validation - Package: ${packageDetails.name}`)
+        console.log(`📅 No validity_days constraint - validating class count only`)
+    }
     console.log(`📅 Expected Classes: ${classCount}`)
     console.log(`📅 Dates to Validate: ${request.dates.length}`)
 
-    // 3. Parse validity boundaries
-    const validityStart = parseDateToUTC(validity.startDate)
-    const validityEnd = parseDateToUTC(validity.endDate)
+    // 3. Parse validity boundaries (if applicable)
+    let validityStart: Date | null = null
+    let validityEnd: Date | null = null
+    if (validity) {
+        validityStart = parseDateToUTC(validity.startDate)
+        validityEnd = parseDateToUTC(validity.endDate)
+    }
 
     // 4. Validate each date
     for (const dateString of request.dates) {
         const classDate = parseDateToUTC(dateString)
 
-        // Check if date is within validity window
-        if (classDate < validityStart) {
-            invalidDates.push(dateString)
-            errors.push(`Date ${dateString} is before crash course start date ${validity.startDate}`)
-        } else if (classDate > validityEnd) {
-            invalidDates.push(dateString)
-            errors.push(`Date ${dateString} is beyond validity end date ${validity.endDate} (${validityDays} days from start)`)
+        // Only check validity window if one is defined
+        if (validityStart && validityEnd) {
+            // Check if date is within validity window
+            if (classDate < validityStart) {
+                invalidDates.push(dateString)
+                errors.push(`Date ${dateString} is before crash course start date ${validity!.startDate}`)
+            } else if (classDate > validityEnd) {
+                invalidDates.push(dateString)
+                errors.push(`Date ${dateString} is beyond validity end date ${validity!.endDate} (${validityDays} days from start)`)
+            } else {
+                validDates.push(dateString)
+            }
         } else {
+            // No validity window - all dates are valid
             validDates.push(dateString)
         }
 
@@ -203,16 +236,18 @@ export async function validateCrashCourseDates(
     }
 
     // 6. Check if dates span multiple months (informational only - allowed for crash courses)
-    const months = new Set(validDates.map(d => d.substring(0, 7))) // YYYY-MM
-    if (months.size > 1) {
-        const monthList = Array.from(months).sort().join(', ')
-        console.log(`ℹ️ Crash course spans multiple calendar months: ${monthList} (This is allowed within validity period)`)
+    if (validDates.length > 0) {
+        const months = new Set(validDates.map(d => d.substring(0, 7))) // YYYY-MM
+        if (months.size > 1) {
+            const monthList = Array.from(months).sort().join(', ')
+            console.log(`ℹ️ Crash course spans multiple calendar months: ${monthList} (This is allowed${validity ? ' within validity period' : ''})`)
+        }
     }
 
     return {
         valid: errors.length === 0,
-        validityStartDate: validity.startDate,
-        validityEndDate: validity.endDate,
+        validityStartDate: validity?.startDate || request.startDate,
+        validityEndDate: validity?.endDate || 'unlimited',
         validDates,
         invalidDates,
         errors,

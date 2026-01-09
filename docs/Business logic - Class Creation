@@ -1,0 +1,184 @@
+
+------------------------------------------------------------
+1️⃣ UNIVERSAL RULES
+------------------------------------------------------------
+1. Booking is mandatory for ALL class assignments.
+   - If booking not present → Admin must create Quick Booking.
+2. booking.access_status controls scheduling:
+   - active → normal
+   - overdue_grace → warnings only
+   - overdue_locked → no NEW future scheduling (existing remains)
+3. No cross-type contamination:
+   - Monthly rules apply ONLY to Monthly subscriptions
+   - Crash rules apply ONLY to Crash courses
+   - Adhoc is isolated
+
+------------------------------------------------------------
+2️⃣ MONTHLY SUBSCRIPTION PROGRAMS
+(Applies to: Public Group, Private Group, Individual Monthly)
+------------------------------------------------------------
+Meaning:
+User buys a subscription promising X classes per CALENDAR MONTH.
+
+2.1 Calendar Month Rule
+- Monthly plans are tied to calendar month boundaries ONLY.
+- Jan = 1 to 31, Feb = 1 to 28/29, etc.
+- No rolling 30 days. No sliding window.
+
+2.2 Billing
+FIRST MONTH:
+- Admin schedules remaining eligible classes in month.
+- Invoice generated immediately based on actual scheduled count.
+- Payment link created MANUALLY.
+- This is the only prorated month.
+
+SUBSEQUENT MONTHS:
+- Full monthly fee.
+- Invoice auto-generated at T-5.
+- Payment link auto-created and sent.
+- Reminder + escalation applies.
+
+2.3 Scheduling
+- Based on preferred recurring days (e.g., Mon/Wed/Fri).
+- Scheduling is month-bound.
+- No rollover into next month.
+
+2.4 Calendar Variation Handling (IMPORTANT)
+- Calendar may produce different number of preferred weekdays each month.
+- System rule:
+  → FIXED MONTHLY CLASS COUNT IS GUARANTEED
+  → Preferred weekday pattern is best-effort, not absolute.
+
+IF preferred pattern contains ≥ required classes:
+- Schedule only required classes
+- Extra occurrences MAY be ignored or offered as bonus (business decision)
+
+IF preferred pattern contains < required classes:
+- System MUST fill deficit inside same month using:
+  1) nearest weekday alternatives
+  2) available group batch slots
+  3) admin override if needed
+
+No cross-month spillover.
+
+2.5 Adjustment Classes
+- Added only when preferred pattern is insufficient.
+- Must be reasonable, not overload student.
+- Must remain inside same month.
+- Marked:
+  is_adjustment = true
+  adjustment_reason = "calendar shortage"
+- Shown to admin + student with label: "Adjustment Class"
+
+2.6 Private Group Discount
+- Monthly rules same as Public Group
+- Discount:
+  Size 1 → 0%
+  Size 2 → 20%
+  Size 3+ → 30%
+- Applied at invoice level.
+
+------------------------------------------------------------
+3️⃣ CRASH COURSES
+------------------------------------------------------------
+Meaning:
+Structured program with fixed start → end duration.
+NOT tied to calendar month.
+
+Scheduling:
+- Fixed start date
+- Fixed end date OR fixed class count
+- Generated once
+
+Billing:
+- Invoice auto-generated after schedule creation
+- Payment link AUTO created and sent
+- One-time fee
+- No monthly scheduler
+- No escalation
+- No calendar month rule
+
+Delivery:
+- Promised crash course classes MUST be completed
+- Makeups required if disruptions occur
+- Should remain within crash duration unless explicitly extended
+
+------------------------------------------------------------
+4️⃣ ADHOC / SINGLE CLASS
+------------------------------------------------------------
+Meaning:
+One standalone session.
+No continuity.
+
+Scheduling:
+- Select 1 date + time → assign instructor
+
+Billing:
+- Invoice generated immediately
+- Payment link auto-created
+- No proration
+- No escalation
+- No month logic
+
+------------------------------------------------------------
+5️⃣ INSTRUCTOR VISIBILITY POLICY
+------------------------------------------------------------
+Instructors MUST NOT see:
+- price
+- invoice info
+- package value
+- discounts
+- payment status
+
+Instructors ONLY see:
+- schedule
+- students
+- attendance
+- zoom/join links
+- class controls
+
+------------------------------------------------------------
+6️⃣ ESCALATION POLICY
+------------------------------------------------------------
+Applies ONLY to Monthly Subscriptions.
+Does NOT apply to:
+- Crash Courses
+- Adhoc sessions
+
+------------------------------------------------------------
+7️⃣ STUDENT TRANSPARENCY REQUIREMENTS
+------------------------------------------------------------
+Student should always see:
+- promised class count for month (monthly plans only)
+- scheduled classes
+- adjustment classes (if any)
+- first month proration explanation
+- invoice clarity
+
+------------------------------------------------------------
+8️⃣ MASTER BEHAVIOR MATRIX
+------------------------------------------------------------
+Type | Month-bound | Fixed Count | Proration | Auto Recurring | Auto Link | Adjustment | Escalation
+Monthly First Month | Yes | Partial | Yes | No | Manual | No | No
+Monthly Normal Month | Yes | Yes | No | Yes | Yes | Yes | Yes
+Public Group Monthly | Yes | Yes | Depends 1st Month | Yes | Yes | Yes | Yes
+Private Group Monthly | Yes | Yes | Depends 1st Month | Yes | Yes | Yes | Yes
+Crash Course | No | Yes | No | No | Yes | Makeups only | No
+Adhoc | No | 1 | No | No | Yes | N/A | No
+
+------------------------------------------------------------
+FINAL GUARANTEES
+------------------------------------------------------------
+- Monthly subscriptions are calendar month–based.
+- Monthly plans guarantee fixed classes per month.
+- First month prorated; following months full.
+- Adjustment classes allowed ONLY inside month.
+- Crash courses are duration-based and independent of calendar.
+- Adhoc is single-session only.
+- No rollover ever.
+- Instructor views remain price-agnostic.
+- Escalation applies ONLY to monthly plans.
+
+END OF SPEC
+
+
