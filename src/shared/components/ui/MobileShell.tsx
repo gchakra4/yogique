@@ -7,10 +7,10 @@ interface MobileShellProps {
 
 export const MobileShell: React.FC<MobileShellProps> = ({ title = 'App', children }) => {
     return (
-        <div className="min-h-screen bg-white dark:bg-slate-900 flex flex-col">
-            <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-800 border-b dark:border-slate-700">
+        <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col">
+            <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-800 border-b dark:border-slate-700 shadow-sm">
                 <div className="flex items-center space-x-3">
-                    <button className="w-9 h-9 bg-transparent rounded-lg flex items-center justify-center text-gray-700 dark:text-gray-200">
+                    <button className="w-9 h-9 bg-transparent rounded-lg flex items-center justify-center text-gray-700 dark:text-gray-200 text-2xl">
                         ‹
                     </button>
                     <div className="flex flex-col">
@@ -23,13 +23,13 @@ export const MobileShell: React.FC<MobileShellProps> = ({ title = 'App', childre
                 </div>
             </header>
 
-            <main className="flex-1 overflow-auto p-4">{children}</main>
+            <main className="flex-1 overflow-auto pb-20">{children}</main>
 
-            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-700 p-2 md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}>
-                <div className="max-w-3xl mx-auto flex items-center justify-between">
-                    <button className="flex-1 mx-1 px-4 py-3 bg-white dark:bg-slate-900 border rounded text-sm">Back</button>
-                    <button className="flex-1 mx-1 px-4 py-3 bg-blue-600 text-white rounded text-sm">Create</button>
-                    <button className="flex-1 mx-1 px-4 py-3 bg-white dark:bg-slate-900 border rounded text-sm">Menu</button>
+            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-700 md:hidden shadow-lg" style={{paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)'}}>
+                <div className="flex items-center justify-around px-2 py-2">
+                    <button className="flex-1 py-3 text-gray-600 dark:text-gray-300 text-sm font-medium">Back</button>
+                    <button className="flex-1 py-3 bg-teal-500 text-white rounded-lg text-sm font-medium mx-2">+ New</button>
+                    <button className="flex-1 py-3 text-gray-600 dark:text-gray-300 text-sm font-medium">Menu</button>
                 </div>
             </nav>
         </div>

@@ -72,12 +72,12 @@ export const AssignmentListView = ({
 
     return (
         <div className="overflow-x-hidden">
-            <div className="space-y-6">
+            <div className="space-y-2">
                 {groupedAssignments.map(group => (
-                    <div key={group.key} className="bg-white border border-gray-200 rounded-lg overflow-hidden min-w-0">
+                    <div key={group.key} className="bg-white border-b border-gray-200 overflow-hidden min-w-0">
                         {/* Group Header */}
                         <div
-                            className="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+                            className="bg-white px-3 py-3 border-b border-gray-100 cursor-pointer active:bg-gray-50 transition-colors"
                             onClick={() => toggleGroupExpansion(group.key)}
                         >
                             <div className="flex items-center justify-between">
@@ -143,9 +143,6 @@ export const AssignmentListView = ({
                                             />
                                         )}
                                     <div className="text-right">
-                                        <div className="text-lg font-semibold text-green-600">
-                                            ₹{group.groupInfo.total_revenue.toFixed(2)}
-                                        </div>
                                         <div className="text-sm text-gray-500">
                                             {group.groupInfo.assignment_count} class{group.groupInfo.assignment_count !== 1 ? 'es' : ''}
                                         </div>
@@ -162,7 +159,7 @@ export const AssignmentListView = ({
                                     return (
                                         <div
                                             key={assignment.id}
-                                            className="px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer min-w-0"
+                                            className="px-3 py-3 active:bg-gray-50 transition-colors cursor-pointer min-w-0 border-b border-gray-50 last:border-b-0"
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 if (!isSelectMode) {
@@ -221,7 +218,7 @@ export const AssignmentListView = ({
 
                                                 {/* Payment Amount and Actions */}
                                                 <div className="mt-2 sm:mt-0 flex items-center space-x-4">
-                                    {/* Payment amount hidden per requirement */}
+                                                    {/* Payment amount hidden per requirement */}
                                                     {!isSelectMode && (
                                                         <button
                                                             onClick={(e) => {
