@@ -10,7 +10,7 @@
 
 import { BarChart3, Calendar, CheckSquare, TrendingUp, User, Users } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { getUserRole, isAdminRole, UserRole } from '../services/instructorDataService'
+import { getUserRole, UserRole } from '../services/instructorDataService'
 import { ClassAssignment, UserProfile } from '../types'
 import { getAssignmentType } from '../utils'
 
@@ -32,7 +32,8 @@ export const RoleBasedAnalyticsView = ({ assignments, instructors }: RoleBasedAn
         fetchRole()
     }, [])
 
-    const showPricing = isAdminRole(userRole)
+    // Always hide pricing in the Class Assignment module UI
+    const showPricing = false
 
     const analytics = useMemo(() => {
         const activeAssignments = assignments.filter(a => a.class_status !== 'cancelled')

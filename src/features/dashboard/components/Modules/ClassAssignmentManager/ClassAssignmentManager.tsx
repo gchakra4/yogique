@@ -826,7 +826,7 @@ export function ClassAssignmentManager() {
     }
 
     return (
-        <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto overflow-x-hidden">
+        <div className="px-0 sm:px-6 py-6 sm:max-w-7xl max-w-full sm:mx-auto mx-0 overflow-x-hidden">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
                 <div className="flex-1 min-w-0">

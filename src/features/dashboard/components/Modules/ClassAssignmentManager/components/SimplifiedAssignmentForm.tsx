@@ -329,7 +329,7 @@ export const SimplifiedAssignmentForm = ({
                                                 <strong>Auto-selected:</strong> {filteredPackages[0].name}
                                             </p>
                                             <p className="text-xs text-green-600 mt-1">
-                                                {filteredPackages[0].class_count} classes • ₹{filteredPackages[0].price}
+                                                {filteredPackages[0].class_count} classes
                                             </p>
                                         </div>
                                     ) : (
@@ -341,7 +341,7 @@ export const SimplifiedAssignmentForm = ({
                                             <option value="">-- Select package --</option>
                                             {filteredPackages.map(pkg => (
                                                 <option key={pkg.id} value={pkg.id}>
-                                                    {pkg.name} - {pkg.class_count} classes (₹{pkg.price})
+                                                    {pkg.name} - {pkg.class_count} classes
                                                 </option>
                                             ))}
                                         </select>
