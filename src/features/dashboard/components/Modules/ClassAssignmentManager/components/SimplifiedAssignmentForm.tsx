@@ -1,10 +1,10 @@
 import { IndianRupee, Plus, Save, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Booking, ClassType, Package, UserProfile } from '../types'
+import { AssignUserModal } from './AssignUserModal'
 import { Button } from './Button'
 import { LoadingSpinner } from './LoadingSpinner'
 import { QuickBookingForm } from './QuickBookingForm'
-import { AssignUserModal } from './AssignUserModal'
 
 interface SimplifiedAssignmentFormProps {
     isVisible: boolean
@@ -16,6 +16,7 @@ interface SimplifiedAssignmentFormProps {
     onClose: () => void
     onSubmit: (data: any) => void
     onBookingCreated?: () => Promise<void> // Callback to refresh bookings list
+    initialSelectedBookingId?: string
 }
 
 export const SimplifiedAssignmentForm = ({
@@ -28,9 +29,11 @@ export const SimplifiedAssignmentForm = ({
     onClose,
     onSubmit,
     onBookingCreated
+    ,
+    initialSelectedBookingId
 }: SimplifiedAssignmentFormProps) => {
     // Step 1: Booking selection (MANDATORY)
-    const [selectedBookingId, setSelectedBookingId] = useState('')
+    const [selectedBookingId, setSelectedBookingId] = useState(initialSelectedBookingId || '')
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
     const [showQuickBooking, setShowQuickBooking] = useState(false)
     const [showAssignUserModal, setShowAssignUserModal] = useState(false)
@@ -63,6 +66,12 @@ export const SimplifiedAssignmentForm = ({
     const [errors, setErrors] = useState<any>({})
 
     // When booking selected, load booking details and check access status
+    useEffect(() => {
+        if (initialSelectedBookingId) {
+            setSelectedBookingId(initialSelectedBookingId)
+        }
+    }, [initialSelectedBookingId])
+
     useEffect(() => {
         if (selectedBookingId) {
             const booking = bookings.find(b => b.booking_id === selectedBookingId)
@@ -227,15 +236,15 @@ export const SimplifiedAssignmentForm = ({
                                             <Plus className="w-4 h-4 mr-1" />
                                             Or create new quick booking
                                         </button>
-                                            <div className="flex items-center space-x-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowAssignUserModal(true)}
-                                                    className="text-sm text-green-600 hover:text-green-800 inline-flex items-center"
-                                                >
-                                                    Assign User to Group
-                                                </button>
-                                            </div>
+                                        <div className="flex items-center space-x-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAssignUserModal(true)}
+                                                className="text-sm text-green-600 hover:text-green-800 inline-flex items-center"
+                                            >
+                                                Assign User to Group
+                                            </button>
+                                        </div>
 
                                         {errors.booking && <p className="text-red-600 text-sm">{errors.booking}</p>}
                                     </div>
