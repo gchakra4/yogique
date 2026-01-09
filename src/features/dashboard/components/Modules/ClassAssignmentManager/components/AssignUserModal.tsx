@@ -1,7 +1,7 @@
 import { Save, X } from 'lucide-react'
 import { useState } from 'react'
-import { QuickBookingForm } from './QuickBookingForm'
 import { BookingSelector } from '../../../../../../shared/components/ui/BookingSelector'
+import { QuickBookingForm } from './QuickBookingForm'
 
 interface AssignUserModalProps {
     isOpen: boolean
