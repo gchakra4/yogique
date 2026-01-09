@@ -1,8 +1,8 @@
-import { IndianRupee, Plus, Save, X } from 'lucide-react'
+import { Plus, Save, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { BookingSelector } from '../../../../../../shared/components/ui/BookingSelector'
 import { Booking, ClassType, Package, UserProfile } from '../types'
 import { AssignUserModal } from './AssignUserModal'
-import { BookingSelector } from '../../../../../../shared/components/ui/BookingSelector'
 import { Button } from './Button'
 import { LoadingSpinner } from './LoadingSpinner'
 import { QuickBookingForm } from './QuickBookingForm'
@@ -467,21 +467,7 @@ export const SimplifiedAssignmentForm = ({
                                             {errors.instructor && <p className="text-red-600 text-sm mt-1">{errors.instructor}</p>}
                                         </div>
 
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                <IndianRupee className="w-4 h-4 inline mr-1" />
-                                                Payment Amount (INR)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                value={paymentAmount}
-                                                onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">Auto-filled from package. Adjust if needed.</p>
-                                        </div>
+                                        {/* Payment amount intentionally hidden in simplified assignment UI. */}
 
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -1,7 +1,7 @@
-import { Search, Eye, User, Calendar, Clock } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import { Button } from './Button'
+import { Calendar, Clock, Eye, Search, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { Button } from './Button'
 
 interface Booking {
   booking_id: string
@@ -45,9 +45,9 @@ interface BookingSelectorProps {
   bookingType?: string
 }
 
-export function BookingSelector({ 
-  selectedBookingId, 
-  onBookingSelect, 
+export function BookingSelector({
+  selectedBookingId,
+  onBookingSelect,
   disabled = false,
   bookingsProp,
   bookingType
@@ -83,7 +83,7 @@ export function BookingSelector({
   const fetchBookings = async () => {
     try {
       setLoading(true)
-      
+
       // Fetch bookings that don't have assignments yet (exclude 'completed' and 'cancelled' status)
       let query: any = supabase
         .from('bookings')
@@ -111,15 +111,21 @@ export function BookingSelector({
   const fetchBookingDetails = async (bookingId: string) => {
     try {
       setLoadingDetails(true)
-      
+
       // Call the PostgreSQL function to get booking details
       const { data, error } = await supabase
         .rpc('get_booking_details', { booking_id_param: bookingId })
 
       if (error) throw error
-      
-      if (data && data.length > 0) {
-        setBookingDetails(data[0])
+
+      // RPC may return an array or a single object depending on how the
+      // Postgres function is written. Handle both shapes.
+      if (data) {
+        if (Array.isArray(data)) {
+          setBookingDetails(data[0] || null)
+        } else {
+          setBookingDetails(data as BookingDetails)
+        }
       }
     } catch (error) {
       console.error('Error fetching booking details:', error)
@@ -156,10 +162,10 @@ export function BookingSelector({
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Booking Reference (Optional)
       </label>
-      
+
       <div className="relative">
         {/* Selected Booking Display */}
-        <div 
+        <div
           className={`
             w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 
             cursor-pointer transition-colors flex items-center justify-between
@@ -185,7 +191,7 @@ export function BookingSelector({
               </span>
             )}
           </div>
-          
+
           {selectedBooking && (
             <div className="flex items-center space-x-2">
               <Button
@@ -241,7 +247,7 @@ export function BookingSelector({
                       Clear selection (new client)
                     </div>
                   </div>
-                  
+
                   {filteredBookings.map((booking) => (
                     <div
                       key={booking.booking_id}
@@ -263,7 +269,7 @@ export function BookingSelector({
                               px-2 py-0.5 rounded-full text-xs font-medium
                               ${booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
                                 booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'}
+                                  'bg-gray-100 text-gray-800'}
                             `}>
                               {booking.status}
                             </span>
@@ -339,11 +345,10 @@ export function BookingSelector({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                      <div className={`mt-1 inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                        bookingDetails.booking_status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                      <div className={`mt-1 inline-flex px-2 py-1 rounded-full text-xs font-medium ${bookingDetails.booking_status === 'confirmed' ? 'bg-green-100 text-green-800' :
                         bookingDetails.booking_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          'bg-gray-100 text-gray-800'
+                        }`}>
                         {bookingDetails.booking_status}
                       </div>
                     </div>

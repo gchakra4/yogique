@@ -1,9 +1,21 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Footer } from '../../../shared/components/layout/Footer'
 import { Header } from '../../../shared/components/layout/Header'
 const ClassAssignmentManager = React.lazy(() => import('../components/Modules/ClassAssignmentManager'))
 
 const ClassAssignmentPage: React.FC = () => {
+    // Register service worker when this page mounts so the PWA behaviour is scoped to the module
+    useEffect(() => {
+        // Dynamically import to avoid registering for other pages
+        import('../../../serviceWorkerRegistration').then(mod => {
+            try {
+                mod.registerServiceWorker()
+            } catch (e) {
+                console.warn('SW registration failed on ClassAssignmentPage', e)
+            }
+        })
+    }, [])
+
     return (
         <div className="min-h-screen bg-white dark:bg-slate-900">
             <Header />
