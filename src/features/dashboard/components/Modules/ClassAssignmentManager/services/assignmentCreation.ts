@@ -1871,33 +1871,67 @@ export class AssignmentCreationService {
         const targetClassCount = selectedPackage.class_count
 
         // Calculate validity end date from start date + validity days
+        // If validity_days is null, parse from duration field (e.g., "3 months")
         let validityEndDate: Date | null = null
         let validityDays: number | null = null
         if (selectedPackage && typeof selectedPackage.validity_days === 'number' && selectedPackage.validity_days > 0) {
             validityDays = selectedPackage.validity_days
+        } else if (selectedPackage && selectedPackage.duration) {
+            // Parse duration string like "3 months", "60 days", "8 weeks"
+            const durationMatch = selectedPackage.duration.match(/^(\d+)\s+(day|days|week|weeks|month|months)$/i)
+            if (durationMatch) {
+                const number = parseInt(durationMatch[1])
+                const unit = durationMatch[2].toLowerCase()
+                if (unit.startsWith('day')) {
+                    validityDays = number
+                } else if (unit.startsWith('week')) {
+                    validityDays = number * 7
+                } else if (unit.startsWith('month')) {
+                    validityDays = number * 30 // Approximate
+                }
+                console.log(`Parsed crash course duration "${selectedPackage.duration}" as ${validityDays} days`)
+            }
         } else {
-            // Fallback: fetch from DB in case packages list didn't include validity_days
+            // Fallback: fetch from DB in case packages list didn't include validity_days or duration
             try {
                 const { data: pkgData } = await supabase
                     .from('class_packages')
-                    .select('validity_days')
+                    .select('validity_days, duration')
                     .eq('id', formData.package_id)
                     .single()
-                if (pkgData && typeof pkgData.validity_days === 'number' && pkgData.validity_days > 0) {
-                    validityDays = pkgData.validity_days
+                if (pkgData) {
+                    if (typeof pkgData.validity_days === 'number' && pkgData.validity_days > 0) {
+                        validityDays = pkgData.validity_days
+                    } else if (pkgData.duration) {
+                        const durationMatch = pkgData.duration.match(/^(\d+)\s+(day|days|week|weeks|month|months)$/i)
+                        if (durationMatch) {
+                            const number = parseInt(durationMatch[1])
+                            const unit = durationMatch[2].toLowerCase()
+                            if (unit.startsWith('day')) {
+                                validityDays = number
+                            } else if (unit.startsWith('week')) {
+                                validityDays = number * 7
+                            } else if (unit.startsWith('month')) {
+                                validityDays = number * 30
+                            }
+                            console.log(`Fetched and parsed duration "${pkgData.duration}" as ${validityDays} days`)
+                        }
+                    }
                 }
             } catch (e) {
-                console.warn('Could not fetch package validity_days, defaulting to 30 days', e)
+                console.warn('Could not fetch package validity_days or duration', e)
             }
         }
 
-        if (!validityDays || validityDays <= 0) {
-            validityDays = 30 // default
+        // Only set date boundary if validity_days is specified or parsed from duration
+        if (validityDays && validityDays > 0) {
+            // Inclusive validity end (start + validityDays - 1)
+            validityEndDate = parseDateToUTC(formData.start_date)
+            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + (validityDays - 1))
+            console.log(`Crash course validity period: ${formData.start_date} to ${validityEndDate.toISOString().split('T')[0]} (${validityDays} days)`)
+        } else {
+            console.log(`Crash course has no validity constraint - generating ${targetClassCount} classes based on schedule only`)
         }
-
-        // Inclusive validity end (start + validityDays - 1)
-        validityEndDate = parseDateToUTC(formData.start_date)
-        validityEndDate.setUTCDate(validityEndDate.getUTCDate() + (validityDays - 1))
 
         // Sort selected days to ensure proper chronological order
         const sortedWeeklyDays = [...formData.weekly_days].sort((a, b) => a - b)
@@ -1990,10 +2024,11 @@ export class AssignmentCreationService {
         const targetClassCount = selectedPackage.class_count
 
         // Calculate validity end date from start date + validity days
+        // Use inclusive counting (day 1 = start date, so add validityDays - 1)
         let validityEndDate: Date | null = null
         if (selectedPackage.validity_days && selectedPackage.validity_days > 0) {
             validityEndDate = parseDateToUTC(formData.start_date)
-            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + selectedPackage.validity_days)
+            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + (selectedPackage.validity_days - 1))
         }
 
         // Sort selected days to ensure proper chronological order
@@ -2028,11 +2063,13 @@ export class AssignmentCreationService {
                     return assignments
                 }
 
+                // Format date as UTC YYYY-MM-DD to match validation parsing (avoid IST offset shifts)
+                const dateStr = `${classDate.getUTCFullYear()}-${String(classDate.getUTCMonth() + 1).padStart(2, '0')}-${String(classDate.getUTCDate()).padStart(2, '0')}`
                 const assignment: any = {
                     package_id: formData.package_id,
                     class_package_id: formData.package_id,
                     scheduled_class_id: null,
-                    date: formatDateIST(classDate),
+                    date: dateStr,
                     start_time: formData.start_time,
                     end_time: formData.end_time,
                     instructor_id: formData.instructor_id,
