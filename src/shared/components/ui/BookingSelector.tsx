@@ -345,8 +345,21 @@ export function BookingSelector({
 
       {/* Booking Details Modal */}
       {showBookingDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onTouchStart={(e) => {
+            // start tracking touch for swipe-down-to-dismiss
+            ;(window as any).__bs_touch_start_y = e.touches ? e.touches[0].clientY : 0
+          }}
+          onTouchEnd={(e) => {
+            const startY = (window as any).__bs_touch_start_y || 0
+            const endY = e.changedTouches ? e.changedTouches[0].clientY : 0
+            if (endY - startY > 120) {
+              setShowBookingDetails(false)
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all duration-200 ease-out scale-100">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
