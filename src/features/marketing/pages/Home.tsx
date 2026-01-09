@@ -164,6 +164,15 @@ export function Home() {
     }
   ]
 
+  // Carousel ref and scroll helpers for testimonials
+  const testimonialsRef = useRef<HTMLDivElement | null>(null)
+  const scrollTestimonials = (direction: 'next' | 'prev') => {
+    const el = testimonialsRef.current
+    if (!el) return
+    const amount = Math.max(Math.floor(el.clientWidth * 0.8), 320)
+    el.scrollBy({ left: direction === 'next' ? amount : -amount, behavior: 'smooth' })
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900">
       {/* Hero Section */}
@@ -670,56 +679,75 @@ export function Home() {
             </p>
           </Reveal>
 
-          <div className="space-y-8">
-            {testimonials.map((testimonial, index) => (
-              <Reveal key={index} delay={100 + index * 50}>
-                <div className="relative group">
-                  {/* Horizontal Testimonial Strip */}
-                  <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 dark:border-slate-700">
-                    <div className="grid md:grid-cols-[auto_1fr] gap-0">
-                      {/* Left: Avatar & Info Section */}
-                      <div className="relative bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 p-8 md:p-10 flex flex-col items-center justify-center min-w-[280px] border-r border-gray-100 dark:border-slate-700">
-                        {/* Decorative Quote */}
-                        <div className="absolute top-4 left-4 text-blue-200 dark:text-blue-900/30 text-6xl font-serif leading-none">"</div>
+          <div className="relative">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => scrollTestimonials('prev')}
+                aria-label="Previous testimonials"
+                className="hidden md:inline-flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-md hover:shadow-lg border border-gray-100 dark:border-slate-700"
+              >
+                <ArrowRight className="w-4 h-4 rotate-180" />
+              </button>
 
-                        <img
-                          src={testimonial.image}
-                          alt={testimonial.name}
-                          className="w-20 h-20 rounded-full object-cover ring-4 ring-white dark:ring-slate-700 shadow-lg mb-4 relative z-10"
-                        />
-                        <h4 className="font-bold text-gray-900 dark:text-white text-lg text-center mb-1">{testimonial.name}</h4>
-                        <p className="text-sm text-gray-600 dark:text-slate-400 text-center mb-2">{testimonial.position}</p>
-                        <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                          <Globe className="w-3 h-3" />
-                          {testimonial.location}
-                        </p>
+              <div
+                ref={testimonialsRef}
+                className="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth py-4 px-2"
+              >
+                {testimonials.map((testimonial, index) => (
+                  <div key={index} className="min-w-[300px] md:min-w-[540px] snap-start">
+                    <Reveal delay={100 + index * 50}>
+                      <div className="relative group">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 dark:border-slate-700">
+                          <div className="grid md:grid-cols-[auto_1fr] gap-0">
+                            <div className="relative bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 p-8 md:p-10 flex flex-col items-center justify-center min-w-[280px] border-r border-gray-100 dark:border-slate-700">
+                              <div className="absolute top-4 left-4 text-blue-200 dark:text-blue-900/30 text-6xl font-serif leading-none">"</div>
 
-                        {/* Star Rating */}
-                        <div className="flex gap-0.5 text-yellow-400 dark:text-yellow-300 mt-4">
-                          {[...Array(5)].map((_, i) => (
-                            <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                              <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                            </svg>
-                          ))}
+                              <img
+                                src={testimonial.image}
+                                alt={testimonial.name}
+                                className="w-20 h-20 rounded-full object-cover ring-4 ring-white dark:ring-slate-700 shadow-lg mb-4 relative z-10"
+                              />
+                              <h4 className="font-bold text-gray-900 dark:text-white text-lg text-center mb-1">{testimonial.name}</h4>
+                              <p className="text-sm text-gray-600 dark:text-slate-400 text-center mb-2">{testimonial.position}</p>
+                              <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                                <Globe className="w-3 h-3" />
+                                {testimonial.location}
+                              </p>
+
+                              <div className="flex gap-0.5 text-yellow-400 dark:text-yellow-300 mt-4">
+                                {[...Array(5)].map((_, i) => (
+                                  <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                  </svg>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="p-8 md:p-10 flex items-center">
+                              <div>
+                                <p className="text-gray-700 dark:text-slate-300 text-base leading-relaxed italic font-serif">
+                                  "{testimonial.content}"
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-blue-400 group-hover:from-emerald-400 group-hover:via-blue-400 group-hover:to-emerald-400 transition-all duration-500"></div>
                         </div>
                       </div>
-
-                      {/* Right: Quote Section */}
-                      <div className="p-8 md:p-10 flex items-center">
-                        <div>
-                          <p className="text-gray-700 dark:text-slate-300 text-base leading-relaxed italic font-serif">
-                            "{testimonial.content}"
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom accent line */}
-                    <div className="h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-blue-400 group-hover:from-emerald-400 group-hover:via-blue-400 group-hover:to-emerald-400 transition-all duration-500"></div>
+                    </Reveal>
                   </div>
-                </div>
-              </Reveal>
-            ))}
+                ))}
+              </div>
+
+              <button
+                onClick={() => scrollTestimonials('next')}
+                aria-label="Next testimonials"
+                className="hidden md:inline-flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-md hover:shadow-lg border border-gray-100 dark:border-slate-700"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* CTA Section */}
