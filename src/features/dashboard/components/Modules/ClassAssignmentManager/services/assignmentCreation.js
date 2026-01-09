@@ -1384,6 +1384,71 @@ export class AssignmentCreationService {
         const bookingIds = formData.booking_ids && formData.booking_ids.length > 0
             ? formData.booking_ids
             : (formData.booking_id ? [formData.booking_id] : []);
+        // Determine and attach a class_container_id for crash-course assignments (same approach as monthly)
+        let resolvedContainerId = null;
+        if (bookingIds.length > 0) {
+            const firstBookingId = bookingIds[0];
+            const bookingType = formData.booking_type || 'individual';
+            try {
+                const billingMonth = (formData.start_date && formData.start_date.length >= 7) ? formData.start_date.slice(0, 7) : new Date().toISOString().slice(0, 7);
+                let containerCode;
+                if (bookingType === 'individual') {
+                    containerCode = `${firstBookingId}-${billingMonth}`;
+                }
+                else {
+                    const instructorPart = formData.instructor_id ? formData.instructor_id.substring(0, 8) : 'UNK';
+                    const packagePart = formData.package_id ? formData.package_id.substring(0, 8) : 'GRP';
+                    containerCode = `${instructorPart}-${packagePart}-${billingMonth}`;
+                }
+                const { data: existingContainer, error: existingErr } = await supabase
+                    .from('class_containers')
+                    .select('id')
+                    .eq('container_code', containerCode)
+                    .limit(1)
+                    .single();
+                if (existingErr) {
+                    console.warn('Error checking existing container for crash course:', existingErr);
+                }
+                if (existingContainer && existingContainer.id) {
+                    resolvedContainerId = existingContainer.id;
+                }
+                else {
+                    const displayName = `${(formData.client_name && formData.client_name.trim() !== '') ? formData.client_name : containerCode} (${billingMonth})`;
+                    const maxCount = bookingType === 'individual' ? 1 : 30;
+                    const currentUserId = await getCurrentUserId();
+                    const { data: newContainer, error: createErr } = await supabase
+                        .from('class_containers')
+                        .insert([{
+                            container_code: containerCode,
+                            display_name: displayName,
+                            container_type: bookingType,
+                            instructor_id: (formData.instructor_id && formData.instructor_id.trim() !== '') ? formData.instructor_id : null,
+                            package_id: (formData.package_id && formData.package_id.trim() !== '') ? formData.package_id : null,
+                            max_booking_count: maxCount,
+                            created_by: currentUserId,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }])
+                        .select('id')
+                        .single();
+                    if (!createErr && newContainer && newContainer.id) {
+                        resolvedContainerId = newContainer.id;
+                    }
+                    else if (createErr) {
+                        console.warn('Failed to create container for crash-course assignments:', createErr);
+                    }
+                }
+            }
+            catch (err) {
+                console.warn('Container resolution error for crash-course:', err);
+            }
+        }
+        // Attach container id to assignments before insert (DB requires non-null class_container_id)
+        if (resolvedContainerId) {
+            assignments.forEach((a) => {
+                a.class_container_id = resolvedContainerId;
+            });
+        }
         const cleanedAssignments = await cleanAssignmentsBatch(assignments, bookingIds, 'crash', formData.booking_type || 'individual');
         const { data: insertedAssignments, error } = await supabase
             .from('class_assignments')

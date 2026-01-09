@@ -4,6 +4,7 @@ import { Booking, ClassType, Package, UserProfile } from '../types'
 import { Button } from './Button'
 import { LoadingSpinner } from './LoadingSpinner'
 import { QuickBookingForm } from './QuickBookingForm'
+import { AssignUserModal } from './AssignUserModal'
 
 interface SimplifiedAssignmentFormProps {
     isVisible: boolean
@@ -32,6 +33,7 @@ export const SimplifiedAssignmentForm = ({
     const [selectedBookingId, setSelectedBookingId] = useState('')
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
     const [showQuickBooking, setShowQuickBooking] = useState(false)
+    const [showAssignUserModal, setShowAssignUserModal] = useState(false)
 
     // ⚡ PHASE 2: Booking access status tracking
     const [bookingAccessStatus, setBookingAccessStatus] = useState<'active' | 'overdue_grace' | 'overdue_locked' | null>(null)
@@ -225,6 +227,15 @@ export const SimplifiedAssignmentForm = ({
                                             <Plus className="w-4 h-4 mr-1" />
                                             Or create new quick booking
                                         </button>
+                                            <div className="flex items-center space-x-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowAssignUserModal(true)}
+                                                    className="text-sm text-green-600 hover:text-green-800 inline-flex items-center"
+                                                >
+                                                    Assign User to Group
+                                                </button>
+                                            </div>
 
                                         {errors.booking && <p className="text-red-600 text-sm">{errors.booking}</p>}
                                     </div>
@@ -511,6 +522,18 @@ export const SimplifiedAssignmentForm = ({
                             </Button>
                         </div>
                     </form>
+                    {showAssignUserModal && (
+                        <AssignUserModal
+                            isOpen={showAssignUserModal}
+                            onClose={() => setShowAssignUserModal(false)}
+                            defaultPackageId={selectedPackageId || undefined}
+                            onAssigned={(bookingId: string) => {
+                                setSelectedBookingId(bookingId)
+                                setShowAssignUserModal(false)
+                                if (onBookingCreated) onBookingCreated()
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         </div>
