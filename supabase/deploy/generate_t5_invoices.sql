@@ -427,13 +427,13 @@ GRANT EXECUTE ON FUNCTION generate_t5_invoices_impl(uuid, boolean) TO service_ro
 COMMENT ON FUNCTION generate_t5_invoices_impl(p_booking_id uuid, p_dry_run boolean) IS 
 'PHASE 8: Generate invoices AND monthly classes 5 days before billing cycle for recurring bookings. Called by daily cron job.';
 
--- SQL wrapper: zero-arg (dry-run)
+-- SQL wrapper: zero-arg (PRODUCTION MODE)
 CREATE OR REPLACE FUNCTION generate_t5_invoices()
 RETURNS jsonb
 LANGUAGE sql
 SECURITY DEFINER
 AS $$
-    SELECT generate_t5_invoices_impl(NULL, true);
+    SELECT generate_t5_invoices_impl(NULL, false);
 $$;
 
 -- SQL wrapper: two-arg forwarding to impl

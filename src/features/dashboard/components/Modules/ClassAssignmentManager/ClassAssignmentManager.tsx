@@ -332,6 +332,8 @@ export function ClassAssignmentManager() {
 
     // Enhanced filtering and search functionality
     const filteredAssignments = useMemo(() => {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
         return assignments.filter(assignment => {
             // Search term filter
             if (searchTerm) {
@@ -373,6 +375,14 @@ export function ClassAssignmentManager() {
             // Client name filter
             if (filters.clientName && !getClientNames(assignment).toLowerCase().includes(filters.clientName.toLowerCase())) return false
 
+            // Hide past classes that remain in 'pending' status (avoid showing stale pending items)
+            try {
+                const assignmentDate = assignment.date ? new Date(assignment.date + 'T00:00:00') : null
+                if (assignmentDate && assignmentDate < today && assignment.class_status === 'pending') return false
+            } catch (e) {
+                // ignore parsing errors and keep the assignment
+            }
+
             return true
         })
     }, [assignments, searchTerm, filters])
@@ -410,7 +420,11 @@ export function ClassAssignmentManager() {
                 groupKey = `container_${containerId}`
                 // Derive type from container type
                 const containerType = assignment.class_container?.container_type
-                groupType = containerType === 'individual' ? 'adhoc' :
+                // If a container is marked as 'individual' but the assignment itself is schedule_type 'monthly',
+                // treat it as a monthly container (fixes incorrect 'Adhoc' label for individual monthly containers).
+                groupType = containerType === 'individual'
+                    ? (assignment.schedule_type === 'monthly' ? 'monthly' : 'adhoc')
+                    :
                     containerType === 'public_group' ? 'monthly' :
                         containerType === 'private_group' ? 'monthly' :
                             containerType === 'crash_course' ? 'crash_course' :

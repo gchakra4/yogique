@@ -173,6 +173,8 @@ export const SimplifiedAssignmentForm = ({
 
     if (!isVisible) return null
 
+    console.log('SimplifiedAssignmentForm rendering with:', { isVisible, bookingsCount: bookings.length, packagesCount: packages.length })
+
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
