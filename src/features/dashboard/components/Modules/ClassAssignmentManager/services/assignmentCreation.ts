@@ -64,31 +64,45 @@ const validateBookingExists = async (bookingId: string): Promise<boolean> => {
 
     try {
         console.log('Validating booking ID:', bookingId.trim())
-        const { data: bookings, error: bookingError } = await supabase
+        // Try to match by external booking code first
+        const trimmed = bookingId.trim()
+        const { data: bookingsByCode, error: bookingError } = await supabase
             .from('bookings')
-            .select('booking_id')
-            .eq('booking_id', bookingId.trim())
+            .select('booking_id, id')
+            .eq('booking_id', trimmed)
             .limit(1)
 
         if (bookingError) {
-            console.error('Booking validation failed:', {
-                bookingId: bookingId.trim(),
-                error: bookingError,
-                data: bookings
-            })
-            return false
+            console.warn('Booking validation query by booking_id failed, will try by internal id:', bookingError)
         }
 
-        if (!bookings || bookings.length === 0) {
-            console.error('Booking validation failed - no booking found:', {
-                bookingId: bookingId.trim(),
-                data: bookings
-            })
-            return false
+        if (bookingsByCode && bookingsByCode.length > 0) {
+            console.log('Booking validation successful by booking_id for:', trimmed)
+            return true
         }
 
-        console.log('Booking validation successful for ID:', bookingId.trim())
-        return true
+        // Fallback: try to match by internal id (uuid)
+        try {
+            const { data: bookingsById, error: idErr } = await supabase
+                .from('bookings')
+                .select('booking_id, id')
+                .eq('id', trimmed)
+                .limit(1)
+
+            if (idErr) {
+                console.warn('Booking validation query by id failed:', idErr)
+            }
+
+            if (bookingsById && bookingsById.length > 0) {
+                console.log('Booking validation successful by internal id for:', trimmed)
+                return true
+            }
+        } catch (e) {
+            console.warn('Exception during fallback booking validation by id:', e)
+        }
+
+        console.error('Booking validation failed - no booking found for:', trimmed)
+        return false
     } catch (error) {
         console.error('Exception during booking validation:', error)
         return false
@@ -1447,6 +1461,10 @@ export class AssignmentCreationService {
         // Find the start of the week (Sunday)
         currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() - currentWeekStart.getUTCDay())
 
+        // Calculate calendar month end so we don't spill into next month (first-month proration)
+        const monthBoundaries = getCalendarMonthBoundaries(startDate)
+        const monthEnd = monthBoundaries.endDate
+
         while (classesCreated < formData.total_classes) {
             // For each week, create classes for all selected days
             for (const dayOfWeek of sortedWeeklyDays) {
@@ -1465,6 +1483,12 @@ export class AssignmentCreationService {
                 // Check if we've exceeded the validity period
                 if (validityEndDate && classDate > validityEndDate) {
                     console.warn(`Reached validity end date (${formData.validity_end_date}). Created ${classesCreated} classes out of requested ${formData.total_classes}.`)
+                    return assignments
+                }
+
+                // Enforce calendar month boundaries: do not schedule classes beyond the calendar month
+                if (classDate > monthEnd) {
+                    // We're in first-month generation: stop and return what we have (prorated)
                     return assignments
                 }
 
@@ -1496,6 +1520,11 @@ export class AssignmentCreationService {
 
             // Move to next week
             currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() + 7)
+
+            // If the next week's start is already beyond the month end, stop generating (proration)
+            if (currentWeekStart > monthEnd) {
+                break
+            }
 
             // Safety check to prevent infinite loops
             if (assignments.length > 1000) {
@@ -1843,10 +1872,32 @@ export class AssignmentCreationService {
 
         // Calculate validity end date from start date + validity days
         let validityEndDate: Date | null = null
-        if (selectedPackage.validity_days && selectedPackage.validity_days > 0) {
-            validityEndDate = parseDateToUTC(formData.start_date)
-            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + selectedPackage.validity_days)
+        let validityDays: number | null = null
+        if (selectedPackage && typeof selectedPackage.validity_days === 'number' && selectedPackage.validity_days > 0) {
+            validityDays = selectedPackage.validity_days
+        } else {
+            // Fallback: fetch from DB in case packages list didn't include validity_days
+            try {
+                const { data: pkgData } = await supabase
+                    .from('class_packages')
+                    .select('validity_days')
+                    .eq('id', formData.package_id)
+                    .single()
+                if (pkgData && typeof pkgData.validity_days === 'number' && pkgData.validity_days > 0) {
+                    validityDays = pkgData.validity_days
+                }
+            } catch (e) {
+                console.warn('Could not fetch package validity_days, defaulting to 30 days', e)
+            }
         }
+
+        if (!validityDays || validityDays <= 0) {
+            validityDays = 30 // default
+        }
+
+        // Inclusive validity end (start + validityDays - 1)
+        validityEndDate = parseDateToUTC(formData.start_date)
+        validityEndDate.setUTCDate(validityEndDate.getUTCDate() + (validityDays - 1))
 
         // Sort selected days to ensure proper chronological order
         const sortedWeeklyDays = [...formData.weekly_days].sort((a, b) => a - b)
