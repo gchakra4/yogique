@@ -141,19 +141,25 @@ export const AssignmentListView = ({
                                     // - monthly: only classes within the current month
                                     // - crash_course: full duration (all assignments in the group)
                                     // - others: full group's assignments
+                                    // NOTE: some groups may be labelled 'monthly' at the container level
+                                    // even when they are crash courses; detect crash-course by heuristics
+                                    const looksLikeCrash = group.type === 'crash_course'
+                                        || group.groupInfo.pattern_description === 'Crash Course'
+                                        || group.assignments.some(a => a.schedule_type === 'crash' || (a as any).recurrence_type === 'crash')
+                                        || group.assignments.some(a => a.class_container && (a.class_container as any).container_type === 'crash_course')
+
                                     let inPeriod: typeof group.assignments = []
-                                    if (group.type === 'monthly') {
+                                    if (group.type === 'monthly' && !looksLikeCrash) {
                                         inPeriod = group.assignments.filter(a => (a.date || '').startsWith(yyyyMm))
-                                    } else if (group.type === 'crash_course') {
-                                        inPeriod = group.assignments
                                     } else {
+                                        // crash_course or other types: full duration
                                         inPeriod = group.assignments
                                     }
 
                                     const total = inPeriod.length
 
                                     // Remaining = classes that are scheduled for today or later and not completed/cancelled
-                                    const todayDateOnly = new Date(today.toISOString().slice(0,10))
+                                    const todayDateOnly = new Date(today.toISOString().slice(0, 10))
                                     const remaining = inPeriod.filter(a => {
                                         if (!a.date) return false
                                         const d = new Date(a.date)
