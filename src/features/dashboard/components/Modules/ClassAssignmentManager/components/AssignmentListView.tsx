@@ -136,17 +136,32 @@ export const AssignmentListView = ({
                                 {(() => {
                                     const today = new Date()
                                     const yyyyMm = today.toISOString().slice(0, 7)
-                                    const inPeriod = group.type === 'monthly'
-                                        ? group.assignments.filter(a => (a.date || '').startsWith(yyyyMm))
-                                        : group.assignments
+
+                                    // Compute the set of assignments that define the "period" for counting
+                                    // - monthly: only classes within the current month
+                                    // - crash_course: full duration (all assignments in the group)
+                                    // - others: full group's assignments
+                                    let inPeriod: typeof group.assignments = []
+                                    if (group.type === 'monthly') {
+                                        inPeriod = group.assignments.filter(a => (a.date || '').startsWith(yyyyMm))
+                                    } else if (group.type === 'crash_course') {
+                                        inPeriod = group.assignments
+                                    } else {
+                                        inPeriod = group.assignments
+                                    }
+
                                     const total = inPeriod.length
-                                    const todayDateOnly = new Date(today.toISOString().slice(0, 10))
+
+                                    // Remaining = classes that are scheduled for today or later and not completed/cancelled
+                                    const todayDateOnly = new Date(today.toISOString().slice(0,10))
                                     const remaining = inPeriod.filter(a => {
+                                        if (!a.date) return false
                                         const d = new Date(a.date)
                                         const futureOrToday = d >= todayDateOnly
                                         const notCompleted = a.class_status !== 'completed' && a.class_status !== 'cancelled'
                                         return futureOrToday && notCompleted
                                     }).length
+
                                     return (
                                         <div className="text-right">
                                             <div className="text-sm text-gray-600">Remaining / Total</div>
