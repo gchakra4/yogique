@@ -1,0 +1,21 @@
+{
+    "name": "Yogique Admin",
+    "short_name": "Yogique",
+    "start_url": "/dashboard/class_assignment",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#0ea5a4",
+    "description": "Admin tools for Yogique: Class Assignment Manager",
+    "icons": [
+        {
+            "src": "/icons/icon-192.svg",
+            "sizes": "192x192",
+            "type": "image/svg+xml"
+        },
+        {
+            "src": "/icons/icon-512.svg",
+            "sizes": "512x512",
+            "type": "image/svg+xml"
+        }
+    ]
+}

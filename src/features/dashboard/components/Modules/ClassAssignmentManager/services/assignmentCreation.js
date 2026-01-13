@@ -41,28 +41,40 @@ const validateBookingExists = async (bookingId) => {
     }
     try {
         console.log('Validating booking ID:', bookingId.trim());
-        const { data: bookings, error: bookingError } = await supabase
+        // Try to match by external booking code first
+        const trimmed = bookingId.trim();
+        const { data: bookingsByCode, error: bookingError } = await supabase
             .from('bookings')
-            .select('booking_id')
-            .eq('booking_id', bookingId.trim())
+            .select('booking_id, id')
+            .eq('booking_id', trimmed)
             .limit(1);
         if (bookingError) {
-            console.error('Booking validation failed:', {
-                bookingId: bookingId.trim(),
-                error: bookingError,
-                data: bookings
-            });
-            return false;
+            console.warn('Booking validation query by booking_id failed, will try by internal id:', bookingError);
         }
-        if (!bookings || bookings.length === 0) {
-            console.error('Booking validation failed - no booking found:', {
-                bookingId: bookingId.trim(),
-                data: bookings
-            });
-            return false;
+        if (bookingsByCode && bookingsByCode.length > 0) {
+            console.log('Booking validation successful by booking_id for:', trimmed);
+            return true;
         }
-        console.log('Booking validation successful for ID:', bookingId.trim());
-        return true;
+        // Fallback: try to match by internal id (uuid)
+        try {
+            const { data: bookingsById, error: idErr } = await supabase
+                .from('bookings')
+                .select('booking_id, id')
+                .eq('id', trimmed)
+                .limit(1);
+            if (idErr) {
+                console.warn('Booking validation query by id failed:', idErr);
+            }
+            if (bookingsById && bookingsById.length > 0) {
+                console.log('Booking validation successful by internal id for:', trimmed);
+                return true;
+            }
+        }
+        catch (e) {
+            console.warn('Exception during fallback booking validation by id:', e);
+        }
+        console.error('Booking validation failed - no booking found for:', trimmed);
+        return false;
     }
     catch (error) {
         console.error('Exception during booking validation:', error);
@@ -174,6 +186,11 @@ const cleanAssignmentData = async (data) => {
             throw new Error(`Invalid ${field.replace('_', ' ')} format. Please refresh the page and try again.`);
         }
     });
+    // Remove fields not present in the DB schema to avoid client-side schema cache errors
+    if ('calendar_month' in cleaned)
+        delete cleaned.calendar_month;
+    if ('is_adjustment' in cleaned)
+        delete cleaned.is_adjustment;
     console.log('Original data:', JSON.stringify(data, null, 2));
     console.log('Cleaned data:', JSON.stringify(cleaned, null, 2));
     return cleaned;
@@ -604,6 +621,83 @@ export class AssignmentCreationService {
         const assignmentBookingIds = formData.booking_ids && formData.booking_ids.length > 0
             ? formData.booking_ids
             : (formData.booking_id ? [formData.booking_id] : []);
+        // Determine and attach a class_container_id for this assignment
+        let resolvedContainerId = null;
+        if (assignmentBookingIds.length > 0) {
+            const firstBookingId = assignmentBookingIds[0];
+            const bookingType = formData.booking_type || 'individual';
+            try {
+                const billingMonth = (formData.date && formData.date.length >= 7) ? formData.date.slice(0, 7) : new Date().toISOString().slice(0, 7);
+                // Container code pattern depends on booking type:
+                // - Individual: {bookingId}-{YYYY-MM}
+                // - Groups: {instructorId}-{packageId}-{YYYY-MM} or UUID-based
+                let containerCode;
+                if (bookingType === 'individual') {
+                    containerCode = `${firstBookingId}-${billingMonth}`;
+                }
+                else {
+                    // For groups, use instructor+package or generate unique code
+                    const instructorPart = formData.instructor_id ? formData.instructor_id.substring(0, 8) : 'UNK';
+                    const packagePart = formData.package_id ? formData.package_id.substring(0, 8) : 'GRP';
+                    containerCode = `${instructorPart}-${packagePart}-${billingMonth}`;
+                }
+                // Try to find existing container
+                const { data: existingContainer, error: existingErr } = await supabase
+                    .from('class_containers')
+                    .select('id')
+                    .eq('container_code', containerCode)
+                    .limit(1)
+                    .single();
+                if (existingErr) {
+                    // not fatal - we'll attempt to create below
+                    console.warn('Error checking existing container:', existingErr);
+                }
+                if (existingContainer && existingContainer.id) {
+                    resolvedContainerId = existingContainer.id;
+                }
+                else {
+                    // Create a minimal container record (non-destructive)
+                    const displayName = `${(formData.client_name && formData.client_name.trim() !== '') ? formData.client_name : containerCode} (${billingMonth})`;
+                    const maxCount = bookingType === 'individual' ? 1 : 30; // Groups default to 30
+                    const { data: newContainer, error: createErr } = await supabase
+                        .from('class_containers')
+                        .insert([{
+                            container_code: containerCode,
+                            display_name: displayName,
+                            container_type: bookingType,
+                            instructor_id: (formData.instructor_id && formData.instructor_id.trim() !== '') ? formData.instructor_id : null,
+                            package_id: (formData.package_id && formData.package_id.trim() !== '') ? formData.package_id : null,
+                            max_booking_count: maxCount,
+                            created_by: currentUserId,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }])
+                        .select('id')
+                        .single();
+                    if (createErr) {
+                        console.warn('Failed to create container for assignment:', createErr);
+                    }
+                    else if (newContainer && newContainer.id) {
+                        resolvedContainerId = newContainer.id;
+                    }
+                }
+            }
+            catch (err) {
+                console.warn('Container resolution error:', err);
+            }
+        }
+        // Attach container id to assignment row if resolved
+        if (resolvedContainerId) {
+            try {
+                await supabase
+                    .from('class_assignments')
+                    .update({ class_container_id: resolvedContainerId })
+                    .eq('id', insertedAssignment.id);
+            }
+            catch (err) {
+                console.warn('Failed to attach class_container_id to assignment:', err);
+            }
+        }
         if (assignmentBookingIds.length > 0) {
             try {
                 await createAssignmentBookings(insertedAssignment.id, assignmentBookingIds);
@@ -611,6 +705,18 @@ export class AssignmentCreationService {
                 for (const bookingId of assignmentBookingIds) {
                     if (bookingId && bookingId.trim() !== '') {
                         await this.updateBookingStatus(bookingId, 'completed');
+                    }
+                }
+                // Populate assignment_bookings.class_container_id for the created links
+                if (resolvedContainerId) {
+                    try {
+                        await supabase
+                            .from('assignment_bookings')
+                            .update({ class_container_id: resolvedContainerId })
+                            .eq('assignment_id', insertedAssignment.id);
+                    }
+                    catch (abErr) {
+                        console.warn('Failed to update assignment_bookings with class_container_id:', abErr);
                     }
                 }
             }
@@ -827,6 +933,80 @@ export class AssignmentCreationService {
         const bookingIds = formData.booking_ids && formData.booking_ids.length > 0
             ? formData.booking_ids
             : (formData.booking_id ? [formData.booking_id] : []);
+        // Resolve or create a class_container BEFORE insert (to satisfy NOT NULL constraint)
+        let resolvedContainerId = null;
+        try {
+            const currentUserId = await getCurrentUserId();
+            const firstBooking = bookingIds[0] && bookingIds[0].trim();
+            const bookingType = formData.booking_type || 'individual';
+            // Container code pattern depends on booking type:
+            // - Individual: T5-{bookingId}-{YYYY-MM}
+            // - Groups: T5-{instructorId}-{packageId}-{YYYY-MM}
+            let containerCode;
+            if (bookingType === 'individual' && firstBooking) {
+                containerCode = `T5-${firstBooking}-${calendarMonth}`;
+            }
+            else {
+                // For groups, use instructor+package pattern
+                const instructorPart = formData.instructor_id ? formData.instructor_id.substring(0, 8) : 'UNK';
+                const packagePart = formData.package_id ? formData.package_id.substring(0, 8) : 'GRP';
+                containerCode = `T5-${instructorPart}-${packagePart}-${calendarMonth}`;
+            }
+            // Try to find existing container
+            try {
+                const { data: existing, error: findErr } = await supabase
+                    .from('class_containers')
+                    .select('id')
+                    .eq('container_code', containerCode)
+                    .limit(1)
+                    .single();
+                if (!findErr && existing && existing.id) {
+                    resolvedContainerId = existing.id;
+                }
+            }
+            catch (e) {
+                console.warn('Error querying for existing container:', e);
+            }
+            // Create if missing
+            if (!resolvedContainerId) {
+                try {
+                    const maxCount = bookingType === 'individual' ? 1 : 30; // Groups default to 30
+                    const { data: newCont, error: createErr } = await supabase
+                        .from('class_containers')
+                        .insert([{
+                            container_code: containerCode,
+                            container_type: bookingType,
+                            display_name: containerCode,
+                            package_id: formData.package_id || null,
+                            instructor_id: formData.instructor_id || null,
+                            max_booking_count: maxCount,
+                            created_by: currentUserId,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }])
+                        .select('id')
+                        .single();
+                    if (!createErr && newCont && newCont.id) {
+                        resolvedContainerId = newCont.id;
+                    }
+                    else if (createErr) {
+                        console.warn('Failed to create container for monthly assignments:', createErr);
+                    }
+                }
+                catch (e) {
+                    console.warn('Exception creating container for monthly assignments:', e);
+                }
+            }
+        }
+        catch (err) {
+            console.warn('Container resolution for monthly assignments failed:', err);
+        }
+        // Attach class_container_id to all assignments before insert
+        if (resolvedContainerId) {
+            assignments.forEach((a) => {
+                a.class_container_id = resolvedContainerId;
+            });
+        }
         const cleanedAssignments = await cleanAssignmentsBatch(assignments, bookingIds, 'monthly', formData.booking_type || 'individual');
         const { data: insertedAssignments, error } = await supabase
             .from('class_assignments')
@@ -853,6 +1033,19 @@ export class AssignmentCreationService {
                 }
                 catch (recErr) {
                     console.warn('Failed to mark bookings as recurring:', recErr);
+                }
+                // Attach container id to assignment_bookings junction table
+                if (resolvedContainerId) {
+                    try {
+                        const assignmentIds = insertedAssignments.map(a => a.id);
+                        await supabase
+                            .from('assignment_bookings')
+                            .update({ class_container_id: resolvedContainerId })
+                            .in('assignment_id', assignmentIds);
+                    }
+                    catch (e) {
+                        console.warn('Failed to attach class_container_id to assignment_bookings:', e);
+                    }
                 }
                 // 🆕 PHASE 4: Generate first month invoice automatically
                 try {
@@ -1021,6 +1214,9 @@ export class AssignmentCreationService {
         let currentWeekStart = new Date(startDate);
         // Find the start of the week (Sunday)
         currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() - currentWeekStart.getUTCDay());
+        // Calculate calendar month end so we don't spill into next month (first-month proration)
+        const monthBoundaries = getCalendarMonthBoundaries(startDate);
+        const monthEnd = monthBoundaries.endDate;
         while (classesCreated < formData.total_classes) {
             // For each week, create classes for all selected days
             for (const dayOfWeek of sortedWeeklyDays) {
@@ -1036,6 +1232,11 @@ export class AssignmentCreationService {
                 // Check if we've exceeded the validity period
                 if (validityEndDate && classDate > validityEndDate) {
                     console.warn(`Reached validity end date (${formData.validity_end_date}). Created ${classesCreated} classes out of requested ${formData.total_classes}.`);
+                    return assignments;
+                }
+                // Enforce calendar month boundaries: do not schedule classes beyond the calendar month
+                if (classDate > monthEnd) {
+                    // We're in first-month generation: stop and return what we have (prorated)
                     return assignments;
                 }
                 const assignment = {
@@ -1064,6 +1265,10 @@ export class AssignmentCreationService {
             }
             // Move to next week
             currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() + 7);
+            // If the next week's start is already beyond the month end, stop generating (proration)
+            if (currentWeekStart > monthEnd) {
+                break;
+            }
             // Safety check to prevent infinite loops
             if (assignments.length > 1000) {
                 throw new Error('Assignment generation exceeded maximum limit. Please check your date range and settings.');
@@ -1179,6 +1384,71 @@ export class AssignmentCreationService {
         const bookingIds = formData.booking_ids && formData.booking_ids.length > 0
             ? formData.booking_ids
             : (formData.booking_id ? [formData.booking_id] : []);
+        // Determine and attach a class_container_id for crash-course assignments (same approach as monthly)
+        let resolvedContainerId = null;
+        if (bookingIds.length > 0) {
+            const firstBookingId = bookingIds[0];
+            const bookingType = formData.booking_type || 'individual';
+            try {
+                const billingMonth = (formData.start_date && formData.start_date.length >= 7) ? formData.start_date.slice(0, 7) : new Date().toISOString().slice(0, 7);
+                let containerCode;
+                if (bookingType === 'individual') {
+                    containerCode = `${firstBookingId}-${billingMonth}`;
+                }
+                else {
+                    const instructorPart = formData.instructor_id ? formData.instructor_id.substring(0, 8) : 'UNK';
+                    const packagePart = formData.package_id ? formData.package_id.substring(0, 8) : 'GRP';
+                    containerCode = `${instructorPart}-${packagePart}-${billingMonth}`;
+                }
+                const { data: existingContainer, error: existingErr } = await supabase
+                    .from('class_containers')
+                    .select('id')
+                    .eq('container_code', containerCode)
+                    .limit(1)
+                    .single();
+                if (existingErr) {
+                    console.warn('Error checking existing container for crash course:', existingErr);
+                }
+                if (existingContainer && existingContainer.id) {
+                    resolvedContainerId = existingContainer.id;
+                }
+                else {
+                    const displayName = `${(formData.client_name && formData.client_name.trim() !== '') ? formData.client_name : containerCode} (${billingMonth})`;
+                    const maxCount = bookingType === 'individual' ? 1 : 30;
+                    const currentUserId = await getCurrentUserId();
+                    const { data: newContainer, error: createErr } = await supabase
+                        .from('class_containers')
+                        .insert([{
+                            container_code: containerCode,
+                            display_name: displayName,
+                            container_type: bookingType,
+                            instructor_id: (formData.instructor_id && formData.instructor_id.trim() !== '') ? formData.instructor_id : null,
+                            package_id: (formData.package_id && formData.package_id.trim() !== '') ? formData.package_id : null,
+                            max_booking_count: maxCount,
+                            created_by: currentUserId,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }])
+                        .select('id')
+                        .single();
+                    if (!createErr && newContainer && newContainer.id) {
+                        resolvedContainerId = newContainer.id;
+                    }
+                    else if (createErr) {
+                        console.warn('Failed to create container for crash-course assignments:', createErr);
+                    }
+                }
+            }
+            catch (err) {
+                console.warn('Container resolution error for crash-course:', err);
+            }
+        }
+        // Attach container id to assignments before insert (DB requires non-null class_container_id)
+        if (resolvedContainerId) {
+            assignments.forEach((a) => {
+                a.class_container_id = resolvedContainerId;
+            });
+        }
         const cleanedAssignments = await cleanAssignmentsBatch(assignments, bookingIds, 'crash', formData.booking_type || 'individual');
         const { data: insertedAssignments, error } = await supabase
             .from('class_assignments')
@@ -1349,10 +1619,74 @@ export class AssignmentCreationService {
         // Use package class count, not formData.total_classes
         const targetClassCount = selectedPackage.class_count;
         // Calculate validity end date from start date + validity days
+        // If validity_days is null, parse from duration field (e.g., "3 months")
         let validityEndDate = null;
-        if (selectedPackage.validity_days && selectedPackage.validity_days > 0) {
+        let validityDays = null;
+        if (selectedPackage && typeof selectedPackage.validity_days === 'number' && selectedPackage.validity_days > 0) {
+            validityDays = selectedPackage.validity_days;
+        }
+        else if (selectedPackage && selectedPackage.duration) {
+            // Parse duration string like "3 months", "60 days", "8 weeks"
+            const durationMatch = selectedPackage.duration.match(/^(\d+)\s+(day|days|week|weeks|month|months)$/i);
+            if (durationMatch) {
+                const number = parseInt(durationMatch[1]);
+                const unit = durationMatch[2].toLowerCase();
+                if (unit.startsWith('day')) {
+                    validityDays = number;
+                }
+                else if (unit.startsWith('week')) {
+                    validityDays = number * 7;
+                }
+                else if (unit.startsWith('month')) {
+                    validityDays = number * 30; // Approximate
+                }
+                console.log(`Parsed crash course duration "${selectedPackage.duration}" as ${validityDays} days`);
+            }
+        }
+        else {
+            // Fallback: fetch from DB in case packages list didn't include validity_days or duration
+            try {
+                const { data: pkgData } = await supabase
+                    .from('class_packages')
+                    .select('validity_days, duration')
+                    .eq('id', formData.package_id)
+                    .single();
+                if (pkgData) {
+                    if (typeof pkgData.validity_days === 'number' && pkgData.validity_days > 0) {
+                        validityDays = pkgData.validity_days;
+                    }
+                    else if (pkgData.duration) {
+                        const durationMatch = pkgData.duration.match(/^(\d+)\s+(day|days|week|weeks|month|months)$/i);
+                        if (durationMatch) {
+                            const number = parseInt(durationMatch[1]);
+                            const unit = durationMatch[2].toLowerCase();
+                            if (unit.startsWith('day')) {
+                                validityDays = number;
+                            }
+                            else if (unit.startsWith('week')) {
+                                validityDays = number * 7;
+                            }
+                            else if (unit.startsWith('month')) {
+                                validityDays = number * 30;
+                            }
+                            console.log(`Fetched and parsed duration "${pkgData.duration}" as ${validityDays} days`);
+                        }
+                    }
+                }
+            }
+            catch (e) {
+                console.warn('Could not fetch package validity_days or duration', e);
+            }
+        }
+        // Only set date boundary if validity_days is specified or parsed from duration
+        if (validityDays && validityDays > 0) {
+            // Inclusive validity end (start + validityDays - 1)
             validityEndDate = parseDateToUTC(formData.start_date);
-            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + selectedPackage.validity_days);
+            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + (validityDays - 1));
+            console.log(`Crash course validity period: ${formData.start_date} to ${validityEndDate.toISOString().split('T')[0]} (${validityDays} days)`);
+        }
+        else {
+            console.log(`Crash course has no validity constraint - generating ${targetClassCount} classes based on schedule only`);
         }
         // Sort selected days to ensure proper chronological order
         const sortedWeeklyDays = [...formData.weekly_days].sort((a, b) => a - b);
@@ -1427,10 +1761,11 @@ export class AssignmentCreationService {
         // Use package class count, not formData.total_classes
         const targetClassCount = selectedPackage.class_count;
         // Calculate validity end date from start date + validity days
+        // Use inclusive counting (day 1 = start date, so add validityDays - 1)
         let validityEndDate = null;
         if (selectedPackage.validity_days && selectedPackage.validity_days > 0) {
             validityEndDate = parseDateToUTC(formData.start_date);
-            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + selectedPackage.validity_days);
+            validityEndDate.setUTCDate(validityEndDate.getUTCDate() + (selectedPackage.validity_days - 1));
         }
         // Sort selected days to ensure proper chronological order
         const sortedWeeklyDays = [...formData.weekly_days].sort((a, b) => a - b);
@@ -1457,11 +1792,13 @@ export class AssignmentCreationService {
                     console.warn(`Reached validity end date (${validityEndDate.toISOString().split('T')[0]}). Created ${classesCreated} classes out of package requirement ${targetClassCount}.`);
                     return assignments;
                 }
+                // Format date as UTC YYYY-MM-DD to match validation parsing (avoid IST offset shifts)
+                const dateStr = `${classDate.getUTCFullYear()}-${String(classDate.getUTCMonth() + 1).padStart(2, '0')}-${String(classDate.getUTCDate()).padStart(2, '0')}`;
                 const assignment = {
                     package_id: formData.package_id,
                     class_package_id: formData.package_id,
                     scheduled_class_id: null,
-                    date: formatDateIST(classDate),
+                    date: dateStr,
                     start_time: formData.start_time,
                     end_time: formData.end_time,
                     instructor_id: formData.instructor_id,

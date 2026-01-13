@@ -1,7 +1,7 @@
-import { Search, Eye, User, Calendar, Clock } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import { Button } from './Button'
+import { Calendar, Clock, Eye, Search, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { Button } from './Button'
 
 interface Booking {
   booking_id: string
@@ -16,6 +16,7 @@ interface Booking {
   experience_level: string
   special_requests: string
   status: string
+  is_recurring?: boolean
   created_at: string
 }
 
@@ -40,12 +41,16 @@ interface BookingSelectorProps {
   selectedBookingId: string
   onBookingSelect: (bookingId: string, clientName: string, clientEmail: string) => void
   disabled?: boolean
+  bookingsProp?: any[]
+  bookingType?: string
 }
 
-export function BookingSelector({ 
-  selectedBookingId, 
-  onBookingSelect, 
-  disabled = false 
+export function BookingSelector({
+  selectedBookingId,
+  onBookingSelect,
+  disabled = false,
+  bookingsProp,
+  bookingType
 }: BookingSelectorProps) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,6 +62,12 @@ export function BookingSelector({
   const [loadingDetails, setLoadingDetails] = useState(false)
 
   useEffect(() => {
+    if (bookingsProp && bookingsProp.length > 0) {
+      setBookings(bookingsProp as Booking[])
+      setLoading(false)
+      return
+    }
+
     fetchBookings()
   }, [])
 
@@ -72,14 +83,21 @@ export function BookingSelector({
   const fetchBookings = async () => {
     try {
       setLoading(true)
-      
+
       // Fetch bookings that don't have assignments yet (exclude 'completed' and 'cancelled' status)
-      const { data, error } = await supabase
+      let query: any = supabase
         .from('bookings')
         .select('*')
         .in('status', ['confirmed', 'pending', 'rescheduled'])
         .order('created_at', { ascending: false })
         .limit(100)
+
+      // apply booking_type filter when provided
+      if (bookingType && bookingType.length > 0) {
+        query = query.eq('booking_type', bookingType as any)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
       setBookings(data || [])
@@ -93,15 +111,52 @@ export function BookingSelector({
   const fetchBookingDetails = async (bookingId: string) => {
     try {
       setLoadingDetails(true)
-      
-      // Call the PostgreSQL function to get booking details
-      const { data, error } = await supabase
-        .rpc('get_booking_details', { booking_id_param: bookingId })
 
-      if (error) throw error
-      
-      if (data && data.length > 0) {
-        setBookingDetails(data[0])
+      // First, query the bookings table directly for a reliable base payload.
+      try {
+        const { data: row, error: rowErr } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('booking_id', bookingId)
+          .limit(1)
+          .maybeSingle()
+
+        if (!rowErr && row) {
+          const mapped: BookingDetails = {
+            booking_id: row.booking_id || row.id,
+            client_name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+            client_email: row.email || '',
+            client_phone: row.phone || '',
+            requested_class: row.class_name || row.requested_class || '',
+            requested_date: row.class_date || row.requested_date || '',
+            requested_time: row.class_time || row.requested_time || '',
+            experience_level: row.experience_level || '',
+            special_requests: row.special_requests || '',
+            booking_status: row.status || '',
+            has_assignment: !!row.has_assignment,
+            assignment_date: row.assignment_date || '',
+            assignment_time: row.assignment_time || '',
+            assigned_instructor: row.assigned_instructor || ''
+          }
+          setBookingDetails(mapped)
+        }
+      } catch (e) {
+        console.warn('Booking table fetch failed', e)
+      }
+
+      // Optionally call the RPC to get richer/enriched booking details.
+      try {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('get_booking_details', { booking_id_param: bookingId })
+        if (!rpcErr && rpcData) {
+          if (Array.isArray(rpcData)) {
+            setBookingDetails(rpcData[0] || null)
+          } else {
+            setBookingDetails(rpcData as BookingDetails)
+          }
+        }
+      } catch (e) {
+        // Non-fatal; we keep the bookings-table result if RPC fails.
+        console.warn('RPC booking details call failed', e)
       }
     } catch (error) {
       console.error('Error fetching booking details:', error)
@@ -138,10 +193,10 @@ export function BookingSelector({
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Booking Reference (Optional)
       </label>
-      
+
       <div className="relative">
         {/* Selected Booking Display */}
-        <div 
+        <div
           className={`
             w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 
             cursor-pointer transition-colors flex items-center justify-between
@@ -167,7 +222,7 @@ export function BookingSelector({
               </span>
             )}
           </div>
-          
+
           {selectedBooking && (
             <div className="flex items-center space-x-2">
               <Button
@@ -223,7 +278,7 @@ export function BookingSelector({
                       Clear selection (new client)
                     </div>
                   </div>
-                  
+
                   {filteredBookings.map((booking) => (
                     <div
                       key={booking.booking_id}
@@ -236,11 +291,16 @@ export function BookingSelector({
                             <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">
                               {booking.booking_id}
                             </span>
+                            {booking.is_recurring && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Recurring
+                              </span>
+                            )}
                             <span className={`
                               px-2 py-0.5 rounded-full text-xs font-medium
                               ${booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
                                 booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'}
+                                  'bg-gray-100 text-gray-800'}
                             `}>
                               {booking.status}
                             </span>
@@ -285,8 +345,21 @@ export function BookingSelector({
 
       {/* Booking Details Modal */}
       {showBookingDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onTouchStart={(e) => {
+            // start tracking touch for swipe-down-to-dismiss
+            ; (window as any).__bs_touch_start_y = e.touches ? e.touches[0].clientY : 0
+          }}
+          onTouchEnd={(e) => {
+            const startY = (window as any).__bs_touch_start_y || 0
+            const endY = e.changedTouches ? e.changedTouches[0].clientY : 0
+            if (endY - startY > 120) {
+              setShowBookingDetails(false)
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all duration-200 ease-out scale-100">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -316,11 +389,10 @@ export function BookingSelector({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                      <div className={`mt-1 inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                        bookingDetails.booking_status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                      <div className={`mt-1 inline-flex px-2 py-1 rounded-full text-xs font-medium ${bookingDetails.booking_status === 'confirmed' ? 'bg-green-100 text-green-800' :
                         bookingDetails.booking_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          'bg-gray-100 text-gray-800'
+                        }`}>
                         {bookingDetails.booking_status}
                       </div>
                     </div>

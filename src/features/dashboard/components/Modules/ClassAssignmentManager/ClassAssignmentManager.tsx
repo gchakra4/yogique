@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, CheckSquare, Filter, List, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { BarChart3, Calendar, CheckSquare, FileText, Filter, List, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ResponsiveActionButton } from '../../../../../shared/components/ui/ResponsiveActionButton'
@@ -8,12 +8,14 @@ import {
     AnalyticsView,
     AssignmentForm,
     AssignmentListView,
+    BulkAddUsersModal,
     Button,
     CalendarView,
     ClassDetailsPopup,
     EditAssignmentModal,
     SimplifiedAssignmentForm
 } from './components'
+import NewAssignmentChooser from './components/NewAssignmentChooser'
 import { useClassAssignmentData, useFormHandler } from './hooks'
 import { AssignmentCreationService } from './services/assignmentCreation'
 import {
@@ -29,8 +31,7 @@ import {
 } from './utils'
 
 export function ClassAssignmentManager() {
-    // Feature flag: use simplified form (NEW UX)
-    const USE_SIMPLIFIED_FORM = true
+    // New assignment chooser flow (simplified UX)
 
     // Data fetching hook
     const {
@@ -62,7 +63,10 @@ export function ClassAssignmentManager() {
 
     // UI state
     const [showAssignForm, setShowAssignForm] = useState(false)
+    const [assignModalMode, setAssignModalMode] = useState<'chooser' | 'simplified' | 'full'>('chooser')
+    const [assignInitialBookingId, setAssignInitialBookingId] = useState('')
     const [saving, setSaving] = useState(false)
+    const [showBulkAddModal, setShowBulkAddModal] = useState(false)
     const [activeView, setActiveView] = useState<'list' | 'calendar' | 'analytics'>('list')
     const [showFilters, setShowFilters] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
@@ -81,6 +85,10 @@ export function ClassAssignmentManager() {
     // Selection state for multi-delete
     const [selectedAssignments, setSelectedAssignments] = useState<Set<string>>(new Set())
     const [isSelectMode, setIsSelectMode] = useState(false)
+
+    // Manual invoice generation state
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+    const [generatingInvoices, setGeneratingInvoices] = useState(false)
 
     // Tabs scroll handler (for small screens)
     const tabsScrollRef = useRef<HTMLDivElement | null>(null)
@@ -328,6 +336,8 @@ export function ClassAssignmentManager() {
 
     // Enhanced filtering and search functionality
     const filteredAssignments = useMemo(() => {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
         return assignments.filter(assignment => {
             // Search term filter
             if (searchTerm) {
@@ -369,6 +379,14 @@ export function ClassAssignmentManager() {
             // Client name filter
             if (filters.clientName && !getClientNames(assignment).toLowerCase().includes(filters.clientName.toLowerCase())) return false
 
+            // Hide past classes that remain in 'pending' status (avoid showing stale pending items)
+            try {
+                const assignmentDate = assignment.date ? new Date(assignment.date + 'T00:00:00') : null
+                if (assignmentDate && assignmentDate < today && assignment.payment_status === 'pending') return false
+            } catch (e) {
+                // ignore parsing errors and keep the assignment
+            }
+
             return true
         })
     }, [assignments, searchTerm, filters])
@@ -378,6 +396,8 @@ export function ClassAssignmentManager() {
         const groups = new Map<string, {
             key: string
             type: string
+            containerId: string | null
+            containerCode: string | null
             assignments: ClassAssignment[]
             groupInfo: {
                 instructor_name: string
@@ -390,48 +410,78 @@ export function ClassAssignmentManager() {
         }>()
 
         filteredAssignments.forEach(assignment => {
-            // Create group keys based on assignment type
+            // PHASE 6: Group by class_container_id as single source of truth
+            // Container ID is the primary grouping mechanism
+            const containerId = assignment.class_container_id || null
+            const containerCode = assignment.class_container?.container_code || null
+
+            // Use container_id if available, fallback to old logic for orphaned assignments
             let groupKey: string
             let groupType: string
 
-            switch (assignment.schedule_type) {
-                case 'weekly':
-                    // Group by instructor + class type + recurring pattern
-                    groupKey = `weekly_${assignment.instructor_id}_${assignment.class_type_id}`
-                    groupType = 'weekly'
-                    break
-                case 'monthly':
-                    // Group by instructor + package (monthly sessions for same package should stay together)
-                    groupKey = `monthly_${assignment.instructor_id}_${assignment.package_id || assignment.class_type_id || 'unknown'}`
-                    groupType = 'monthly'
-                    break
-                case 'crash':
-                    // Group by instructor + package (crash courses should stay together regardless of dates or bookings)
-                    groupKey = `crash_${assignment.instructor_id}_${assignment.package_id || assignment.class_type_id || 'unknown'}`
-                    groupType = 'crash_course'
-                    break
-                case 'adhoc':
-                default:
-                    // Don't group adhoc assignments - each is individual
-                    groupKey = `adhoc_${assignment.id}`
-                    groupType = 'adhoc'
-                    break
+            if (containerId) {
+                // Primary path: Group by container
+                groupKey = `container_${containerId}`
+                // Derive type from container type
+                const containerType = assignment.class_container?.container_type
+                // If a container is marked as 'individual' but the assignment itself is schedule_type 'monthly',
+                // treat it as a monthly container (fixes incorrect 'Adhoc' label for individual monthly containers).
+                groupType = containerType === 'individual'
+                    ? (assignment.schedule_type === 'monthly' ? 'monthly' : 'adhoc')
+                    :
+                    containerType === 'public_group' ? 'monthly' :
+                        containerType === 'private_group' ? 'monthly' :
+                            containerType === 'crash_course' ? 'crash_course' :
+                                assignment.schedule_type || 'adhoc'
+            } else {
+                // Fallback path: Legacy grouping for orphaned assignments (should be rare)
+                switch (assignment.schedule_type) {
+                    case 'weekly':
+                        groupKey = `legacy_weekly_${assignment.instructor_id}_${assignment.class_type_id}`
+                        groupType = 'weekly'
+                        break
+                    case 'monthly':
+                        groupKey = `legacy_monthly_${assignment.instructor_id}_${assignment.package_id || assignment.class_type_id || 'unknown'}`
+                        groupType = 'monthly'
+                        break
+                    case 'crash':
+                        groupKey = `legacy_crash_${assignment.instructor_id}_${assignment.package_id || assignment.class_type_id || 'unknown'}`
+                        groupType = 'crash_course'
+                        break
+                    case 'adhoc':
+                    default:
+                        groupKey = `legacy_adhoc_${assignment.id}`
+                        groupType = 'adhoc'
+                        break
+                }
             }
 
             if (!groups.has(groupKey)) {
-                // For package-based assignments, prefer package name over class type name
-                let displayName: string
+                // Determine display name with better fallback logic
+                let displayName: string = 'Unknown Class'
+
+                // Try package name first
                 if (assignment.package?.name) {
                     displayName = assignment.package.name
-                } else if (assignment.class_type?.name) {
+                }
+                // Then class type name
+                else if (assignment.class_type?.name) {
                     displayName = assignment.class_type.name
-                } else {
-                    displayName = 'Unknown Class'
+                }
+                // For container-grouped assignments, use container display_name if available
+                else if (assignment.class_container?.display_name) {
+                    displayName = assignment.class_container.display_name
+                }
+                // Last resort: try to build from container code
+                else if (containerCode) {
+                    displayName = `Container ${containerCode}`
                 }
 
                 groups.set(groupKey, {
                     key: groupKey,
                     type: groupType,
+                    containerId,
+                    containerCode,
                     assignments: [],
                     groupInfo: {
                         instructor_name: assignment.instructor_profile?.full_name || 'Unknown Instructor',
@@ -776,36 +826,79 @@ export function ClassAssignmentManager() {
     }
 
     return (
-        <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto overflow-x-hidden">
+        <div className="px-0 sm:px-6 py-6 sm:max-w-7xl max-w-full sm:mx-auto mx-0 overflow-x-hidden">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
                 <div className="flex-1 min-w-0">
                     <h1 className="text-2xl font-bold text-gray-900">Class Assignment Manager</h1>
                     <p className="text-gray-600">Manage class assignments, schedules, and payments</p>
                 </div>
-                <div className="w-full sm:w-auto flex items-center justify-center sm:justify-end space-x-3 mt-2 sm:mt-0">
+
+                {/* Desktop / wide screens: original large CTAs */}
+                <div className="hidden sm:flex w-full sm:w-auto items-center justify-center sm:justify-end space-x-3 mt-2 sm:mt-0">
                     <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-blue-600 text-white hover:bg-blue-700 shadow-none transform-none" onClick={() => fetchData()} disabled={loadingStates.fetchingData}>
                         <RefreshCw className={`w-4 h-4 mr-2 ${loadingStates.fetchingData ? 'animate-spin' : ''}`} />
                         Refresh
                     </ResponsiveActionButton>
-                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-emerald-500 text-white hover:bg-emerald-600 shadow-none transform-none" onClick={() => setShowAssignForm(true)}>
+                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-purple-600 text-white hover:bg-purple-700 shadow-none transform-none" onClick={() => setShowInvoiceModal(true)} disabled={generatingInvoices}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        {generatingInvoices ? 'Generating...' : 'Generate Invoices'}
+                    </ResponsiveActionButton>
+                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-emerald-500 text-white hover:bg-emerald-600 shadow-none transform-none" onClick={() => { setShowAssignForm(true); setAssignModalMode('chooser'); setAssignInitialBookingId('') }}>
                         <Plus className="w-4 h-4 mr-2" />
                         New Assignment
                     </ResponsiveActionButton>
+                    <ResponsiveActionButton className="inline-flex items-center px-4 py-2 text-sm whitespace-nowrap bg-yellow-500 text-white hover:bg-yellow-600 shadow-none transform-none" onClick={() => setShowBulkAddModal(true)}>
+                        Bulk Add to Group
+                    </ResponsiveActionButton>
+                </div>
+
+                {/* Mobile compact toolbar: small icons only */}
+                <div className="flex sm:hidden items-center space-x-2">
+                    <button
+                        aria-label="refresh"
+                        className="p-2 bg-white rounded-lg shadow-sm"
+                        onClick={() => fetchData()}
+                    >
+                        <RefreshCw className={`w-5 h-5 ${loadingStates.fetchingData ? 'animate-spin' : ''}`} />
+                    </button>
+                    <button
+                        aria-label="invoices"
+                        className="p-2 bg-white rounded-lg shadow-sm"
+                        onClick={() => setShowInvoiceModal(true)}
+                    >
+                        <FileText className="w-5 h-5" />
+                    </button>
+                    <button
+                        aria-label="bulk add"
+                        className="p-2 bg-white rounded-lg shadow-sm"
+                        onClick={() => setShowBulkAddModal(true)}
+                    >
+                        <List className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
+
+            {/* Mobile FAB: new assignment (floating) */}
+            <button
+                className="fixed bottom-28 right-4 z-50 sm:hidden bg-teal-500 text-white px-4 py-3 rounded-full shadow-lg text-lg"
+                onClick={() => { setShowAssignForm(true); setAssignModalMode('chooser'); setAssignInitialBookingId('') }}
+                aria-label="New Assignment"
+            >
+                +
+            </button>
 
             {/* Search and Filters */}
             <div className="mb-6 space-y-4">
                 <div className="flex items-center space-x-4">
-                    <div className="flex-1 relative">
+                    <div className="flex-1 relative sticky top-16 z-40 sm:static bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-md">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <input
                             type="text"
                             placeholder="Search assignments..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                     <Button variant="outline" onClick={() => setShowFilters(true)}>
@@ -832,7 +925,7 @@ export function ClassAssignmentManager() {
                     <style>{`.class-assignment-hide-scrollbar::-webkit-scrollbar{display:none}`}</style>
                     <div className="flex items-center justify-between gap-3">
                         <div
-                            className="overflow-x-auto class-assignment-hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0"
+                            className="overflow-x-auto class-assignment-hide-scrollbar px-0"
                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                             ref={tabsScrollRef}
                             onScroll={updateTabsIndicator}
@@ -962,8 +1055,18 @@ export function ClassAssignmentManager() {
                 </div>
             </div>
 
-            {/* Assignment Form Modal */}
-            {USE_SIMPLIFIED_FORM ? (
+            {/* Assignment Form Modal: show chooser first, then relevant form */}
+            {showAssignForm && assignModalMode === 'chooser' && (
+                <NewAssignmentChooser
+                    onClose={() => setShowAssignForm(false)}
+                    onOpenSimplified={(bookingId?: string) => {
+                        setAssignInitialBookingId(bookingId || '')
+                        setAssignModalMode('simplified')
+                    }}
+                />
+            )}
+
+            {showAssignForm && assignModalMode === 'simplified' && (
                 <SimplifiedAssignmentForm
                     isVisible={showAssignForm}
                     classTypes={classTypes}
@@ -971,11 +1074,14 @@ export function ClassAssignmentManager() {
                     instructors={instructors}
                     bookings={bookings}
                     saving={saving}
-                    onClose={() => setShowAssignForm(false)}
+                    onClose={() => { setShowAssignForm(false); setAssignModalMode('chooser'); setAssignInitialBookingId('') }}
                     onSubmit={createAssignmentSimplified}
                     onBookingCreated={fetchData}
+                    initialSelectedBookingId={assignInitialBookingId}
                 />
-            ) : (
+            )}
+
+            {showAssignForm && assignModalMode === 'full' && (
                 <AssignmentForm
                     isVisible={showAssignForm}
                     formData={formData}
@@ -987,11 +1093,20 @@ export function ClassAssignmentManager() {
                     scheduleTemplates={scheduleTemplates}
                     bookings={bookings}
                     saving={saving}
-                    onClose={() => setShowAssignForm(false)}
+                    onClose={() => { setShowAssignForm(false); setAssignModalMode('chooser'); setAssignInitialBookingId('') }}
                     onSubmit={createAssignment}
                     onInputChange={handleInputChange}
                     onTimeChange={handleTimeChange}
                     onDurationChange={handleDurationChange}
+                />
+            )}
+
+            {showBulkAddModal && (
+                <BulkAddUsersModal
+                    isOpen={showBulkAddModal}
+                    onClose={() => setShowBulkAddModal(false)}
+                    assignments={assignments}
+                    onDone={() => { fetchData(); setShowBulkAddModal(false) }}
                 />
             )}
 
@@ -1025,6 +1140,84 @@ export function ClassAssignmentManager() {
                 onSave={saveAssignment}
                 onRefresh={fetchData}
             />
+
+            {/* Manual Invoice Generation Modal */}
+            {showInvoiceModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-semibold text-gray-900">Generate Monthly Invoices</h2>
+                            <button
+                                onClick={() => setShowInvoiceModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                                disabled={generatingInvoices}
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <p className="text-sm text-gray-600 mb-4">
+                            This will generate invoices for all active bookings for the specified month.
+                            Use this for the first billing cycle. Subsequent months will be handled automatically by T-5 automation.
+                        </p>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Calendar Month *
+                            </label>
+                            <input
+                                type="month"
+                                id="invoice-month"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={generatingInvoices}
+                                defaultValue={new Date().toISOString().slice(0, 7)}
+                            />
+                        </div>
+
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowInvoiceModal(false)}
+                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                disabled={generatingInvoices}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    setGeneratingInvoices(true);
+                                    const monthInput = document.getElementById('invoice-month') as HTMLInputElement;
+                                    const calendarMonth = monthInput?.value || new Date().toISOString().slice(0, 7);
+
+                                    try {
+                                        // Call the RPC function to generate invoices
+                                        const { data, error } = await supabase.rpc('generate_monthly_invoices', {
+                                            p_calendar_month: calendarMonth
+                                        });
+
+                                        if (error) {
+                                            alert('Error generating invoices: ' + error.message);
+                                        } else {
+                                            alert(`Successfully generated invoices for ${calendarMonth}. Generated: ${data || 0} invoices.`);
+                                            setShowInvoiceModal(false);
+                                            fetchData(); // Refresh the data
+                                        }
+                                    } catch (err) {
+                                        alert('Exception generating invoices: ' + (err instanceof Error ? err.message : String(err)));
+                                    } finally {
+                                        setGeneratingInvoices(false);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+                                disabled={generatingInvoices}
+                            >
+                                {generatingInvoices ? 'Generating...' : 'Generate Invoices'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

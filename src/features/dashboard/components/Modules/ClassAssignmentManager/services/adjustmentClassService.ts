@@ -186,9 +186,8 @@ export async function analyzeMonthlyShortfall(
     // Get all classes for this month
     const { data: classes, error } = await supabase
         .from('class_assignments')
-        .select('id, date, is_adjustment, schedule_type')
+        .select('id, date, schedule_type')
         .eq('instructor_id', instructorId)
-        .eq('calendar_month', calendarMonth)
         .eq('schedule_type', 'monthly')
 
     if (error) {
@@ -196,8 +195,8 @@ export async function analyzeMonthlyShortfall(
         throw new Error(`Failed to analyze shortfall: ${error.message}`)
     }
 
-    const scheduledClasses = (classes || []).filter(c => !c.is_adjustment).length
-    const adjustmentClasses = (classes || []).filter(c => c.is_adjustment).length
+    const scheduledClasses = (classes || []).length
+    const adjustmentClasses = 0
     const totalClasses = scheduledClasses + adjustmentClasses
     const shortfall = totalClasses - requiredClasses
 
@@ -478,7 +477,6 @@ export async function getAdjustmentClasses(
         .select('*')
         .eq('instructor_id', instructorId)
         .eq('calendar_month', calendarMonth)
-        .eq('is_adjustment', true)
         .order('date', { ascending: true })
 
     if (error) {
@@ -501,7 +499,6 @@ export async function hasAdjustments(
         .select('id')
         .eq('instructor_id', instructorId)
         .eq('calendar_month', calendarMonth)
-        .eq('is_adjustment', true)
         .limit(1)
 
     if (error) {

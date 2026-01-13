@@ -1,4 +1,4 @@
-import { X, Calendar, Clock, User, IndianRupee, CheckSquare } from 'lucide-react'
+import { Calendar, Clock, User, X } from 'lucide-react'
 import { ClassAssignment, getBookingIds, getPrimaryClientDisplay } from '../types'
 import { formatDate, formatTime, getStatusStyle } from '../utils'
 import { ClientDisplay } from './ClientDisplay'
@@ -18,16 +18,16 @@ export const ClassDetailsPopup = ({ assignment, isVisible, onClose, onEdit }: Cl
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
             {/* Background overlay */}
-            <div 
+            <div
                 className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
                 onClick={onClose}
             />
-            
-            {/* Modal */}
-            <div className="flex min-h-full items-center justify-center p-4">
-                <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+
+            {/* Modal: edge-to-edge on small screens, centered with max-width on larger */}
+            <div className="flex min-h-full items-center justify-center sm:p-4 p-0">
+                <div className="relative bg-white sm:rounded-lg shadow-xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto mx-0">
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
                         <h2 className="text-xl font-semibold text-gray-900">Class Details</h2>
                         <button
                             onClick={onClose}
@@ -38,7 +38,7 @@ export const ClassDetailsPopup = ({ assignment, isVisible, onClose, onEdit }: Cl
                     </div>
 
                     {/* Content */}
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                         {/* Class Information Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Basic Information */}
@@ -73,7 +73,7 @@ export const ClassDetailsPopup = ({ assignment, isVisible, onClose, onEdit }: Cl
                                 {getPrimaryClientDisplay(assignment) && (
                                     <div>
                                         <h3 className="text-sm font-medium text-gray-500 mb-2">Client Information</h3>
-                                        <ClientDisplay 
+                                        <ClientDisplay
                                             assignment={assignment}
                                         />
                                     </div>
@@ -104,13 +104,13 @@ export const ClassDetailsPopup = ({ assignment, isVisible, onClose, onEdit }: Cl
                                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${statusStyle.bgColor} ${statusStyle.borderColor} ${statusStyle.textColor}`}>
                                             {statusStyle.label}
                                         </span>
-                                        
+
                                         {assignment.class_status && (
                                             <p className="text-sm text-gray-600">
                                                 Class Status: {assignment.class_status}
                                             </p>
                                         )}
-                                        
+
                                         {assignment.instructor_response_at && (
                                             <p className="text-sm text-gray-600">
                                                 Response: {new Date(assignment.instructor_response_at).toLocaleDateString()}
@@ -128,50 +128,7 @@ export const ClassDetailsPopup = ({ assignment, isVisible, onClose, onEdit }: Cl
                             </div>
                         </div>
 
-                        {/* Payment Information */}
-                        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                            <h3 className="text-sm font-medium text-gray-500 mb-3">Payment Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <div className="flex items-center space-x-2">
-                                        <IndianRupee className="w-4 h-4 text-green-500" />
-                                        <p className="text-lg font-semibold text-green-600">
-                                            ₹{assignment.payment_amount.toFixed(2)}
-                                        </p>
-                                    </div>
-                                    <p className="text-sm text-gray-600">Amount</p>
-                                </div>
-                                
-                                {assignment.payment_status && (
-                                    <div>
-                                        <div className="flex items-center space-x-2">
-                                            <CheckSquare className={`w-4 h-4 ${
-                                                assignment.payment_status === 'paid' ? 'text-green-500' :
-                                                assignment.payment_status === 'pending' ? 'text-yellow-500' :
-                                                'text-red-500'
-                                            }`} />
-                                            <p className={`font-medium capitalize ${
-                                                assignment.payment_status === 'paid' ? 'text-green-600' :
-                                                assignment.payment_status === 'pending' ? 'text-yellow-600' :
-                                                'text-red-600'
-                                            }`}>
-                                                {assignment.payment_status}
-                                            </p>
-                                        </div>
-                                        <p className="text-sm text-gray-600">Status</p>
-                                    </div>
-                                )}
-                                
-                                {assignment.payment_date && (
-                                    <div>
-                                        <p className="font-medium text-gray-900">
-                                            {new Date(assignment.payment_date).toLocaleDateString()}
-                                        </p>
-                                        <p className="text-sm text-gray-600">Payment Date</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        {/* Payment information intentionally hidden in mobile/app view */}
 
                         {/* Additional Information */}
                         <div className="mt-6 space-y-4">
@@ -214,7 +171,7 @@ export const ClassDetailsPopup = ({ assignment, isVisible, onClose, onEdit }: Cl
                     </div>
 
                     {/* Footer */}
-                    <div className="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200">
+                    <div className="flex justify-end space-x-3 px-4 sm:px-6 py-4 border-t border-gray-200">
                         <button
                             onClick={onClose}
                             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

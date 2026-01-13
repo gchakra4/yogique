@@ -71,7 +71,6 @@ export function SimpleAssignmentList() {
               <th className="px-3 py-2 text-left">Time</th>
               <th className="px-3 py-2 text-left">Schedule</th>
               <th className="px-3 py-2 text-left">Instructor</th>
-              <th className="px-3 py-2 text-left">Payment</th>
               <th className="px-3 py-2 text-left">Status</th>
               <th className="px-3 py-2 text-left">Notes</th>
             </tr>
@@ -83,7 +82,6 @@ export function SimpleAssignmentList() {
                 <td className="px-3 py-2">{fmt(r.start_time)}{r.end_time ? ` - ${r.end_time}` : ''}</td>
                 <td className="px-3 py-2">{fmt(r.schedule_type)}</td>
                 <td className="px-3 py-2">{fmt(r.instructor_id)}</td>
-                <td className="px-3 py-2">₹{fmtAmt(r.payment_amount)} ({fmt(r.payment_status)})</td>
                 <td className="px-3 py-2">{fmt(r.class_status)}</td>
                 <td className="px-3 py-2 max-w-[360px] truncate" title={r.notes || ''}>{fmt(r.notes)}</td>
               </tr>

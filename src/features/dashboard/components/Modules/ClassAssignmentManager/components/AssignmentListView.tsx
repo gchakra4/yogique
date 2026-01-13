@@ -3,11 +3,14 @@ import { useState } from 'react'
 import { ClassAssignment, getPrimaryClientDisplay } from '../types'
 import { formatDate, formatTime, getStatusStyle } from '../utils'
 import { ClientDisplay } from './ClientDisplay'
+import { ContainerCapacityBadge } from './ContainerCapacityIndicator'
 import { LoadingSpinner } from './LoadingSpinner'
 
 interface AssignmentGroup {
     key: string
     type: string
+    containerId: string | null
+    containerCode: string | null
     assignments: ClassAssignment[]
     groupInfo: {
         instructor_name: string
@@ -69,12 +72,12 @@ export const AssignmentListView = ({
 
     return (
         <div className="overflow-x-hidden">
-            <div className="space-y-6">
+            <div className="space-y-2">
                 {groupedAssignments.map(group => (
-                    <div key={group.key} className="bg-white border border-gray-200 rounded-lg overflow-hidden min-w-0">
+                    <div key={group.key} className="bg-white border-b border-gray-200 overflow-hidden min-w-0">
                         {/* Group Header */}
                         <div
-                            className="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+                            className="bg-white px-3 py-3 border-b border-gray-100 cursor-pointer active:bg-gray-50 transition-colors"
                             onClick={() => toggleGroupExpansion(group.key)}
                         >
                             <div className="flex items-center justify-between">
@@ -102,6 +105,13 @@ export const AssignmentListView = ({
                                                     {group.type === 'crash_course' ? 'Crash Course' :
                                                         group.type.charAt(0).toUpperCase() + group.type.slice(1)}
                                                 </span>
+                                                {/* Container Code Badge */}
+                                                {group.containerCode && (
+                                                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 border border-indigo-300 rounded text-xs font-medium bg-indigo-50 text-indigo-800">
+                                                        <Package size={12} />
+                                                        <span>{group.containerCode}</span>
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="flex items-center mt-1 text-sm text-gray-600 space-x-4">
                                                 <span className="flex items-center">
@@ -156,7 +166,7 @@ export const AssignmentListView = ({
                                     return (
                                         <div
                                             key={assignment.id}
-                                            className="px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer min-w-0"
+                                            className="px-3 py-3 active:bg-gray-50 transition-colors cursor-pointer min-w-0 border-b border-gray-50 last:border-b-0"
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 if (!isSelectMode) {

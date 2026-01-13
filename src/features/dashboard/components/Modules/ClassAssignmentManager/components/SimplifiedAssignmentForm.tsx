@@ -1,6 +1,8 @@
-import { IndianRupee, Plus, Save, X } from 'lucide-react'
+import { Plus, Save, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { BookingSelector } from '../../../../../../shared/components/ui/BookingSelector'
 import { Booking, ClassType, Package, UserProfile } from '../types'
+import { AssignUserModal } from './AssignUserModal'
 import { Button } from './Button'
 import { LoadingSpinner } from './LoadingSpinner'
 import { QuickBookingForm } from './QuickBookingForm'
@@ -15,6 +17,7 @@ interface SimplifiedAssignmentFormProps {
     onClose: () => void
     onSubmit: (data: any) => void
     onBookingCreated?: () => Promise<void> // Callback to refresh bookings list
+    initialSelectedBookingId?: string
 }
 
 export const SimplifiedAssignmentForm = ({
@@ -27,11 +30,14 @@ export const SimplifiedAssignmentForm = ({
     onClose,
     onSubmit,
     onBookingCreated
+    ,
+    initialSelectedBookingId
 }: SimplifiedAssignmentFormProps) => {
     // Step 1: Booking selection (MANDATORY)
-    const [selectedBookingId, setSelectedBookingId] = useState('')
+    const [selectedBookingId, setSelectedBookingId] = useState(initialSelectedBookingId || '')
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
     const [showQuickBooking, setShowQuickBooking] = useState(false)
+    const [showAssignUserModal, setShowAssignUserModal] = useState(false)
 
     // ⚡ PHASE 2: Booking access status tracking
     const [bookingAccessStatus, setBookingAccessStatus] = useState<'active' | 'overdue_grace' | 'overdue_locked' | null>(null)
@@ -61,6 +67,12 @@ export const SimplifiedAssignmentForm = ({
     const [errors, setErrors] = useState<any>({})
 
     // When booking selected, load booking details and check access status
+    useEffect(() => {
+        if (initialSelectedBookingId) {
+            setSelectedBookingId(initialSelectedBookingId)
+        }
+    }, [initialSelectedBookingId])
+
     useEffect(() => {
         if (selectedBookingId) {
             const booking = bookings.find(b => b.booking_id === selectedBookingId)
@@ -173,6 +185,8 @@ export const SimplifiedAssignmentForm = ({
 
     if (!isVisible) return null
 
+    console.log('SimplifiedAssignmentForm rendering with:', { isVisible, bookingsCount: bookings.length, packagesCount: packages.length })
+
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
@@ -200,20 +214,11 @@ export const SimplifiedAssignmentForm = ({
 
                                 {!showQuickBooking ? (
                                     <div className="space-y-3">
-                                        <select
-                                            value={selectedBookingId}
-                                            onChange={(e) => setSelectedBookingId(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
-                                        >
-                                            <option value="">-- Select existing booking --</option>
-                                            {bookings
-                                                .filter(b => ['pending', 'confirmed'].includes(b.status))
-                                                .map(booking => (
-                                                    <option key={booking.id} value={booking.booking_id}>
-                                                        {booking.first_name} {booking.last_name} - {booking.email} ({booking.booking_type})
-                                                    </option>
-                                                ))}
-                                        </select>
+                                        <BookingSelector
+                                            selectedBookingId={selectedBookingId}
+                                            onBookingSelect={(id) => setSelectedBookingId(id)}
+                                            bookingsProp={bookings.filter(b => ['pending', 'confirmed'].includes(b.status) && b.booking_type !== 'public_group')}
+                                        />
 
                                         <button
                                             type="button"
@@ -223,6 +228,15 @@ export const SimplifiedAssignmentForm = ({
                                             <Plus className="w-4 h-4 mr-1" />
                                             Or create new quick booking
                                         </button>
+                                        <div className="flex items-center space-x-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAssignUserModal(true)}
+                                                className="text-sm text-green-600 hover:text-green-800 inline-flex items-center"
+                                            >
+                                                Assign User to Group
+                                            </button>
+                                        </div>
 
                                         {errors.booking && <p className="text-red-600 text-sm">{errors.booking}</p>}
                                     </div>
@@ -315,7 +329,7 @@ export const SimplifiedAssignmentForm = ({
                                                 <strong>Auto-selected:</strong> {filteredPackages[0].name}
                                             </p>
                                             <p className="text-xs text-green-600 mt-1">
-                                                {filteredPackages[0].class_count} classes • ₹{filteredPackages[0].price}
+                                                {filteredPackages[0].class_count} classes
                                             </p>
                                         </div>
                                     ) : (
@@ -327,7 +341,7 @@ export const SimplifiedAssignmentForm = ({
                                             <option value="">-- Select package --</option>
                                             {filteredPackages.map(pkg => (
                                                 <option key={pkg.id} value={pkg.id}>
-                                                    {pkg.name} - {pkg.class_count} classes (₹{pkg.price})
+                                                    {pkg.name} - {pkg.class_count} classes
                                                 </option>
                                             ))}
                                         </select>
@@ -453,21 +467,7 @@ export const SimplifiedAssignmentForm = ({
                                             {errors.instructor && <p className="text-red-600 text-sm mt-1">{errors.instructor}</p>}
                                         </div>
 
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                <IndianRupee className="w-4 h-4 inline mr-1" />
-                                                Payment Amount (INR)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                value={paymentAmount}
-                                                onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">Auto-filled from package. Adjust if needed.</p>
-                                        </div>
+                                        {/* Payment amount intentionally hidden in simplified assignment UI. */}
 
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -509,6 +509,18 @@ export const SimplifiedAssignmentForm = ({
                             </Button>
                         </div>
                     </form>
+                    {showAssignUserModal && (
+                        <AssignUserModal
+                            isOpen={showAssignUserModal}
+                            onClose={() => setShowAssignUserModal(false)}
+                            defaultPackageId={selectedPackageId || undefined}
+                            onAssigned={(bookingId: string) => {
+                                setSelectedBookingId(bookingId)
+                                setShowAssignUserModal(false)
+                                if (onBookingCreated) onBookingCreated()
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         </div>

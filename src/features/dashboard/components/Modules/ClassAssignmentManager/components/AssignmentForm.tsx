@@ -1,4 +1,4 @@
-import { AlertTriangle, Calendar, IndianRupee, Save, X } from 'lucide-react'
+import { AlertTriangle, Calendar, Save, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useRateForAssignment } from '../../../../../instructor-rates/hooks/useRateForAssignment'
 import { Booking, ClassType, ConflictDetails, FormData, Package, UserProfile, ValidationErrors } from '../types'
@@ -44,7 +44,7 @@ export const AssignmentForm = ({
     onDurationChange
 }: AssignmentFormProps) => {
 
-    // Calculate student count based on selected booking(s)
+    /* Calculate student count based on selected booking(s) - currently unused after hiding payment UI
     const calculateStudentCount = () => {
         // If no booking is selected, default to 1 student
         if (!formData.booking_id || formData.booking_id.trim() === '') {
@@ -67,6 +67,7 @@ export const AssignmentForm = ({
     };
 
     const studentCount = calculateStudentCount();
+    */
 
     // Derive instructor rate lookup parameters (exclude custom "package" type)
     const scheduleTypeForRate =
@@ -84,7 +85,7 @@ export const AssignmentForm = ({
             ? formData.package_id
             : undefined
 
-    const { rate, loading: rateLoading } = useRateForAssignment(
+    const { rate } = useRateForAssignment(
         scheduleTypeForRate as any,
         categoryForRate,
         classTypeIdForRate,
@@ -676,12 +677,9 @@ export const AssignmentForm = ({
                                 </div>
                             )}
 
-                            {/* Payment Configuration */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Payment Configuration - Hidden from UI but preserved for backend */}
+                            <div className="hidden">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Payment Type
-                                    </label>
                                     <select
                                         value={formData.payment_type}
                                         onChange={(e) => onInputChange('payment_type', e.target.value)}
@@ -703,10 +701,6 @@ export const AssignmentForm = ({
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        <IndianRupee className="w-4 h-4 inline mr-1" />
-                                        Payment Amount (INR) <span className="text-red-500">*</span>
-                                    </label>
                                     <input
                                         type="number"
                                         min="0"
@@ -716,116 +710,11 @@ export const AssignmentForm = ({
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="0.00"
                                     />
-                                    {errors.payment_amount && <p className="text-red-500 text-sm mt-1">{errors.payment_amount}</p>}
-                                    {formData.assignment_type !== 'package' && (
-                                        <p className="text-xs mt-1">
-                                            {rateLoading
-                                                ? 'Checking instructor rate...'
-                                                : (rate
-                                                    ? <span className="text-green-600">Auto-filled from instructor rates. You may override for this assignment; the rate table will not be updated.</span>
-                                                    : <span className="text-amber-600">No instructor rate found; the entered amount will be saved as a new rate for this combination.</span>
-                                                )
-                                            }
-                                        </p>
-                                    )}
                                 </div>
                             </div>
 
 
-                            {/* Payment Summary */}
-                            {formData.payment_amount > 0 && formData.total_classes > 1 && (
-                                <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-                                    <h4 className="font-medium text-green-900 mb-2">Payment Summary</h4>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <span className="text-green-700">Total Amount:</span>
-                                            <span className="font-medium ml-2">
-                                                ₹{(() => {
-                                                    const { payment_type, payment_amount, total_classes } = formData;
-                                                    switch (payment_type) {
-                                                        case 'per_class':
-                                                            // Amount per class × total classes
-                                                            return (payment_amount * total_classes).toFixed(2);
-                                                        case 'per_student_per_class':
-                                                            // Amount per student per class × students × total classes
-                                                            return (payment_amount * studentCount * total_classes).toFixed(2);
-                                                        case 'per_member':
-                                                            // Monthly amount per member × students × months
-                                                            const months = Math.ceil(total_classes / 4); // Assuming ~4 classes per month
-                                                            return (payment_amount * studentCount * months).toFixed(2);
-                                                        case 'monthly':
-                                                            // Fixed monthly rate × months
-                                                            const totalMonths = Math.ceil(total_classes / 4);
-                                                            return (payment_amount * totalMonths).toFixed(2);
-                                                        case 'per_class_total':
-                                                            // Total amount for all students per class × total classes
-                                                            return (payment_amount * total_classes).toFixed(2);
-                                                        case 'total_duration':
-                                                            // Total amount for entire duration (fixed)
-                                                            return payment_amount.toFixed(2);
-                                                        default:
-                                                            return payment_amount.toFixed(2);
-                                                    }
-                                                })()}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span className="text-green-700">Per Class:</span>
-                                            <span className="font-medium ml-2">
-                                                ₹{(() => {
-                                                    const { payment_type, payment_amount, total_classes } = formData;
-                                                    switch (payment_type) {
-                                                        case 'per_class':
-                                                            // Amount per class (as entered)
-                                                            return payment_amount.toFixed(2);
-                                                        case 'per_student_per_class':
-                                                            // Amount per student per class × students
-                                                            return (payment_amount * studentCount).toFixed(2);
-                                                        case 'per_member':
-                                                            // Monthly amount per member × students ÷ classes per month
-                                                            const classesPerMonth = total_classes / Math.ceil(total_classes / 4);
-                                                            return (payment_amount * studentCount / classesPerMonth).toFixed(2);
-                                                        case 'monthly':
-                                                            // Fixed monthly rate ÷ classes per month
-                                                            const avgClassesPerMonth = total_classes / Math.ceil(total_classes / 4);
-                                                            return (payment_amount / avgClassesPerMonth).toFixed(2);
-                                                        case 'per_class_total':
-                                                            // Total amount for all students per class (as entered)
-                                                            return payment_amount.toFixed(2);
-                                                        case 'total_duration':
-                                                            // Total duration amount ÷ total classes
-                                                            return (payment_amount / total_classes).toFixed(2);
-                                                        default:
-                                                            return (payment_amount / total_classes).toFixed(2);
-                                                    }
-                                                })()}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span className="text-green-700">Total Classes:</span>
-                                            <span className="font-medium ml-2">{formData.total_classes}</span>
-                                        </div>
-                                        {(formData.payment_type === 'per_student_per_class' || formData.payment_type === 'per_member' || formData.payment_type === 'per_class_total') && (
-                                            <div>
-                                                <span className="text-green-700">Students:</span>
-                                                <span className="font-medium ml-2">{studentCount}</span>
-                                                <span className="text-xs text-gray-500 ml-1">
-                                                    {formData.booking_id ? '(from selected booking)' : '(default)'}
-                                                </span>
-                                            </div>
-                                        )}
-                                        <div>
-                                            <span className="text-green-700">Duration:</span>
-                                            <span className="font-medium ml-2">
-                                                {formData.assignment_type === 'weekly'
-                                                    ? `Until ${formData.end_date ? new Date(formData.end_date).toLocaleDateString() : 'end of year'}`
-                                                    : `${formData.course_duration_value} ${formData.course_duration_unit}`
-                                                }
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            {/* Payment Summary - Hidden from UI */}
 
                             {/* Client Info Display */}
                             {(formData.client_name || formData.client_email) && (

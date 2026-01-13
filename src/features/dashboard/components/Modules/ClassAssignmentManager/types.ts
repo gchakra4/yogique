@@ -26,6 +26,24 @@ export interface ClassAssignment {
     is_adjustment?: boolean // True if auto-generated to fill calendar shortfall
     adjustment_reason?: string | null // Why this adjustment was created
     calendar_month?: string | null // YYYY-MM format for monthly billing periods
+    // ⚡ PHASE 6: Container grouping as single source of truth
+    class_container_id?: string | null // FK to class_containers table
+    class_container?: {
+        id: string
+        container_code: string
+        display_name?: string
+        container_type: 'individual' | 'public_group' | 'private_group' | 'crash_course'
+        instructor_id?: string
+        class_type_id?: string | null
+        package_id?: string | null
+        max_booking_count: number
+        current_booking_count: number
+        created_by?: string | null
+        created_at?: string
+        updated_at?: string
+        is_active?: boolean
+        notes?: string | null
+    }
     class_type?: {
         id: string
         name: string

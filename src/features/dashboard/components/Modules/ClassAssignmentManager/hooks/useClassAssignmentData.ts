@@ -49,6 +49,13 @@ export const useClassAssignmentData = () => {
                     *,
                     assignment_bookings (
                         booking_id
+                    ),
+                    class_container:class_containers!class_assignments_class_container_id_fkey (
+                        id,
+                        container_code,
+                        container_type,
+                        max_booking_count,
+                        current_booking_count
                     )
                 `).order('assigned_at', { ascending: false }),
                 supabase.from('class_schedules').select('*').eq('is_active', true).order('day_of_week', { ascending: true }),
@@ -137,6 +144,7 @@ export const useClassAssignmentData = () => {
 
             // Build lookup maps for better performance
             const profileMap = new Map(profilesWithRoles.map(p => [p.user_id, p]))
+            const packageMap = new Map(packagesData.map(pkg => [pkg.id, pkg]))
 
             // Enrich data more efficiently
             const toNumber = (v: any): number => {
@@ -151,6 +159,8 @@ export const useClassAssignmentData = () => {
                 // prefer looked-up class type but fall back to pre-joined alias if present
                 class_type: classTypeMap.get(assignment.class_type_id) || assignment.class_type,
                 instructor_profile: profileMap.get(assignment.instructor_id),
+                // Attach package data if package_id exists
+                package: assignment.package_id ? packageMap.get(assignment.package_id) : assignment.package,
                 payment_amount: toNumber(assignment.payment_amount),
                 override_payment_amount: assignment.override_payment_amount == null ? null : toNumber(assignment.override_payment_amount),
                 final_payment_amount: assignment.final_payment_amount == null ? null : toNumber(assignment.final_payment_amount)
