@@ -94,10 +94,10 @@ export const AssignmentListView = ({
                                                     {group.groupInfo.class_type_name}
                                                 </h3>
                                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${group.type === 'weekly' ? 'bg-blue-100 text-blue-800' :
-                                                        group.type === 'monthly' ? 'bg-green-100 text-green-800' :
-                                                            group.type === 'crash_course' ? 'bg-red-100 text-red-800' :
-                                                                group.type === 'package' ? 'bg-purple-100 text-purple-800' :
-                                                                    'bg-gray-100 text-gray-800'
+                                                    group.type === 'monthly' ? 'bg-green-100 text-green-800' :
+                                                        group.type === 'crash_course' ? 'bg-red-100 text-red-800' :
+                                                            group.type === 'package' ? 'bg-purple-100 text-purple-800' :
+                                                                'bg-gray-100 text-gray-800'
                                                     }`}>
                                                     {group.type === 'crash_course' ? 'Crash Course' :
                                                         group.type.charAt(0).toUpperCase() + group.type.slice(1)}
@@ -131,7 +131,7 @@ export const AssignmentListView = ({
                                         ? group.assignments.filter(a => (a.date || '').startsWith(yyyyMm))
                                         : group.assignments
                                     const total = inPeriod.length
-                                    const todayDateOnly = new Date(today.toISOString().slice(0,10))
+                                    const todayDateOnly = new Date(today.toISOString().slice(0, 10))
                                     const remaining = inPeriod.filter(a => {
                                         const d = new Date(a.date)
                                         const futureOrToday = d >= todayDateOnly
