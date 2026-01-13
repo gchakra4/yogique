@@ -1,9 +1,8 @@
-import { Calendar, ChevronDown, ChevronRight, Clock, MapPin, Trash2, User } from 'lucide-react'
+import { Calendar, ChevronDown, ChevronRight, Clock, MapPin, Package, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { ClassAssignment, getPrimaryClientDisplay } from '../types'
 import { formatDate, formatTime, getStatusStyle } from '../utils'
 import { ClientDisplay } from './ClientDisplay'
-import { ContainerCapacityBadge } from './ContainerCapacityIndicator'
 import { LoadingSpinner } from './LoadingSpinner'
 
 interface AssignmentGroup {
