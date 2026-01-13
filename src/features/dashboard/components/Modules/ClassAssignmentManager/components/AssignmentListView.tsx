@@ -1,4 +1,4 @@
-import { Calendar, ChevronDown, ChevronRight, Clock, MapPin, Package, Trash2, User } from 'lucide-react'
+import { Calendar, ChevronDown, ChevronRight, Clock, MapPin, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { ClassAssignment, getPrimaryClientDisplay } from '../types'
 import { formatDate, formatTime, getStatusStyle } from '../utils'
@@ -133,21 +133,28 @@ export const AssignmentListView = ({
                                         </div>
                                     </div>
                                 </div>
-                                {/* Payment Summary and Container Capacity for Group */}
-                                <div className="flex items-center space-x-4">
-                                    {/* Container Capacity Indicator */}
-                                    {group.assignments[0]?.class_container &&
-                                        group.assignments[0].class_container.display_name && (
-                                            <ContainerCapacityBadge
-                                                container={group.assignments[0].class_container as any}
-                                            />
-                                        )}
-                                    <div className="text-right">
-                                        <div className="text-sm text-gray-500">
-                                            {group.groupInfo.assignment_count} class{group.groupInfo.assignment_count !== 1 ? 'es' : ''}
+                                {/* Remaining/Total classes for Group */}
+                                {(() => {
+                                    const today = new Date()
+                                    const yyyyMm = today.toISOString().slice(0, 7)
+                                    const inPeriod = group.type === 'monthly'
+                                        ? group.assignments.filter(a => (a.date || '').startsWith(yyyyMm))
+                                        : group.assignments
+                                    const total = inPeriod.length
+                                    const todayDateOnly = new Date(today.toISOString().slice(0, 10))
+                                    const remaining = inPeriod.filter(a => {
+                                        const d = new Date(a.date)
+                                        const futureOrToday = d >= todayDateOnly
+                                        const notCompleted = a.class_status !== 'completed' && a.class_status !== 'cancelled'
+                                        return futureOrToday && notCompleted
+                                    }).length
+                                    return (
+                                        <div className="text-right">
+                                            <div className="text-sm text-gray-600">Remaining / Total</div>
+                                            <div className="text-lg font-semibold text-gray-900">{remaining} / {total} classes</div>
                                         </div>
-                                    </div>
-                                </div>
+                                    )
+                                })()}
                             </div>
                         </div>
 
@@ -216,9 +223,8 @@ export const AssignmentListView = ({
                                                     </div>
                                                 </div>
 
-                                                {/* Payment Amount and Actions */}
-                                                <div className="mt-2 sm:mt-0 flex items-center space-x-4">
-                                                    {/* Payment amount hidden per requirement */}
+                                                {/* Actions */}
+                                                <div className="mt-2 sm:mt-0 flex items-center space-x-2">
                                                     {!isSelectMode && (
                                                         <button
                                                             onClick={(e) => {
@@ -228,7 +234,7 @@ export const AssignmentListView = ({
                                                                     `${assignment.class_type?.name || 'Class'} on ${formatDate(assignment.date)}`
                                                                 )
                                                             }}
-                                                            className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:text-red-800 transition-all"
+                                                            className="p-1 text-red-600 hover:text-red-800 transition-all"
                                                             title="Delete assignment"
                                                         >
                                                             <Trash2 className="w-4 h-4" />
