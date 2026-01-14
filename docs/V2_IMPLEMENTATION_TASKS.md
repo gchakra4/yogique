@@ -19,7 +19,7 @@
 - **Total Tasks:** 65
 - **Pro Tasks:** 19 (Design & Architecture)
 - **Mini Tasks:** 46 (Implementation)
-- **Completed:** 8 / 65
+- **Completed:** 9 / 65
 - **In Progress:** 0 / 65
 - **Blocked:** 0 / 65
 
@@ -1387,15 +1387,693 @@ const handleSubmit = async (formData) => {
 ---
 
 ### Task 1.9: Hook Design Strategy
-- [ ] **Model:** 🟣 PRO
-- [ ] **Priority:** High
-- [ ] **Estimated Time:** 1.5 hours
-- [ ] **Dependencies:** None
-- [ ] **Description:** Design React hooks with polling, caching, state management
-- [ ] **Deliverable:** Hook design patterns document
-- [ ] **Prompt:** "Design React hooks for V2: useContainers (with polling) strategy, usePackages caching approach, useMobileDetect implementation. Decide: Context for shared state or prop drilling? Error boundary strategy?"
-- [ ] **Output Location:** Comment for Task 1.10
-- [ ] **Notes:**
+- [x] **Model:** 🟣 PRO
+- [x] **Priority:** High
+- [x] **Estimated Time:** 1.5 hours
+- [x] **Dependencies:** None
+- [x] **Description:** Design React hooks with polling, caching, state management
+- [x] **Deliverable:** Hook design patterns document
+- [x] **Prompt:** "Design React hooks for V2: useContainers (with polling) strategy, usePackages caching approach, useMobileDetect implementation. Decide: Context for shared state or prop drilling? Error boundary strategy?"
+- [x] **Output Location:** Comment for Task 1.10
+- [x] **Notes:** ✅ Completed Jan 14, 2026 - Designed 8 hooks with React Query, no Context needed, ErrorBoundary strategy defined
+
+---
+
+## 📋 Task 1.9 Deliverable: Hook Design Strategy
+
+### Architecture Decision: React Query + Custom Hooks (No Context)
+
+**Pattern:** React Query for data fetching + Custom hooks + Local state in components
+
+**Key Decisions:**
+- ✅ React Query for caching, polling, and server state
+- ✅ No Context API needed (React Query cache acts as global state)
+- ✅ Local state in ClassesDashboard for UI (modals, drawer)
+- ✅ ErrorBoundary at route level for catastrophic failures
+- ✅ Toast notifications for user-facing errors
+
+---
+
+### 1. useContainers Hook
+
+**Purpose:** Fetch and manage container list with real-time updates
+
+**Signature:**
+```typescript
+export function useContainers(params?: {
+  instructorId?: string;
+  packageId?: string;
+  containerType?: string;
+  isActive?: boolean;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  enablePolling?: boolean;
+  pollingInterval?: number;
+}): {
+  containers: Container[];
+  total: number;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+```
+
+**Implementation Pattern:**
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { containerService } from '../services/v2';
+
+export const useContainers = (params = {}) => {
+  const { enablePolling = false, pollingInterval = 30000, ...filterParams } = params;
+
+  const query = useQuery({
+    queryKey: ['containers', filterParams],
+    queryFn: async () => {
+      const result = await containerService.listContainers(filterParams);
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    staleTime: 30 * 1000,
+    cacheTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchInterval: enablePolling ? pollingInterval : false,
+    refetchIntervalInBackground: false,
+  });
+
+  return {
+    containers: query.data?.containers || [],
+    total: query.data?.total || 0,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+```
+
+**Polling Strategy:**
+- Default: OFF (opt-in via `enablePolling: true`)
+- Interval: 30 seconds (configurable)
+- Pauses when tab inactive
+- Use case: Real-time capacity monitoring
+
+---
+
+### 2. useContainerDetail Hook
+
+**Purpose:** Fetch single container with full details
+
+**Signature:**
+```typescript
+export function useContainerDetail(
+  containerId: string | null,
+  options?: { enabled?: boolean }
+): {
+  container: ContainerDetail | null;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+```
+
+**Implementation:**
+```typescript
+export const useContainerDetail = (containerId, options = {}) => {
+  const query = useQuery({
+    queryKey: ['container', containerId],
+    queryFn: async () => {
+      if (!containerId) return null;
+      const result = await containerService.getContainer(containerId);
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    enabled: !!containerId && (options.enabled !== false),
+    staleTime: 10 * 1000,
+    cacheTime: 2 * 60 * 1000,
+  });
+
+  return {
+    container: query.data || null,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+```
+
+---
+
+### 3. useContainerMutations Hook
+
+**Purpose:** Container CRUD operations with cache invalidation
+
+**Signature:**
+```typescript
+export function useContainerMutations(): {
+  createContainer: UseMutationResult<Container, Error, CreateContainerInput>;
+  updateContainer: UseMutationResult<Container, Error, { id: string; data: UpdateContainerInput }>;
+  deleteContainer: UseMutationResult<void, Error, string>;
+}
+```
+
+**Implementation:**
+```typescript
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+export const useContainerMutations = () => {
+  const queryClient = useQueryClient();
+
+  const createContainer = useMutation({
+    mutationFn: async (data: CreateContainerInput) => {
+      const result = await containerService.createContainer(data);
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['containers']);
+    },
+  });
+
+  const updateContainer = useMutation({
+    mutationFn: async ({ id, data }) => {
+      const result = await containerService.updateContainer(id, data);
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    onMutate: async ({ id, data }) => {
+      // Optimistic update
+      await queryClient.cancelQueries(['container', id]);
+      const previous = queryClient.getQueryData(['container', id]);
+      queryClient.setQueryData(['container', id], (old: any) => ({ ...old, ...data }));
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['container', variables.id], context.previous);
+      }
+    },
+    onSettled: (data, error, variables) => {
+      queryClient.invalidateQueries(['container', variables.id]);
+      queryClient.invalidateQueries(['containers']);
+    },
+  });
+
+  const deleteContainer = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await containerService.deleteContainer(id);
+      if (!result.success) throw new Error(result.error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['containers']);
+    },
+  });
+
+  return { createContainer, updateContainer, deleteContainer };
+};
+```
+
+**Optimistic Update Strategy:**
+- Use for: Updates (editing display name, instructor)
+- Skip for: Creates and deletes
+- Rollback on error, refetch on success
+
+---
+
+### 4. usePackages Hook
+
+**Purpose:** Fetch packages with aggressive caching
+
+**Signature:**
+```typescript
+export function usePackages(params?: {
+  type?: string;
+  isActive?: boolean;
+}): {
+  packages: Package[];
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  clearCache: () => void;
+}
+```
+
+**Implementation:**
+```typescript
+export const usePackages = (params = {}) => {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['packages', params],
+    queryFn: async () => {
+      const result = await packageService.listPackages({ ...params, useCache: true });
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    staleTime: 10 * 60 * 1000,      // 10 minutes
+    cacheTime: 30 * 60 * 1000,      // 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const clearCache = () => {
+    packageService.clearCache();
+    queryClient.invalidateQueries(['packages']);
+  };
+
+  return {
+    packages: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    clearCache,
+  };
+};
+```
+
+**Caching Strategy:**
+- Service cache: 5 minutes TTL
+- React Query cache: 10 minutes stale, 30 minutes retention
+- Total: Up to 30 minutes before guaranteed fresh fetch
+
+---
+
+### 5. useAssignments Hook
+
+**Purpose:** Fetch assignments for a container
+
+**Signature:**
+```typescript
+export function useAssignments(params: {
+  containerId: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  enabled?: boolean;
+}): {
+  assignments: Assignment[];
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+```
+
+**Implementation:**
+```typescript
+export const useAssignments = (params) => {
+  const { enabled = true, ...filterParams } = params;
+
+  const query = useQuery({
+    queryKey: ['assignments', filterParams],
+    queryFn: async () => {
+      const result = await assignmentService.listAssignments(filterParams);
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    enabled: !!params.containerId && enabled,
+    staleTime: 15 * 1000,
+    cacheTime: 2 * 60 * 1000,
+  });
+
+  return {
+    assignments: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+```
+
+---
+
+### 6. useAssignmentMutations Hook
+
+**Purpose:** Assignment CRUD with bulk support
+
+**Signature:**
+```typescript
+export function useAssignmentMutations(): {
+  createAssignment: UseMutationResult;
+  bulkCreateAssignments: UseMutationResult;
+  updateAssignment: UseMutationResult;
+  deleteAssignment: UseMutationResult;
+}
+```
+
+**Implementation:**
+```typescript
+export const useAssignmentMutations = () => {
+  const queryClient = useQueryClient();
+
+  const createAssignment = useMutation({
+    mutationFn: async (data: CreateAssignmentInput) => {
+      const result = await assignmentService.createAssignment(data);
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['assignments', { containerId: data.class_container_id }]);
+      queryClient.invalidateQueries(['container', data.class_container_id]);
+    },
+  });
+
+  const bulkCreateAssignments = useMutation({
+    mutationFn: async (assignments: CreateAssignmentInput[]) => {
+      const result = await assignmentService.bulkCreateAssignments(assignments);
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['assignments']);
+      queryClient.invalidateQueries(['containers']);
+    },
+  });
+
+  // updateAssignment and deleteAssignment similar...
+
+  return { createAssignment, bulkCreateAssignments, updateAssignment, deleteAssignment };
+};
+```
+
+---
+
+### 7. useCapacity Hook
+
+**Purpose:** Real-time capacity tracking
+
+**Signature:**
+```typescript
+export function useCapacity(
+  containerId: string | null,
+  options?: { enabled?: boolean }
+): {
+  capacity: {
+    maxCapacity: number;
+    currentBookings: number;
+    availableSpots: number;
+    utilizationPercent: number;
+    isFull: boolean;
+  } | null;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+}
+```
+
+**Implementation:**
+```typescript
+export const useCapacity = (containerId, options = {}) => {
+  const query = useQuery({
+    queryKey: ['capacity', containerId],
+    queryFn: async () => {
+      if (!containerId) return null;
+      const result = await capacityService.getCapacity(containerId);
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    enabled: !!containerId && (options.enabled !== false),
+    staleTime: 5 * 1000,
+    cacheTime: 1 * 60 * 1000,
+    refetchInterval: 15 * 1000,     // Auto-refetch every 15 seconds
+  });
+
+  return {
+    capacity: query.data || null,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+  };
+};
+```
+
+---
+
+### 8. useMobileDetect Hook
+
+**Purpose:** Detect mobile viewport for responsive rendering
+
+**Signature:**
+```typescript
+export function useMobileDetect(): {
+  isMobile: boolean;
+  isTablet: boolean;
+  isDesktop: boolean;
+  width: number;
+}
+```
+
+**Implementation:**
+```typescript
+import { useState, useEffect } from 'react';
+
+export const useMobileDetect = () => {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+  });
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setWindowSize({ width: window.innerWidth });
+      }, 150);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const isMobile = windowSize.width < 768;
+  const isTablet = windowSize.width >= 768 && windowSize.width < 1024;
+  const isDesktop = windowSize.width >= 1024;
+
+  return { isMobile, isTablet, isDesktop, width: windowSize.width };
+};
+```
+
+**Breakpoints:**
+- Mobile: < 768px
+- Tablet: 768px - 1023px
+- Desktop: >= 1024px
+
+---
+
+### 9. Error Handling Strategy
+
+**Three-Layer Approach:**
+
+**Layer 1: Service Layer**
+- Services return `ServiceResult<T>` with structured errors
+- User-friendly messages
+
+**Layer 2: Hook Layer**
+- React Query handles network errors
+- Hooks throw errors from service failures
+
+**Layer 3: Component Layer**
+- Toast notifications for user-facing errors
+- Inline errors for forms
+- ErrorBoundary for catastrophic failures
+
+**ErrorBoundary Implementation:**
+```typescript
+import { Component, ReactNode } from 'react';
+
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('[ErrorBoundary]', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        <div className="error-fallback">
+          <h2>Something went wrong</h2>
+          <p>{this.state.error?.message}</p>
+          <button onClick={() => window.location.reload()}>Reload</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+```
+
+**Usage in Routing:**
+```typescript
+<ErrorBoundary fallback={<DashboardError />}>
+  <Suspense fallback={<LoadingSpinner />}>
+    <ClassesDashboard />
+  </Suspense>
+</ErrorBoundary>
+```
+
+---
+
+### 10. State Management Decision
+
+**Decision: No Context API Needed**
+
+**Rationale:**
+- React Query cache = global server state
+- Modal/drawer state co-located in ClassesDashboard
+- No deep prop drilling (1 level max)
+- Simpler debugging and performance
+
+**State Structure:**
+```typescript
+const ClassesDashboard = () => {
+  // UI state (local)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [drawerContainerId, setDrawerContainerId] = useState<string | null>(null);
+
+  // Server state (React Query)
+  const { containers, isLoading } = useContainers();
+  const { packages } = usePackages();
+
+  return (
+    <>
+      <ContainerGrid
+        containers={containers}
+        onCardClick={(id) => setDrawerContainerId(id)}
+      />
+      <ContainerDrawer
+        containerId={drawerContainerId}
+        onClose={() => setDrawerContainerId(null)}
+      />
+    </>
+  );
+};
+```
+
+---
+
+### 11. React Query Configuration
+
+**Global Config:**
+```typescript
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: true,
+      staleTime: 0,
+      cacheTime: 5 * 60 * 1000,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
+
+<QueryClientProvider client={queryClient}>
+  <App />
+  {process.env.NODE_ENV === 'development' && (
+    <ReactQueryDevtools initialIsOpen={false} />
+  )}
+</QueryClientProvider>
+```
+
+---
+
+### 12. Loading State Strategy
+
+**Skeleton Screens (Preferred):**
+```typescript
+const ClassesDashboard = () => {
+  const { containers, isLoading } = useContainers();
+
+  if (isLoading) {
+    return <ContainerGridSkeleton count={6} />;
+  }
+
+  return <ContainerGrid containers={containers} />;
+};
+```
+
+**Button Loading States:**
+```typescript
+const { mutate, isLoading } = useContainerMutations().createContainer;
+
+<button disabled={isLoading}>
+  {isLoading ? 'Creating...' : 'Create Program'}
+</button>
+```
+
+---
+
+## 🎯 Summary for Task 1.10 (MINI)
+
+**Hooks to Create:**
+
+1. **useContainers.ts** - List with polling, filters, pagination
+2. **useContainerDetail.ts** - Single container with full details
+3. **useContainerMutations.ts** - Create, update, delete
+4. **usePackages.ts** - Packages with aggressive caching
+5. **useAssignments.ts** - Assignments for a container
+6. **useAssignmentMutations.ts** - CRUD + bulk operations
+7. **useCapacity.ts** - Real-time capacity tracking
+8. **useMobileDetect.ts** - Responsive viewport detection
+
+**Implementation Requirements:**
+- All data hooks use React Query (`useQuery`, `useMutation`)
+- Import services from `../services/v2`
+- Consistent return shape: `{ data, isLoading, isError, error, refetch }`
+- Mutations return: `{ mutate, mutateAsync, isLoading, isError, error }`
+- Cache keys: `['containers', params]`, `['container', id]`, etc.
+- TypeScript with proper types from `../types/v2`
+- useMobileDetect: pure client-side, debounced resize listener
+
+**Dependencies:**
+```json
+{
+  "@tanstack/react-query": "^5.0.0",
+  "@tanstack/react-query-devtools": "^5.0.0"
+}
+```
+
+**File Locations:**
+- `src/features/dashboard/components/Modules/ClassesV2/hooks/useContainers.ts`
+- `src/features/dashboard/components/Modules/ClassesV2/hooks/useContainerDetail.ts`
+- `src/features/dashboard/components/Modules/ClassesV2/hooks/useContainerMutations.ts`
+- `src/features/dashboard/components/Modules/ClassesV2/hooks/usePackages.ts`
+- `src/features/dashboard/components/Modules/ClassesV2/hooks/useAssignments.ts`
+- `src/features/dashboard/components/Modules/ClassesV2/hooks/useAssignmentMutations.ts`
+- `src/features/dashboard/components/Modules/ClassesV2/hooks/useCapacity.ts`
+- `src/features/dashboard/components/Modules/ClassesV2/hooks/useMobileDetect.ts`
 
 ---
 
