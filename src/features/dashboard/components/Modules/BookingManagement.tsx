@@ -6,16 +6,21 @@ import {
   Eye,
   Filter,
   Mail,
+  PlusCircle,
   Search,
   Trash2,
-  X
+  X,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { enqueueNotification } from '../../../../services/enqueueBookingConfirmationEmail'
 import { Button } from '../../../../shared/components/ui/Button'
 import { LoadingSpinner } from '../../../../shared/components/ui/LoadingSpinner'
+import { UserRole } from '../../../../shared/config/roleConfig'
 import { supabase } from '../../../../shared/lib/supabase'
+import { hasPermission } from '../../../../shared/utils/permissions'
+import AssignmentBookingsService from '../../services/v2/assignment-bookings.service'
+import AssignToProgram from './ClassesV2/components/modals/AssignToProgram'
 
 interface ClassPackage {
   id: string
@@ -83,11 +88,28 @@ export function BookingManagement() {
   const [isNotifying, setIsNotifying] = useState(false)
   const [updatedBooking, setUpdatedBooking] = useState<Partial<Booking>>({})
   const [successMessage, setSuccessMessage] = useState('')
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [assignedPrograms, setAssignedPrograms] = useState<any[]>([])
+  const [isLoadingPrograms, setIsLoadingPrograms] = useState(false)
+  const bookingsService = useMemo(() => new AssignmentBookingsService(), [])
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole | undefined>(undefined)
   const location = useLocation()
 
   useEffect(() => {
     fetchBookings()
     fetchAllPackages() // Still need this for the edit dropdown
+      // fetch current user's role for permission checks
+      ; (async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+            setCurrentUserRole(profile?.role)
+          }
+        } catch (err) {
+          // ignore
+        }
+      })()
   }, [])
 
   // If the URL contains a booking_id query param, open details modal (deep link)
@@ -175,12 +197,39 @@ export function BookingManagement() {
     }).format(amount)
   }
 
+  // Fetch programs this booking is already assigned to
+  const fetchAssignedPrograms = async (bookingId: string) => {
+    setIsLoadingPrograms(true)
+    try {
+      const res = await bookingsService.getProgramsForBooking(bookingId)
+      if (res && res.success) {
+        setAssignedPrograms(res.data || [])
+      } else {
+        setAssignedPrograms([])
+      }
+    } catch (err) {
+      console.error('Error fetching assigned programs:', err)
+      setAssignedPrograms([])
+    } finally {
+      setIsLoadingPrograms(false)
+    }
+  }
+
 
   const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking)
     setIsEditing(false)
     setUpdatedBooking({})
   }
+
+  // When a booking is selected, fetch its assigned programs
+  useEffect(() => {
+    if (selectedBooking && selectedBooking.id) {
+      fetchAssignedPrograms(selectedBooking.id)
+    } else {
+      setAssignedPrograms([])
+    }
+  }, [selectedBooking])
 
   const handleEditBooking = (booking: Booking) => {
     setSelectedBooking(booking)
@@ -236,6 +285,23 @@ export function BookingManagement() {
       setTimeout(() => setSuccessMessage(''), 3000)
     } catch (err) {
       console.error('Error revoking token:', err)
+    }
+  }
+
+  const handleUnassignFromProgram = async (containerId: string) => {
+    if (!selectedBooking) return
+    try {
+      const res = await bookingsService.unassignBookingFromProgram(containerId, selectedBooking.id)
+      if (res && res.success) {
+        setSuccessMessage('Booking unassigned from program')
+        setTimeout(() => setSuccessMessage(''), 3000)
+        // refresh assigned programs
+        fetchAssignedPrograms(selectedBooking.id)
+      } else {
+        console.error('Failed to unassign booking', res)
+      }
+    } catch (err) {
+      console.error('Error unassigning booking:', err)
     }
   }
 
@@ -949,8 +1015,86 @@ export function BookingManagement() {
                     </div>
                   </div>
 
+                  {/* Assigned Programs */}
+                  <div>
+                    <h4 className="text-md font-semibold text-gray-900 mb-3 border-b pb-2 flex items-center justify-between">
+                      <span>Assigned Programs</span>
+                      {isLoadingPrograms && <div className="text-sm text-gray-500">Loading...</div>}
+                    </h4>
+
+                    {assignedPrograms.length === 0 ? (
+                      <div className="text-center py-6 bg-gray-50 rounded-lg">
+                        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">Not assigned to any program yet</p>
+                        {hasPermission(currentUserRole, 'bookings', 'assign') && (
+                          <div className="mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsAssignModalOpen(true)}
+                            >
+                              <PlusCircle className="w-4 h-4 mr-1" />
+                              Assign to Program
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {assignedPrograms.map((program) => (
+                          <div key={program.container_id} className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h5 className="font-medium text-gray-900 mb-1">{program.container_name}</h5>
+                                <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                  <div>
+                                    <span className="text-gray-500">Package:</span> {program.package_name}
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Instructor:</span> {program.instructor_name || 'TBD'}
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Schedule:</span> {program.schedule}
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Capacity:</span>{' '}
+                                    <span className={program.enrolled_count >= program.capacity ? 'text-red-600 font-medium' : ''}>
+                                      {program.enrolled_count}/{program.capacity}
+                                    </span>
+                                  </div>
+                                </div>
+                                {program.next_class_date && (
+                                  <div className="mt-2 text-xs text-blue-600 bg-blue-50 rounded px-2 py-1 inline-block">
+                                    Next class: {formatDate(program.next_class_date)} at {program.next_class_time}
+                                  </div>
+                                )}
+                              </div>
+                              {hasPermission(currentUserRole, 'bookings', 'unassign') && (
+                                <Button variant="outline" size="sm" onClick={() => handleUnassignFromProgram(program.container_id)} className="ml-3 text-red-600 hover:text-red-700 hover:bg-red-50">
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Action Buttons */}
                   <div className="border-t pt-4 flex flex-wrap gap-3 justify-end">
+                    {hasPermission(currentUserRole, 'bookings', 'assign') && (selectedBooking.status === 'confirmed' || selectedBooking.status === 'pending') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsAssignModalOpen(true)}
+                        className="flex items-center bg-blue-50 text-blue-700 hover:bg-blue-100"
+                      >
+                        <PlusCircle className="w-4 h-4 mr-1" />
+                        Assign to Program
+                      </Button>
+                    )}
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -1125,6 +1269,21 @@ export function BookingManagement() {
             </div>
           </div>
         </div>
+      )}
+      {/* Assign To Program Modal */}
+      {isAssignModalOpen && selectedBooking && (
+        <AssignToProgram
+          booking={selectedBooking}
+          isOpen={isAssignModalOpen}
+          onClose={() => setIsAssignModalOpen(false)}
+          bookingsService={bookingsService}
+          onSuccess={() => {
+            if (selectedBooking) fetchAssignedPrograms(selectedBooking.id)
+            setIsAssignModalOpen(false)
+            setSuccessMessage('Booking assigned to program successfully')
+            setTimeout(() => setSuccessMessage(''), 3000)
+          }}
+        />
       )}
     </div>
   )

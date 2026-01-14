@@ -8,6 +8,7 @@ import { DashboardModule, getModulesForRole, hasModuleAccess, UserRole } from '.
 
 // Lazy load components (Modules add here)
 const ClassAssignmentManager = React.lazy(() => import('./Modules/ClassAssignmentManager'));
+const ClassesDashboard = React.lazy(() => import('./Modules/ClassesV2/ClassesDashboard'));
 const ArticleManagement = React.lazy(() => import('./Modules/ArticleManagement'));
 const UserManagement = React.lazy(() => import('./Modules/UserManagement'));
 const UserRoleManagement = React.lazy(() => import('./Modules/UserRoleManagement'));
@@ -67,6 +68,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
   const componentMap = {
     ClassAssignmentManager,
     ArticleManagement,
+    ClassesDashboard,
     UserManagement,
     UserRoleManagement,
     TransactionManagement,
