@@ -381,15 +381,995 @@ Future (Optional):
 ---
 
 ### Task 1.7: Service Layer Architecture Design
-- [ ] **Model:** 🟣 PRO
-- [ ] **Priority:** Critical
-- [ ] **Estimated Time:** 2 hours
-- [ ] **Dependencies:** None
-- [ ] **Description:** Design service layer with error handling, caching, query patterns
-- [ ] **Deliverable:** Service architecture design document
-- [ ] **Prompt:** "Design the service layer architecture for V2: ContainerService methods, PackageService integration, AssignmentService structure. Decide: Class-based or functional? Error handling patterns? Query optimization (joins vs multiple)? Caching strategy?"
-- [ ] **Output Location:** Comment for Task 1.8
-- [ ] **Notes:**
+- [x] **Model:** 🟣 PRO
+- [x] **Priority:** Critical
+- [x] **Estimated Time:** 2 hours
+- [x] **Dependencies:** None
+- [x] **Description:** Design service layer with error handling, caching, query patterns
+- [x] **Deliverable:** Service architecture design document
+- [x] **Prompt:** "Design the service layer architecture for V2: ContainerService methods, PackageService integration, AssignmentService structure. Decide: Class-based or functional? Error handling patterns? Query optimization (joins vs multiple)? Caching strategy?"
+- [x] **Output Location:** Comment for Task 1.8
+- [x] **Notes:** ✅ Completed Jan 14, 2026
+
+---
+
+## 📋 Task 1.7 Deliverable: Service Layer Architecture Design
+
+### Architecture Overview
+
+**Pattern:** Class-based Services with Singleton Instances  
+**Rationale:** Classes provide encapsulation, clear method organization, easy mocking for tests, and align with existing V1 patterns (EmailService, AssignmentCreationService)
+
+### Core Principles
+
+1. **Single Responsibility:** Each service handles one domain (Containers, Assignments, Packages, Capacity, Validation)
+2. **Dependency Injection:** Services receive Supabase client instance
+3. **Consistent Error Handling:** All methods return typed result objects
+4. **Zero Business Logic in Components:** All CRUD + validation in services
+5. **Client-Side Caching:** Leverage React Query for data fetching (hooks layer)
+
+---
+
+### 1. Service Base Pattern
+
+```typescript
+// Base pattern for all V2 services
+import { supabase } from '@/shared/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+export type ServiceResult<T> = {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;        // Machine-readable error code
+    message: string;     // User-friendly message
+    details?: any;       // Technical details for logging
+  };
+};
+
+export abstract class BaseService {
+  protected client: SupabaseClient;
+
+  constructor(client: SupabaseClient = supabase) {
+    this.client = client;
+  }
+
+  protected handleError(error: any, context: string): ServiceResult<never> {
+    console.error(`[${this.constructor.name}] ${context}:`, error);
+    
+    // Map Supabase/Postgres errors to user-friendly messages
+    const errorCode = error?.code || 'unknown_error';
+    let message = 'An unexpected error occurred. Please try again.';
+
+    switch (errorCode) {
+      case '23505': // unique_violation
+        message = 'A record with this information already exists.';
+        break;
+      case '23503': // foreign_key_violation
+        message = 'Referenced record does not exist.';
+        break;
+      case '23514': // check_violation
+        message = 'Data validation failed. Please check your inputs.';
+        break;
+      case 'PGRST116': // no rows returned
+        message = 'Record not found.';
+        break;
+      default:
+        if (error?.message) {
+          message = error.message;
+        }
+    }
+
+    return {
+      success: false,
+      error: {
+        code: errorCode,
+        message,
+        details: error
+      }
+    };
+  }
+
+  protected success<T>(data: T): ServiceResult<T> {
+    return { success: true, data };
+  }
+}
+```
+
+---
+
+### 2. ContainerService Architecture
+
+**Responsibilities:**
+- CRUD operations for `class_containers`
+- Container code generation (e.g., `CONT-20260114-0001`)
+- Display name generation
+- Soft delete handling
+- Query optimization with joins
+
+```typescript
+// ContainerService method signatures
+
+export class ContainerService extends BaseService {
+  
+  /**
+   * List containers with optional filtering and pagination
+   * Query Strategy: Single query with LEFT JOINs for related data
+   */
+  async listContainers(params?: {
+    instructorId?: string;
+    packageId?: string;
+    containerType?: string;
+    isActive?: boolean;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ServiceResult<{
+    containers: Container[];
+    total: number;
+  }>> {
+    // Single optimized query with joins:
+    // - Join instructor profile for name/email
+    // - Join package for package details
+    // - Count assignments via subquery
+    // - Count bookings via assignment_bookings
+    // Use .select() with nested syntax for efficiency
+  }
+
+  /**
+   * Get single container with full details
+   * Query Strategy: Single query with all related data
+   */
+  async getContainer(id: string): Promise<ServiceResult<ContainerDetail>> {
+    // Fetch with joins:
+    // - Instructor profile
+    // - Package
+    // - Assignment count
+    // - Current booking count
+    // - List of assigned bookings (students)
+  }
+
+  /**
+   * Create new container
+   * Business Rules:
+   * - Generate container_code if not provided
+   * - Auto-generate display_name if not provided
+   * - Instructor is optional (can be null)
+   * - Capacity validation based on container type
+   * - Type-specific validations (crash course dates, etc.)
+   */
+  async createContainer(data: CreateContainerInput): Promise<ServiceResult<Container>> {
+    try {
+      // 1. Validate inputs (use ValidationService)
+      // 2. Generate container_code
+      // 3. Generate display_name
+      // 4. Insert with transaction safety
+      // 5. Return created container with related data
+    } catch (error) {
+      return this.handleError(error, 'createContainer');
+    }
+  }
+
+  /**
+   * Update existing container
+   * Business Rules:
+   * - Cannot change container_code
+   * - Cannot change package_id if assignments exist
+   * - Capacity can only be increased if bookings exist
+   * - Instructor can be updated (even to null)
+   */
+  async updateContainer(
+    id: string, 
+    data: UpdateContainerInput
+  ): Promise<ServiceResult<Container>> {
+    // 1. Fetch existing container
+    // 2. Validate update rules
+    // 3. Update with optimistic locking
+    // 4. Return updated container
+  }
+
+  /**
+   * Soft delete container
+   * Business Rules:
+   * - Set is_active = false
+   * - Cannot delete if active bookings exist
+   * - Cascade warnings (assignments will be hidden)
+   */
+  async deleteContainer(id: string): Promise<ServiceResult<void>> {
+    // 1. Check for active bookings
+    // 2. Set is_active = false
+    // 3. Log deletion for audit
+  }
+
+  /**
+   * Generate unique container code
+   * Format: CONT-YYYYMMDD-XXXX
+   */
+  private async generateContainerCode(): Promise<string> {
+    // 1. Get today's date
+    // 2. Query max sequence for today
+    // 3. Increment and format
+    // 4. Retry on collision
+  }
+
+  /**
+   * Generate display name
+   * Format: "{PackageName} - {InstructorName|'Unassigned'}"
+   */
+  private generateDisplayName(
+    packageName: string,
+    instructorName: string | null,
+    containerType: string
+  ): string {
+    const instructor = instructorName || 'Unassigned';
+    return `${packageName} - ${instructor}`;
+  }
+}
+```
+
+**Query Optimization Examples:**
+
+```typescript
+// ❌ BAD: Multiple queries (N+1 problem)
+const containers = await supabase.from('class_containers').select('*');
+for (const c of containers) {
+  const instructor = await supabase.from('profiles').select('*').eq('id', c.instructor_id);
+  const package = await supabase.from('class_packages').select('*').eq('id', c.package_id);
+}
+
+// ✅ GOOD: Single query with joins
+const { data: containers } = await supabase
+  .from('class_containers')
+  .select(`
+    *,
+    instructor:profiles!instructor_id (id, full_name, email),
+    package:class_packages!package_id (id, name, description, sessions_per_month),
+    assignments:class_assignments (count)
+  `)
+  .eq('is_active', true)
+  .order('created_at', { ascending: false });
+```
+
+---
+
+### 3. PackageService Architecture
+
+**Responsibilities:**
+- Fetch packages from `class_packages` table
+- Cache package data (rarely changes)
+- Filter by type, active status
+
+```typescript
+export class PackageService extends BaseService {
+  
+  private packageCache: Map<string, { data: Package; timestamp: number }> = new Map();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  /**
+   * List packages with optional filtering
+   * Caching Strategy: In-memory cache with TTL
+   */
+  async listPackages(params?: {
+    type?: string;
+    isActive?: boolean;
+    useCache?: boolean;
+  }): Promise<ServiceResult<Package[]>> {
+    const cacheKey = JSON.stringify(params || {});
+    
+    if (params?.useCache !== false) {
+      const cached = this.packageCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+        return this.success(cached.data);
+      }
+    }
+
+    try {
+      let query = this.client
+        .from('class_packages')
+        .select(`
+          *,
+          class_type:class_types!class_type_id (id, name, description)
+        `);
+
+      if (params?.type) query = query.eq('package_type', params.type);
+      if (params?.isActive !== undefined) query = query.eq('is_active', params.isActive);
+
+      const { data, error } = await query.order('name');
+
+      if (error) return this.handleError(error, 'listPackages');
+
+      // Cache result
+      this.packageCache.set(cacheKey, { data, timestamp: Date.now() });
+
+      return this.success(data);
+    } catch (error) {
+      return this.handleError(error, 'listPackages');
+    }
+  }
+
+  /**
+   * Get single package by ID
+   */
+  async getPackage(id: string): Promise<ServiceResult<Package>> {
+    // Check cache first, then fetch
+  }
+
+  /**
+   * Clear package cache (call after package updates)
+   */
+  clearCache(): void {
+    this.packageCache.clear();
+  }
+}
+```
+
+**Caching Strategy:**
+- **Package data:** In-memory cache with 5-minute TTL (packages rarely change)
+- **Container/Assignment data:** No service-level caching (React Query handles this in hooks)
+- **Cache invalidation:** Manual via `clearCache()` after mutations
+
+---
+
+### 4. AssignmentService Architecture
+
+**Responsibilities:**
+- CRUD for `class_assignments`
+- Assignment code generation
+- Bulk operations (create multiple assignments)
+- Date/time validation
+- Instructor conflict checking (via ValidationService)
+
+```typescript
+export class AssignmentService extends BaseService {
+  
+  /**
+   * List assignments for a container
+   * Query Strategy: Fetch with instructor join
+   */
+  async listAssignments(params: {
+    containerId: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    limit?: number;
+  }): Promise<ServiceResult<Assignment[]>> {
+    // Single query with joins for instructor profile
+  }
+
+  /**
+   * Create single assignment
+   * Business Rules:
+   * - container_id is REQUIRED
+   * - instructor_id: use container's instructor or override
+   * - Generate assignment_code
+   * - Validate date/time not in past
+   * - Check instructor conflicts (call ValidationService)
+   */
+  async createAssignment(
+    data: CreateAssignmentInput
+  ): Promise<ServiceResult<Assignment>> {
+    try {
+      // 1. Validate inputs
+      // 2. Check instructor conflicts
+      // 3. Generate assignment_code
+      // 4. Insert assignment
+      // 5. Return with related data
+    } catch (error) {
+      return this.handleError(error, 'createAssignment');
+    }
+  }
+
+  /**
+   * Bulk create assignments (for recurring schedules)
+   * Transaction Strategy: Use Supabase transactions
+   */
+  async bulkCreateAssignments(
+    assignments: CreateAssignmentInput[]
+  ): Promise<ServiceResult<{
+    created: Assignment[];
+    failed: { input: CreateAssignmentInput; error: string }[];
+  }>> {
+    // 1. Validate all inputs
+    // 2. Batch insert with transaction
+    // 3. Return successes and failures
+  }
+
+  /**
+   * Update assignment
+   * Business Rules:
+   * - Cannot change container_id
+   * - Date/time changes trigger conflict check
+   * - Status changes have restrictions
+   */
+  async updateAssignment(
+    id: string,
+    data: UpdateAssignmentInput
+  ): Promise<ServiceResult<Assignment>> {
+    // 1. Fetch existing
+    // 2. Validate changes
+    // 3. Re-check conflicts if date/time changed
+    // 4. Update
+  }
+
+  /**
+   * Cancel/delete assignment
+   * Business Rules:
+   * - Check if bookings attached
+   * - Cascade handling
+   */
+  async deleteAssignment(id: string): Promise<ServiceResult<void>> {
+    // Soft delete or hard delete based on booking status
+  }
+
+  /**
+   * Generate unique assignment code
+   * Format: YOG-YYYYMMDD-XXXX
+   */
+  private async generateAssignmentCode(): Promise<string> {
+    // Similar to container code generation
+  }
+}
+```
+
+**Transaction Handling Example:**
+
+```typescript
+// Bulk insert with transaction safety
+async bulkCreateAssignments(assignments: CreateAssignmentInput[]) {
+  try {
+    // Generate codes for all assignments
+    const withCodes = await Promise.all(
+      assignments.map(async a => ({
+        ...a,
+        assignment_code: await this.generateAssignmentCode()
+      }))
+    );
+
+    // Insert all at once (Postgres transaction)
+    const { data, error } = await this.client
+      .from('class_assignments')
+      .insert(withCodes)
+      .select();
+
+    if (error) return this.handleError(error, 'bulkCreateAssignments');
+
+    return this.success({ created: data, failed: [] });
+  } catch (error) {
+    return this.handleError(error, 'bulkCreateAssignments');
+  }
+}
+```
+
+---
+
+### 5. CapacityService Architecture
+
+**Responsibilities:**
+- Calculate capacity for containers
+- Check available spots
+- Enforce capacity limits
+- Real-time capacity tracking
+
+```typescript
+export class CapacityService extends BaseService {
+  
+  /**
+   * Get capacity status for a container
+   * Query Strategy: Count bookings via assignment_bookings join
+   */
+  async getCapacity(containerId: string): Promise<ServiceResult<{
+    maxCapacity: number;
+    currentBookings: number;
+    availableSpots: number;
+    utilizationPercent: number;
+    isFull: boolean;
+  }>> {
+    try {
+      // 1. Fetch container max_booking_count
+      // 2. Count current bookings from assignment_bookings
+      // 3. Calculate metrics
+    } catch (error) {
+      return this.handleError(error, 'getCapacity');
+    }
+  }
+
+  /**
+   * Check if capacity available for booking
+   */
+  async checkAvailability(
+    containerId: string,
+    spotsNeeded: number = 1
+  ): Promise<ServiceResult<{
+    available: boolean;
+    reason?: string;
+  }>> {
+    const capacityResult = await this.getCapacity(containerId);
+    if (!capacityResult.success) return capacityResult;
+
+    const { availableSpots } = capacityResult.data!;
+    
+    if (availableSpots >= spotsNeeded) {
+      return this.success({ available: true });
+    }
+
+    return this.success({
+      available: false,
+      reason: `Only ${availableSpots} spot(s) available, ${spotsNeeded} requested.`
+    });
+  }
+
+  /**
+   * Reserve spots (optimistic locking)
+   * Used during booking assignment flow
+   */
+  async reserveSpots(
+    containerId: string,
+    count: number
+  ): Promise<ServiceResult<void>> {
+    // 1. Check capacity
+    // 2. Update current_booking_count
+    // 3. Use optimistic locking (check version)
+  }
+}
+```
+
+---
+
+### 6. ValidationService Architecture
+
+**Responsibilities:**
+- Pre-flight validation before mutations
+- Instructor conflict detection
+- Timezone handling
+- Business rule enforcement
+
+```typescript
+export class ValidationService extends BaseService {
+  
+  /**
+   * Validate container creation inputs
+   */
+  validateContainerCreation(data: CreateContainerInput): {
+    valid: boolean;
+    errors: Record<string, string>;
+  } {
+    const errors: Record<string, string> = {};
+
+    // Type validation
+    if (!['individual', 'public_group', 'private_group', 'crash_course'].includes(data.container_type)) {
+      errors.container_type = 'Invalid container type';
+    }
+
+    // Package validation
+    if (!data.package_id || !isValidUUID(data.package_id)) {
+      errors.package_id = 'Valid package ID required';
+    }
+
+    // Capacity validation
+    if (data.container_type === 'individual' && data.max_booking_count !== 1) {
+      errors.max_booking_count = 'Individual programs must have capacity of 1';
+    }
+
+    if (data.max_booking_count < 1 || data.max_booking_count > 50) {
+      errors.max_booking_count = 'Capacity must be between 1 and 50';
+    }
+
+    return {
+      valid: Object.keys(errors).length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Validate assignment creation inputs
+   */
+  validateAssignmentCreation(data: CreateAssignmentInput): {
+    valid: boolean;
+    errors: Record<string, string>;
+  } {
+    const errors: Record<string, string> = {};
+
+    // Container required
+    if (!data.class_container_id) {
+      errors.class_container_id = 'Container ID is required';
+    }
+
+    // Date validation
+    if (!isValidDate(data.date)) {
+      errors.date = 'Invalid date format (expected YYYY-MM-DD)';
+    } else {
+      const assignmentDate = new Date(data.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (assignmentDate < today) {
+        errors.date = 'Cannot create assignment in the past';
+      }
+    }
+
+    // Time validation
+    if (!isValidTime(data.start_time)) {
+      errors.start_time = 'Invalid time format (expected HH:MM)';
+    }
+    if (!isValidTime(data.end_time)) {
+      errors.end_time = 'Invalid time format (expected HH:MM)';
+    }
+
+    // Start before end
+    if (data.start_time && data.end_time && data.start_time >= data.end_time) {
+      errors.end_time = 'End time must be after start time';
+    }
+
+    return {
+      valid: Object.keys(errors).length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Check instructor conflicts
+   * Query Strategy: Fetch instructor's assignments for date range, normalize to instructor's timezone
+   */
+  async checkInstructorConflict(params: {
+    instructorId: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    timezone: string;
+    excludeAssignmentId?: string;
+  }): Promise<ServiceResult<{
+    hasConflict: boolean;
+    conflictingAssignments?: Assignment[];
+  }>> {
+    try {
+      // 1. Fetch instructor timezone from instructor_availability
+      // 2. Fetch all assignments for instructor on date
+      // 3. Normalize times to instructor timezone
+      // 4. Check for overlaps
+      // 5. Return conflicts if any
+    } catch (error) {
+      return this.handleError(error, 'checkInstructorConflict');
+    }
+  }
+
+  /**
+   * Normalize date/time to UTC for comparison
+   */
+  normalizeToUTC(date: string, time: string, timezone: string): Date {
+    // Use Luxon or date-fns-tz for timezone conversion
+    // Return UTC Date object for comparison
+  }
+}
+```
+
+**Timezone Handling:**
+- Store all times in database without timezone (time column type)
+- Store timezone separately in `timezone` column (default: 'Asia/Kolkata')
+- For conflict checking: convert to instructor's timezone
+- Use `luxon` library (already in use for Supabase Functions)
+
+---
+
+### 7. Error Handling Patterns
+
+**Consistent Error Response Structure:**
+
+```typescript
+export type ServiceError = {
+  code: string;         // Machine-readable code
+  message: string;      // User-friendly message
+  details?: any;        // Technical details (dev only)
+};
+
+export type ServiceResult<T> = {
+  success: boolean;
+  data?: T;
+  error?: ServiceError;
+};
+```
+
+**Error Handling in Components:**
+
+```typescript
+// Component usage pattern
+const handleCreateContainer = async (formData) => {
+  const result = await containerService.createContainer(formData);
+  
+  if (result.success) {
+    toast.success('Program created successfully!');
+    onSuccess(result.data);
+  } else {
+    // Display user-friendly error
+    toast.error(result.error.message);
+    
+    // Log technical details
+    console.error('Container creation failed:', result.error.details);
+    
+    // Show inline errors for form fields
+    if (result.error.code === 'validation_error') {
+      setFieldErrors(result.error.details);
+    }
+  }
+};
+```
+
+**HTTP Status Code Mapping:**
+- Supabase errors already include status codes
+- Service layer wraps these with context
+- No need to reinvent error codes
+
+---
+
+### 8. Query Optimization Strategy
+
+**Guidelines:**
+
+1. **Single Query with Joins (Preferred):**
+   - Use nested select syntax: `.select('*, profile:profiles(*)')`
+   - Reduces round trips
+   - Better performance
+
+2. **Multiple Queries (When Needed):**
+   - If joins cause performance issues
+   - When data is conditionally loaded
+   - For very large result sets
+
+3. **Pagination:**
+   - Always use `limit` and `offset` for lists
+   - Return total count for pagination UI
+
+4. **Filtering:**
+   - Push filters to database (WHERE clauses)
+   - Avoid client-side filtering of large datasets
+
+**Example - Optimized Container List:**
+
+```typescript
+async listContainers(params) {
+  let query = this.client
+    .from('class_containers')
+    .select(`
+      *,
+      instructor:profiles!instructor_id (id, full_name, email),
+      package:class_packages!package_id (
+        id, name, description, sessions_per_month,
+        class_type:class_types!class_type_id (name)
+      )
+    `, { count: 'exact' });  // Get total count for pagination
+
+  // Apply filters
+  if (params.instructorId) query = query.eq('instructor_id', params.instructorId);
+  if (params.isActive !== undefined) query = query.eq('is_active', params.isActive);
+  if (params.search) {
+    query = query.or(`display_name.ilike.%${params.search}%,container_code.ilike.%${params.search}%`);
+  }
+
+  // Pagination
+  const limit = params.limit || 20;
+  const offset = params.offset || 0;
+  query = query.range(offset, offset + limit - 1);
+
+  // Sort
+  query = query.order('created_at', { ascending: false });
+
+  const { data, error, count } = await query;
+
+  if (error) return this.handleError(error, 'listContainers');
+
+  return this.success({ containers: data, total: count });
+}
+```
+
+---
+
+### 9. Service Instance Management
+
+**Singleton Pattern:**
+
+```typescript
+// src/features/dashboard/services/v2/index.ts
+import { ContainerService } from './container.service';
+import { PackageService } from './package.service';
+import { AssignmentService } from './assignment.service';
+import { CapacityService } from './capacity.service';
+import { ValidationService } from './validation.service';
+import { supabase } from '@/shared/lib/supabase';
+
+// Create singleton instances
+export const containerService = new ContainerService(supabase);
+export const packageService = new PackageService(supabase);
+export const assignmentService = new AssignmentService(supabase);
+export const capacityService = new CapacityService(supabase);
+export const validationService = new ValidationService(supabase);
+
+// Export classes for testing (can create mock instances)
+export {
+  ContainerService,
+  PackageService,
+  AssignmentService,
+  CapacityService,
+  ValidationService
+};
+```
+
+**Usage in Components:**
+
+```typescript
+import { containerService, packageService } from '@/features/dashboard/services/v2';
+
+// Direct usage
+const result = await containerService.listContainers({ isActive: true });
+
+// Or via hooks (preferred - adds caching, loading states, etc.)
+const { data, isLoading, error } = useContainers({ isActive: true });
+```
+
+---
+
+### 10. Caching Strategy
+
+**Client-Side Caching (React Query):**
+
+```typescript
+// In hooks layer (useContainers.ts)
+import { useQuery } from '@tanstack/react-query';
+import { containerService } from '../services/v2';
+
+export const useContainers = (params = {}) => {
+  return useQuery({
+    queryKey: ['containers', params],
+    queryFn: async () => {
+      const result = await containerService.listContainers(params);
+      if (!result.success) throw new Error(result.error.message);
+      return result.data;
+    },
+    staleTime: 30 * 1000,        // 30 seconds
+    cacheTime: 5 * 60 * 1000,    // 5 minutes
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useContainerMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data) => containerService.createContainer(data),
+    onSuccess: () => {
+      // Invalidate containers list cache
+      queryClient.invalidateQueries(['containers']);
+    }
+  });
+};
+```
+
+**Service-Level Caching:**
+- Only for PackageService (packages rarely change)
+- In-memory Map with TTL
+- Manual invalidation via `clearCache()`
+
+**No Caching For:**
+- Container data (changes frequently)
+- Assignment data (real-time updates needed)
+- Capacity data (must be real-time)
+
+---
+
+### 11. Testing Strategy
+
+**Unit Tests for Services:**
+
+```typescript
+// __tests__/container.service.test.ts
+import { ContainerService } from '../container.service';
+import { createClient } from '@supabase/supabase-js';
+
+// Mock Supabase client
+const mockClient = {
+  from: jest.fn(() => ({
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+  }))
+};
+
+describe('ContainerService', () => {
+  let service: ContainerService;
+
+  beforeEach(() => {
+    service = new ContainerService(mockClient as any);
+  });
+
+  it('should list containers with filters', async () => {
+    mockClient.from.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        data: [{ id: '123', display_name: 'Test' }],
+        error: null
+      })
+    });
+
+    const result = await service.listContainers({ isActive: true });
+    
+    expect(result.success).toBe(true);
+    expect(result.data.containers).toHaveLength(1);
+  });
+
+  it('should handle errors gracefully', async () => {
+    mockClient.from.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: 'PGRST116', message: 'Not found' }
+      })
+    });
+
+    const result = await service.listContainers();
+    
+    expect(result.success).toBe(false);
+    expect(result.error.code).toBe('PGRST116');
+  });
+});
+```
+
+---
+
+### 12. Migration from V1 Patterns
+
+**V1 (Anti-patterns to avoid):**
+```typescript
+// ❌ Mixed concerns - business logic in component
+const handleSubmit = async () => {
+  const { data, error } = await supabase.from('class_assignments').insert({...});
+  if (error) alert('Failed');
+  // ... more logic
+};
+```
+
+**V2 (Clean separation):**
+```typescript
+// ✅ Business logic in service
+const handleSubmit = async (formData) => {
+  const result = await assignmentService.createAssignment(formData);
+  if (result.success) {
+    toast.success('Assignment created!');
+  } else {
+    toast.error(result.error.message);
+  }
+};
+```
+
+---
+
+## 🎯 Summary for Task 1.8 (MINI)
+
+**What to implement in service skeletons:**
+
+1. **BaseService class** with:
+   - Constructor accepting Supabase client
+   - `handleError()` method
+   - `success()` helper
+   - `ServiceResult<T>` type
+
+2. **Each service extends BaseService** and implements:
+   - CRUD methods with signatures from this design
+   - Proper error handling (try/catch, return ServiceResult)
+   - Input validation
+   - Query optimization (joins, filters)
+   - JSDoc comments for each method
+
+3. **Singleton exports** in `index.ts`:
+   - Create instances with shared supabase client
+   - Export both instances and classes
+
+4. **Type definitions** for:
+   - Method parameters (CreateContainerInput, UpdateContainerInput, etc.)
+   - ServiceResult<T>
+   - ServiceError
+
+**Implementation Notes:**
+- Use existing `supabase` client from `@/shared/lib/supabase`
+- Follow patterns from V1's EmailService and AssignmentCreationService
+- All async methods return `Promise<ServiceResult<T>>`
+- No business logic in components - all in services
+- Client-side caching handled by React Query (hooks layer)
 
 ---
 
