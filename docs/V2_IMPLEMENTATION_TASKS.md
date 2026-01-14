@@ -19,7 +19,7 @@
 - **Total Tasks:** 65
 - **Pro Tasks:** 19 (Design & Architecture)
 - **Mini Tasks:** 46 (Implementation)
-- **Completed:** 9 / 65
+- **Completed:** 11 / 65
 - **In Progress:** 0 / 65
 - **Blocked:** 0 / 65
 
@@ -2091,15 +2091,1061 @@ const { mutate, isLoading } = useContainerMutations().createContainer;
 ---
 
 ### Task 1.11: Main Dashboard Component Design
-- [ ] **Model:** 🟣 PRO
-- [ ] **Priority:** Critical
-- [ ] **Estimated Time:** 2 hours
-- [ ] **Dependencies:** None
-- [ ] **Description:** Design ClassesDashboard state management and component composition
-- [ ] **Deliverable:** Component architecture document
-- [ ] **Prompt:** "Design ClassesDashboard main component: State management (local vs context)? Component composition? Mobile vs Desktop rendering? Loading states? Modal management? Drawer state?"
-- [ ] **Output Location:** Comment for Task 1.12
-- [ ] **Notes:**
+- [x] **Model:** 🟣 PRO
+- [x] **Priority:** Critical
+- [x] **Estimated Time:** 2 hours
+- [x] **Dependencies:** None
+- [x] **Description:** Design ClassesDashboard state management and component composition
+- [x] **Deliverable:** Component architecture document
+- [x] **Prompt:** "Design ClassesDashboard main component: State management (local vs context)? Component composition? Mobile vs Desktop rendering? Loading states? Modal management? Drawer state?"
+- [x] **Output Location:** Comment for Task 1.12
+- [x] **Notes:** ✅ Completed Jan 14, 2026 - Designed component with local state, responsive grid, skeleton loading, and coordinated modal/drawer management
+
+---
+
+## 📋 Task 1.11 Deliverable: ClassesDashboard Component Architecture
+
+### 1. Component Hierarchy Overview
+
+```
+ClassesDashboard (Main Container)
+├── Header Section
+│   ├── Title + Breadcrumb
+│   ├── Search Bar (filters containers)
+│   └── Action Buttons (+ Create Program, Filters)
+├── Loading State → ContainerGridSkeleton
+├── Empty State → EmptyState component
+├── Container Grid (Desktop/Tablet)
+│   └── ContainerCard[] (clickable cards)
+├── Container List (Mobile)
+│   └── ContainerListItem[] (optimized for touch)
+├── ContainerDrawer (Slide-out Panel)
+│   ├── Drawer Header (title, close button)
+│   ├── Container Details Section
+│   ├── Assignment List Section
+│   └── Action Footer (Edit, Delete, Assign Students)
+├── CreateContainerModal (Dialog)
+│   └── ContainerForm
+├── EditContainerModal (Dialog)
+│   └── ContainerForm (pre-filled)
+└── DeleteConfirmModal (Dialog)
+    └── Confirmation message + actions
+```
+
+---
+
+### 2. State Management Strategy
+
+**Decision: Local State Only (No Context)**
+
+**Rationale:**
+- React Query provides global server state cache
+- UI state (modals, drawer) is simple and shallow
+- Only ClassesDashboard needs to coordinate UI elements
+- No prop drilling beyond 1 level
+- Easier to test and debug
+
+**State Structure:**
+
+```typescript
+const ClassesDashboard = () => {
+  // --- Server State (React Query) ---
+  const { containers, total, isLoading, isError, error, refetch } = useContainers({
+    isActive: true,
+    enablePolling: false, // Can be toggled by user
+  });
+  const { packages } = usePackages({ isActive: true });
+
+  // --- UI State (Local) ---
+  // Search & Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    instructorId: null,
+    packageId: null,
+    containerType: null,
+  });
+
+  // Modal States
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
+
+  // Drawer State
+  const [drawerContainerId, setDrawerContainerId] = useState<string | null>(null);
+
+  // Responsive State
+  const { isMobile, isTablet, isDesktop } = useMobileDetect();
+
+  // Derived State
+  const filteredContainers = useMemo(() => {
+    return containers.filter(c => {
+      if (searchQuery && !c.display_name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      if (filters.instructorId && c.instructor_id !== filters.instructorId) return false;
+      if (filters.packageId && c.package_id !== filters.packageId) return false;
+      if (filters.containerType && c.container_type !== filters.containerType) return false;
+      return true;
+    });
+  }, [containers, searchQuery, filters]);
+
+  // Event Handlers
+  const handleCardClick = (containerId: string) => {
+    setDrawerContainerId(containerId);
+  };
+
+  const handleEditClick = (container: Container) => {
+    setSelectedContainer(container);
+    setIsEditModalOpen(true);
+    setDrawerContainerId(null); // Close drawer when opening modal
+  };
+
+  const handleDeleteClick = (container: Container) => {
+    setSelectedContainer(container);
+    setIsDeleteModalOpen(true);
+    setDrawerContainerId(null);
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawerContainerId(null);
+  };
+
+  // ... render logic
+};
+```
+
+**Why No useState for Mutations:**
+- Mutations handled by React Query hooks (useContainerMutations)
+- Loading states come from mutation hooks directly
+- No need to track "isSubmitting" separately
+
+---
+
+### 3. Component Composition Strategy
+
+**A. Container Display Components**
+
+```typescript
+// Desktop/Tablet: Grid Layout
+<div className="container-grid">
+  {filteredContainers.map(container => (
+    <ContainerCard
+      key={container.id}
+      container={container}
+      onClick={() => handleCardClick(container.id)}
+    />
+  ))}
+</div>
+
+// Mobile: List Layout (better for scrolling)
+<div className="container-list">
+  {filteredContainers.map(container => (
+    <ContainerListItem
+      key={container.id}
+      container={container}
+      onClick={() => handleCardClick(container.id)}
+    />
+  ))}
+</div>
+```
+
+**B. Modal Coordination**
+
+**Rule:** Only ONE modal can be open at a time
+
+```typescript
+// Modal states are mutually exclusive
+const openCreateModal = () => {
+  setIsCreateModalOpen(true);
+  setIsEditModalOpen(false);
+  setIsDeleteModalOpen(false);
+  setDrawerContainerId(null); // Also close drawer
+};
+
+const openEditModal = (container: Container) => {
+  setSelectedContainer(container);
+  setIsEditModalOpen(true);
+  setIsCreateModalOpen(false);
+  setIsDeleteModalOpen(false);
+  setDrawerContainerId(null);
+};
+
+// Close all modals
+const closeAllModals = () => {
+  setIsCreateModalOpen(false);
+  setIsEditModalOpen(false);
+  setIsDeleteModalOpen(false);
+  setSelectedContainer(null);
+};
+```
+
+**C. Drawer + Modal Interaction**
+
+**Rule:** Drawer can be open WHILE a modal is closed, but opening a modal closes the drawer
+
+```typescript
+// Drawer opens independently
+const openDrawer = (containerId: string) => {
+  setDrawerContainerId(containerId);
+  // Modals remain closed
+};
+
+// Opening modal closes drawer
+const openModalFromDrawer = (action: 'edit' | 'delete', container: Container) => {
+  setSelectedContainer(container);
+  setDrawerContainerId(null); // Close drawer first
+  
+  if (action === 'edit') setIsEditModalOpen(true);
+  if (action === 'delete') setIsDeleteModalOpen(true);
+};
+```
+
+---
+
+### 4. Mobile vs Desktop Rendering
+
+**Responsive Breakpoints:**
+- **Mobile:** < 768px
+- **Tablet:** 768px - 1023px
+- **Desktop:** >= 1024px
+
+**Rendering Strategy:**
+
+```typescript
+const ClassesDashboard = () => {
+  const { isMobile, isTablet, isDesktop } = useMobileDetect();
+
+  return (
+    <div className="classes-dashboard">
+      {/* Header: Same on all devices */}
+      <DashboardHeader
+        title="Programs"
+        onCreateClick={() => setIsCreateModalOpen(true)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        isMobile={isMobile}
+      />
+
+      {/* Filters: Collapse on mobile */}
+      {!isMobile && (
+        <FilterBar
+          filters={filters}
+          onFiltersChange={setFilters}
+          packages={packages}
+        />
+      )}
+
+      {/* Container Display */}
+      {isLoading ? (
+        <ContainerGridSkeleton count={isMobile ? 3 : 6} />
+      ) : filteredContainers.length === 0 ? (
+        <EmptyState
+          message={searchQuery ? 'No programs match your search' : 'No programs yet'}
+          action={!searchQuery && <Button onClick={openCreateModal}>Create First Program</Button>}
+        />
+      ) : (
+        <>
+          {/* Desktop/Tablet: Grid */}
+          {(isDesktop || isTablet) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredContainers.map(container => (
+                <ContainerCard
+                  key={container.id}
+                  container={container}
+                  onClick={() => handleCardClick(container.id)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Mobile: List */}
+          {isMobile && (
+            <div className="space-y-2">
+              {filteredContainers.map(container => (
+                <ContainerListItem
+                  key={container.id}
+                  container={container}
+                  onClick={() => handleCardClick(container.id)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Drawer: Slide from right (desktop) or bottom (mobile) */}
+      <ContainerDrawer
+        containerId={drawerContainerId}
+        isOpen={!!drawerContainerId}
+        onClose={handleCloseDrawer}
+        onEdit={handleEditClick}
+        onDelete={handleDeleteClick}
+        isMobile={isMobile}
+      />
+
+      {/* Modals: Same on all devices (centered overlay) */}
+      <CreateContainerModal
+        isOpen={isCreateModalOpen}
+        onClose={closeAllModals}
+        packages={packages}
+      />
+
+      <EditContainerModal
+        isOpen={isEditModalOpen}
+        onClose={closeAllModals}
+        container={selectedContainer}
+        packages={packages}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeAllModals}
+        container={selectedContainer}
+      />
+    </div>
+  );
+};
+```
+
+**Mobile-Specific Optimizations:**
+- **Touch targets:** Minimum 44x44px (iOS guidelines)
+- **Drawer:** Slide from bottom (easier to reach)
+- **Search:** Collapsible to save space
+- **Filters:** Hidden by default, shown in a modal/sheet when clicked
+- **Cards:** Full-width list items with larger text
+
+---
+
+### 5. Loading States Strategy
+
+**A. Initial Load (Skeleton Screen)**
+
+```typescript
+if (isLoading && !containers.length) {
+  return (
+    <div className="classes-dashboard">
+      <DashboardHeader title="Programs" isLoading />
+      <ContainerGridSkeleton count={isMobile ? 3 : 6} />
+    </div>
+  );
+}
+```
+
+**ContainerGridSkeleton Component:**
+
+```typescript
+const ContainerGridSkeleton = ({ count = 6 }: { count?: number }) => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="animate-pulse">
+          <div className="h-40 bg-gray-200 rounded-lg">
+            <div className="p-4 space-y-3">
+              <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+              <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+              <div className="h-3 bg-gray-300 rounded w-2/3"></div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+**B. Refetch/Background Updates**
+
+```typescript
+// Show subtle loading indicator while refetching
+{isLoading && containers.length > 0 && (
+  <div className="fixed top-4 right-4 z-50">
+    <div className="bg-blue-500 text-white px-3 py-2 rounded shadow-lg flex items-center gap-2">
+      <Spinner size="sm" />
+      <span>Updating...</span>
+    </div>
+  </div>
+)}
+```
+
+**C. Mutation Loading States**
+
+```typescript
+const { createContainer, isLoading: isCreating } = useContainerMutations();
+
+// In modal
+<Button
+  onClick={handleSubmit}
+  disabled={isCreating}
+>
+  {isCreating ? (
+    <>
+      <Spinner size="sm" />
+      Creating...
+    </>
+  ) : (
+    'Create Program'
+  )}
+</Button>
+```
+
+**D. Error States**
+
+```typescript
+if (isError) {
+  return (
+    <div className="classes-dashboard">
+      <DashboardHeader title="Programs" />
+      <ErrorState
+        title="Failed to load programs"
+        message={error?.message || 'Something went wrong'}
+        action={<Button onClick={refetch}>Try Again</Button>}
+      />
+    </div>
+  );
+}
+```
+
+---
+
+### 6. Modal Management Architecture
+
+**A. Modal State Pattern**
+
+```typescript
+// Centralized modal state
+interface ModalState {
+  create: boolean;
+  edit: boolean;
+  delete: boolean;
+  selectedContainer: Container | null;
+}
+
+// Could use useReducer for complex logic
+const modalReducer = (state: ModalState, action: any): ModalState => {
+  switch (action.type) {
+    case 'OPEN_CREATE':
+      return { ...state, create: true, edit: false, delete: false, selectedContainer: null };
+    case 'OPEN_EDIT':
+      return { ...state, create: false, edit: true, delete: false, selectedContainer: action.payload };
+    case 'OPEN_DELETE':
+      return { ...state, create: false, edit: false, delete: true, selectedContainer: action.payload };
+    case 'CLOSE_ALL':
+      return { create: false, edit: false, delete: false, selectedContainer: null };
+    default:
+      return state;
+  }
+};
+
+const [modalState, dispatchModal] = useReducer(modalReducer, {
+  create: false,
+  edit: false,
+  delete: false,
+  selectedContainer: null,
+});
+```
+
+**B. Modal Component Props Interface**
+
+```typescript
+interface CreateContainerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  packages: Package[];
+}
+
+interface EditContainerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  container: Container | null;
+  packages: Package[];
+}
+
+interface DeleteConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  container: Container | null;
+}
+```
+
+**C. Modal Behavior Rules**
+
+1. **Backdrop Click:** Close modal (unless form is dirty → show confirm dialog)
+2. **Escape Key:** Close modal
+3. **Submit Success:** Close modal + show success toast + refetch data
+4. **Submit Error:** Keep modal open + show inline error
+5. **Focus Trap:** Keep Tab key within modal
+6. **Scroll Lock:** Prevent body scroll when modal open
+
+**D. Modal Success Flow**
+
+```typescript
+const { createContainer } = useContainerMutations();
+
+const handleCreateSubmit = async (formData) => {
+  try {
+    await createContainer.mutateAsync(formData);
+    toast.success('Program created successfully!');
+    closeAllModals();
+    // React Query auto-refetches containers
+  } catch (error) {
+    // Error shown inline in form
+    // Modal stays open for user to fix
+  }
+};
+```
+
+---
+
+### 7. Drawer State Architecture
+
+**A. Drawer Trigger**
+
+```typescript
+// Triggered by clicking a container card
+const handleCardClick = (containerId: string) => {
+  setDrawerContainerId(containerId);
+};
+
+// Drawer fetches its own data
+<ContainerDrawer
+  containerId={drawerContainerId}
+  isOpen={!!drawerContainerId}
+  onClose={() => setDrawerContainerId(null)}
+/>
+```
+
+**B. Drawer Component Structure**
+
+```typescript
+const ContainerDrawer = ({ containerId, isOpen, onClose, isMobile }) => {
+  // Fetch container details only when drawer opens
+  const { container, isLoading } = useContainerDetail(containerId, { enabled: isOpen });
+  const { assignments } = useAssignments({ containerId, enabled: isOpen });
+  const { capacity } = useCapacity(containerId, { enabled: isOpen });
+
+  if (!isOpen) return null;
+
+  return (
+    <div className={`drawer ${isMobile ? 'drawer-bottom' : 'drawer-right'}`}>
+      {/* Backdrop */}
+      <div className="drawer-backdrop" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="drawer-panel">
+        {isLoading ? (
+          <DrawerSkeleton />
+        ) : (
+          <>
+            <DrawerHeader container={container} onClose={onClose} />
+            <DrawerContent
+              container={container}
+              assignments={assignments}
+              capacity={capacity}
+            />
+            <DrawerFooter
+              container={container}
+              onEdit={() => onEdit(container)}
+              onDelete={() => onDelete(container)}
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+```
+
+**C. Drawer Animation**
+
+```css
+/* Desktop: Slide from right */
+@media (min-width: 1024px) {
+  .drawer-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    width: 500px;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-out;
+  }
+
+  .drawer.open .drawer-panel {
+    transform: translateX(0);
+  }
+}
+
+/* Mobile: Slide from bottom */
+@media (max-width: 767px) {
+  .drawer-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 80vh;
+    transform: translateY(100%);
+    transition: transform 0.3s ease-out;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .drawer.open .drawer-panel {
+    transform: translateY(0);
+  }
+}
+```
+
+**D. Drawer Behavior Rules**
+
+1. **Close on Backdrop Click:** Yes
+2. **Close on Escape:** Yes
+3. **Close on Route Change:** Yes (use useEffect with router)
+4. **Close on Modal Open:** Yes (mutual exclusivity)
+5. **Scroll Behavior:** Panel scrollable, body locked
+6. **Keyboard Navigation:** Tab trap within drawer
+
+---
+
+### 8. Search and Filter Strategy
+
+**A. Search Implementation**
+
+```typescript
+// Debounced search (avoid re-filtering on every keystroke)
+const [searchQuery, setSearchQuery] = useState('');
+const debouncedSearch = useDebounce(searchQuery, 300);
+
+// Filter containers based on debounced search
+const filteredContainers = useMemo(() => {
+  if (!debouncedSearch) return containers;
+  
+  const lowerQuery = debouncedSearch.toLowerCase();
+  return containers.filter(c =>
+    c.display_name.toLowerCase().includes(lowerQuery) ||
+    c.container_code.toLowerCase().includes(lowerQuery)
+  );
+}, [containers, debouncedSearch]);
+```
+
+**B. Filter Implementation**
+
+```typescript
+interface Filters {
+  instructorId: string | null;
+  packageId: string | null;
+  containerType: string | null;
+  isActive: boolean;
+}
+
+const [filters, setFilters] = useState<Filters>({
+  instructorId: null,
+  packageId: null,
+  containerType: null,
+  isActive: true,
+});
+
+// Apply filters
+const filteredContainers = useMemo(() => {
+  return containers.filter(c => {
+    if (filters.instructorId && c.instructor_id !== filters.instructorId) return false;
+    if (filters.packageId && c.package_id !== filters.packageId) return false;
+    if (filters.containerType && c.container_type !== filters.containerType) return false;
+    if (filters.isActive !== undefined && c.is_active !== filters.isActive) return false;
+    return true;
+  });
+}, [containers, filters]);
+```
+
+**C. Filter UI (Desktop)**
+
+```typescript
+<div className="filter-bar">
+  <Select
+    placeholder="All Instructors"
+    value={filters.instructorId}
+    onChange={(id) => setFilters({ ...filters, instructorId: id })}
+  >
+    {instructors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+  </Select>
+
+  <Select
+    placeholder="All Packages"
+    value={filters.packageId}
+    onChange={(id) => setFilters({ ...filters, packageId: id })}
+  >
+    {packages.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+  </Select>
+
+  <Select
+    value={filters.containerType || ''}
+    onChange={(type) => setFilters({ ...filters, containerType: type || null })}
+  >
+    <option value="">All Types</option>
+    <option value="individual">Individual</option>
+    <option value="public_group">Public Group</option>
+    <option value="private_group">Private Group</option>
+    <option value="crash_course">Crash Course</option>
+  </Select>
+
+  <Button variant="ghost" onClick={() => setFilters({ instructorId: null, packageId: null, containerType: null, isActive: true })}>
+    Clear Filters
+  </Button>
+</div>
+```
+
+**D. Filter UI (Mobile)**
+
+```typescript
+// Filters in a bottom sheet/modal
+const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+
+<Button onClick={() => setIsFilterSheetOpen(true)}>
+  <FilterIcon />
+  Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+</Button>
+
+<BottomSheet isOpen={isFilterSheetOpen} onClose={() => setIsFilterSheetOpen(false)}>
+  <FilterForm filters={filters} onFiltersChange={setFilters} />
+</BottomSheet>
+```
+
+---
+
+### 9. Event Flow Diagrams
+
+**A. Container Creation Flow**
+
+```
+User clicks "+ Create Program"
+  ↓
+setIsCreateModalOpen(true)
+  ↓
+CreateContainerModal renders with ContainerForm
+  ↓
+User fills form and clicks "Create"
+  ↓
+Form validation (client-side)
+  ↓
+createContainer.mutate(formData)
+  ↓
+[Service Layer] containerService.createContainer()
+  ↓
+Success:
+  - React Query invalidates ['containers']
+  - Auto-refetch containers list
+  - toast.success('Program created!')
+  - closeAllModals()
+  ↓
+Error:
+  - Show inline error in form
+  - Modal stays open
+```
+
+**B. Container Edit Flow**
+
+```
+User clicks container card
+  ↓
+setDrawerContainerId(id)
+  ↓
+ContainerDrawer opens and fetches details
+  ↓
+User clicks "Edit" button in drawer
+  ↓
+handleEditClick(container)
+  - setSelectedContainer(container)
+  - setIsEditModalOpen(true)
+  - setDrawerContainerId(null) // Close drawer
+  ↓
+EditContainerModal renders with pre-filled form
+  ↓
+User updates and submits
+  ↓
+updateContainer.mutate({ id, data })
+  ↓
+Success:
+  - Optimistic update in cache
+  - toast.success('Program updated!')
+  - closeAllModals()
+  - Drawer can be reopened with updated data
+```
+
+**C. Container Delete Flow**
+
+```
+User clicks "Delete" in drawer
+  ↓
+handleDeleteClick(container)
+  - setSelectedContainer(container)
+  - setIsDeleteModalOpen(true)
+  - setDrawerContainerId(null)
+  ↓
+DeleteConfirmModal shows warning
+  ↓
+User confirms deletion
+  ↓
+deleteContainer.mutate(id)
+  ↓
+[Service Layer] Checks for active bookings, soft deletes
+  ↓
+Success:
+  - Container removed from list (is_active = false filter)
+  - toast.success('Program deleted')
+  - closeAllModals()
+```
+
+---
+
+### 10. Performance Optimizations
+
+**A. Memoization**
+
+```typescript
+// Memoize filtered/sorted containers
+const filteredContainers = useMemo(() => {
+  // Expensive filtering/sorting logic
+}, [containers, searchQuery, filters]);
+
+// Memoize event handlers passed as props
+const handleCardClick = useCallback((id: string) => {
+  setDrawerContainerId(id);
+}, []);
+
+const handleEditClick = useCallback((container: Container) => {
+  setSelectedContainer(container);
+  setIsEditModalOpen(true);
+  setDrawerContainerId(null);
+}, []);
+```
+
+**B. Virtualization (Optional - for large lists)**
+
+```typescript
+// If containers.length > 100, use react-window
+import { FixedSizeGrid } from 'react-window';
+
+<FixedSizeGrid
+  columnCount={3}
+  columnWidth={300}
+  height={600}
+  rowCount={Math.ceil(filteredContainers.length / 3)}
+  rowHeight={200}
+  width={1000}
+>
+  {({ columnIndex, rowIndex, style }) => {
+    const index = rowIndex * 3 + columnIndex;
+    const container = filteredContainers[index];
+    return container ? (
+      <div style={style}>
+        <ContainerCard container={container} onClick={handleCardClick} />
+      </div>
+    ) : null;
+  }}
+</FixedSizeGrid>
+```
+
+**C. Code Splitting**
+
+```typescript
+// Lazy load modals (only load when opened)
+const CreateContainerModal = lazy(() => import('./modals/CreateContainerModal'));
+const EditContainerModal = lazy(() => import('./modals/EditContainerModal'));
+const DeleteConfirmModal = lazy(() => import('./modals/DeleteConfirmModal'));
+
+// Wrap in Suspense
+<Suspense fallback={<ModalSkeleton />}>
+  <CreateContainerModal isOpen={isCreateModalOpen} onClose={closeAllModals} />
+</Suspense>
+```
+
+---
+
+### 11. Accessibility Considerations
+
+**A. Keyboard Navigation**
+
+```typescript
+// Focus management
+useEffect(() => {
+  if (isCreateModalOpen) {
+    // Focus first input in modal
+    document.getElementById('container-name-input')?.focus();
+  }
+}, [isCreateModalOpen]);
+
+// Keyboard shortcuts
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Cmd/Ctrl + K: Open search
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      document.getElementById('search-input')?.focus();
+    }
+
+    // Escape: Close drawer or modal
+    if (e.key === 'Escape') {
+      if (drawerContainerId) handleCloseDrawer();
+      if (isCreateModalOpen || isEditModalOpen || isDeleteModalOpen) closeAllModals();
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [drawerContainerId, isCreateModalOpen, isEditModalOpen, isDeleteModalOpen]);
+```
+
+**B. ARIA Labels**
+
+```typescript
+<button
+  onClick={() => handleCardClick(container.id)}
+  aria-label={`Open details for ${container.display_name}`}
+  aria-expanded={drawerContainerId === container.id}
+>
+  <ContainerCard container={container} />
+</button>
+
+<div
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-title"
+  aria-describedby="modal-description"
+>
+  <CreateContainerModal />
+</div>
+```
+
+**C. Focus Trap**
+
+```typescript
+// Use react-focus-lock for modals and drawer
+import FocusLock from 'react-focus-lock';
+
+<FocusLock disabled={!isOpen}>
+  <div className="modal">
+    {/* Modal content */}
+  </div>
+</FocusLock>
+```
+
+---
+
+### 12. Error Recovery Patterns
+
+**A. Mutation Error Handling**
+
+```typescript
+const { createContainer } = useContainerMutations();
+
+const handleCreate = async (formData) => {
+  try {
+    await createContainer.mutateAsync(formData);
+    toast.success('Program created!');
+    closeAllModals();
+  } catch (error) {
+    // Error is already logged by service layer
+    // Show user-friendly message
+    if (error.message.includes('unique')) {
+      toast.error('A program with this name already exists');
+    } else {
+      toast.error(error.message || 'Failed to create program');
+    }
+    // Modal stays open so user can retry
+  }
+};
+```
+
+**B. Network Error Retry**
+
+```typescript
+// React Query auto-retries (configured in queryClient)
+// Manual retry button
+{isError && (
+  <div className="error-banner">
+    <p>Failed to load programs</p>
+    <Button onClick={refetch} disabled={isLoading}>
+      {isLoading ? 'Retrying...' : 'Retry'}
+    </Button>
+  </div>
+)}
+```
+
+**C. Optimistic Update Rollback**
+
+```typescript
+// Handled by React Query in useContainerMutations
+// On error, previous cache state is restored
+// User sees brief flicker of old data (acceptable)
+```
+
+---
+
+## 🎯 Summary for Task 1.12 (MINI)
+
+**What to implement in ClassesDashboard.tsx skeleton:**
+
+1. **Component Structure:**
+   - Main container div
+   - Header section with title, search, and action buttons
+   - Conditional rendering: loading → skeleton, error → error state, success → grid/list
+   - ContainerDrawer component
+   - Modal components (3 total)
+
+2. **State Declarations:**
+   - Search query state
+   - Filter state object
+   - Modal states (create, edit, delete)
+   - Selected container state
+   - Drawer container ID state
+
+3. **Hook Integrations:**
+   - `useContainers()` for fetching containers
+   - `usePackages()` for dropdown options
+   - `useMobileDetect()` for responsive rendering
+   - `useContainerMutations()` (import but don't use yet)
+
+4. **Event Handlers (Stubs):**
+   - `handleCardClick(id)` - open drawer
+   - `handleEditClick(container)` - open edit modal
+   - `handleDeleteClick(container)` - open delete modal
+   - `handleCloseDrawer()` - close drawer
+   - `closeAllModals()` - close all modals
+
+5. **JSX Structure:**
+   ```tsx
+   return (
+     <div className="classes-dashboard">
+       {/* Header */}
+       {/* Loading State */}
+       {/* Error State */}
+       {/* Empty State */}
+       {/* Container Grid/List */}
+       {/* Drawer */}
+       {/* Modals */}
+     </div>
+   );
+   ```
+
+6. **TypeScript:**
+   - Import Container type
+   - Import Package type
+   - Type all state variables
+   - Type all event handlers
+
+7. **TODOs to Add:**
+   - "TODO: Add filter bar component"
+   - "TODO: Wire up mutation handlers"
+   - "TODO: Add polling toggle button"
+   - "TODO: Add keyboard shortcuts"
+   - "TODO: Add focus management"
+
+**File Location:** `src/features/dashboard/components/Modules/ClassesV2/ClassesDashboard.tsx`
+
+**Dependencies:**
+- React, useState, useMemo, useCallback
+- Custom hooks (useContainers, usePackages, useMobileDetect)
+- Type imports
+- Child components (ContainerCard, ContainerDrawer, modals) - create placeholders if not exist
 
 ---
 
