@@ -19,7 +19,7 @@
 - **Total Tasks:** 65
 - **Pro Tasks:** 19 (Design & Architecture)
 - **Mini Tasks:** 46 (Implementation)
-- **Completed:** 11 / 65
+- **Completed:** 12 / 65
 - **In Progress:** 0 / 65
 - **Blocked:** 0 / 65
 
@@ -3150,15 +3150,15 @@ const handleCreate = async (formData) => {
 ---
 
 ### Task 1.12: Create Main Dashboard Component (Skeleton)
-- [ ] **Model:** 🟢 MINI
-- [ ] **Priority:** Critical
-- [ ] **Estimated Time:** 45 minutes
-- [ ] **Dependencies:** Task 1.11 ✓
-- [ ] **Description:** Create ClassesDashboard component skeleton
-- [ ] **Deliverable:** ClassesDashboard.tsx skeleton
-- [ ] **Prompt:** "Create ClassesDashboard.tsx per Task 1.11 design: Component shell with TypeScript, state declarations (empty), return JSX skeleton with div placeholders, import statements, TODO comments."
-- [ ] **Output Location:** src/features/dashboard/components/Modules/ClassesV2/ClassesDashboard.tsx
-- [ ] **Notes:**
+- [x] **Model:** 🟢 MINI
+- [x] **Priority:** Critical
+- [x] **Estimated Time:** 45 minutes
+- [x] **Dependencies:** Task 1.11 ✓
+- [x] **Description:** Create ClassesDashboard component skeleton
+- [x] **Deliverable:** ClassesDashboard.tsx skeleton
+- [x] **Prompt:** "Create ClassesDashboard.tsx per Task 1.11 design: Component shell with TypeScript, state declarations (empty), return JSX skeleton with div placeholders, import statements, TODO comments."
+- [x] **Output Location:** src/features/dashboard/components/Modules/ClassesV2/ClassesDashboard.tsx
+- [x] **Notes:** ✅ Completed Jan 14, 2026 - Created component skeleton with hooks, state, event handlers, and placeholder JSX
 
 ---
 
@@ -3167,15 +3167,591 @@ const handleCreate = async (formData) => {
 **Goal:** Complete service layer with validation, CRUD operations
 
 ### Task 2.1: Package Fetching Logic Design
-- [ ] **Model:** 🟣 PRO
-- [ ] **Priority:** High
-- [ ] **Estimated Time:** 1 hour
-- [ ] **Dependencies:** None
-- [ ] **Description:** Design package fetching with filtering, error handling
-- [ ] **Deliverable:** Package fetching specification
-- [ ] **Prompt:** "Design package fetching logic: Filter active only? Which fields needed? Join with class_types? Error handling for corrupted data? Caching strategy?"
-- [ ] **Output Location:** Comment for Task 2.2
-- [ ] **Notes:**
+- [x] **Model:** 🟣 PRO
+- [x] **Priority:** High
+- [x] **Estimated Time:** 1 hour
+- [x] **Dependencies:** None
+- [x] **Description:** Design package fetching with filtering, error handling
+- [x] **Deliverable:** Package fetching specification
+- [x] **Prompt:** "Design package fetching logic: Filter active only? Which fields needed? Join with class_types? Error handling for corrupted data? Caching strategy?"
+- [x] **Output Location:** Comment for Task 2.2
+- [x] **Notes:** ✅ Completed Jan 14, 2026 - Designed package fetching with filtering, field selection, error handling, and dual-layer caching strategy
+
+---
+
+## 📋 Task 2.1 Deliverable: Package Fetching Logic Design
+
+### 1. Overview
+
+**Purpose:** Fetch packages (class templates) from `class_packages` table for dropdown selection in CreateContainerModal
+
+**Key Requirements:**
+- Support filtering by active status
+- Efficient field selection (no over-fetching)
+- No joins needed (packages are standalone)
+- Robust error handling for corrupted/missing data
+- Aggressive caching (packages rarely change)
+
+---
+
+### 2. Database Schema
+
+**Table:** `class_packages`
+
+```sql
+CREATE TABLE class_packages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  code TEXT,  -- Optional short code
+  class_type_id UUID,  -- Reference to class_type (if applicable)
+  class_count INTEGER,  -- Number of sessions
+  price DECIMAL(10,2),
+  validity_days INTEGER,
+  type TEXT,  -- 'Individual', 'Corporate', 'Private group'
+  course_type TEXT,  -- 'regular', 'crash'
+  duration TEXT,  -- e.g., '4 weeks' (for crash courses)
+  metadata JSONB,  -- Additional flexible data
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**V2 Type Mapping:**
+
+```typescript
+export interface Package {
+  id: string;
+  name: string;
+  code?: string | null;
+  class_type_id?: string | null;
+  sessions_count?: number | null;  // Maps to class_count
+  metadata?: Record<string, any> | null;
+  active?: boolean;  // Maps to is_active
+  created_at?: string;
+  updated_at?: string;
+}
+```
+
+---
+
+### 3. Field Selection Strategy
+
+**Decision: Fetch Only Required Fields**
+
+**For Dropdown in CreateContainerModal:**
+
+```typescript
+.select(`
+  id,
+  name,
+  code,
+  sessions_count:class_count,
+  active:is_active
+`)
+```
+
+**Why not fetch all fields?**
+- Reduce payload size
+- Frontend doesn't need `price`, `validity_days`, `description`, etc.
+- Faster network transfer
+- Smaller React Query cache
+
+**For Future Detail View (if needed):**
+
+```typescript
+.select(`
+  id,
+  name,
+  code,
+  class_type_id,
+  sessions_count:class_count,
+  metadata,
+  active:is_active,
+  created_at,
+  updated_at
+`)
+```
+
+---
+
+### 4. Filtering Strategy
+
+**A. Active-Only Filter (Default)**
+
+```typescript
+export interface FetchPackagesParams {
+  isActive?: boolean;  // Default: true
+  type?: string;  // Optional: 'Individual', 'Corporate', 'Private group'
+}
+
+// Usage:
+fetchPackages({ isActive: true })  // Only active packages
+fetchPackages({ isActive: false }) // Only inactive (archived)
+fetchPackages({})                  // All packages (admin view)
+```
+
+**B. Type Filter (Optional)**
+
+If we want to filter by package type:
+
+```typescript
+fetchPackages({ isActive: true, type: 'Individual' })
+```
+
+**C. Course Type Filter (Future)**
+
+For filtering crash courses vs regular:
+
+```typescript
+interface FetchPackagesParams {
+  isActive?: boolean;
+  type?: string;
+  courseType?: 'regular' | 'crash';  // Future enhancement
+}
+```
+
+**Default Behavior:**
+- If `isActive` is undefined → fetch only active (`is_active = true`)
+- If `isActive` is explicitly `false` → fetch inactive
+- If `isActive` is `null` → fetch all (no filter)
+
+---
+
+### 5. Join Strategy
+
+**Decision: No Joins Needed**
+
+**Rationale:**
+- Packages are **standalone entities**
+- `class_type_id` is optional reference to external Class Type Manager
+- V2 doesn't need class type details for dropdown
+- If class type name is needed, it's stored in package metadata or fetched separately
+
+**No Join Required:**
+
+```typescript
+// ❌ Don't do this (unnecessary complexity)
+.select(`
+  *,
+  class_type:class_types(id, name)
+`)
+
+// ✅ Do this (simple, fast)
+.select(`
+  id,
+  name,
+  code,
+  sessions_count:class_count,
+  active:is_active
+`)
+```
+
+**If Class Type Name Needed:**
+- Store it in `metadata.class_type_name` when package is created
+- Or fetch separately if absolutely required
+
+---
+
+### 6. Error Handling Strategy
+
+**A. Supabase Query Errors**
+
+```typescript
+const result = await this.supabase
+  .from('class_packages')
+  .select('id, name, code, sessions_count:class_count, active:is_active')
+  .eq('is_active', true)
+  .order('name');
+
+if (result.error) {
+  console.error('[PackageService] Fetch failed:', result.error);
+  return {
+    success: false,
+    error: {
+      code: 'FETCH_FAILED',
+      message: 'Failed to load packages. Please try again.',
+      details: result.error,
+    },
+  };
+}
+```
+
+**B. Corrupted/Missing Data**
+
+**Validation Rules:**
+1. Package must have `id` and `name` (required)
+2. If `name` is null/empty → skip or use fallback
+3. If `sessions_count` is null → treat as 0 or exclude
+
+```typescript
+const packages = (result.data || []).filter(pkg => {
+  // Filter out corrupted records
+  if (!pkg.id || !pkg.name) {
+    console.warn('[PackageService] Skipping invalid package:', pkg);
+    return false;
+  }
+  return true;
+}).map(pkg => ({
+  id: pkg.id,
+  name: pkg.name,
+  code: pkg.code || null,
+  sessions_count: pkg.sessions_count || 0,
+  active: pkg.active ?? true,
+}));
+```
+
+**C. Empty Result**
+
+```typescript
+if (packages.length === 0) {
+  // Not an error, just empty state
+  return {
+    success: true,
+    data: [],
+  };
+}
+```
+
+**D. Network Errors**
+
+Handled by Supabase client automatically, caught in try-catch:
+
+```typescript
+try {
+  const result = await this.supabase.from('class_packages').select(...);
+  // ...
+} catch (error) {
+  console.error('[PackageService] Unexpected error:', error);
+  return {
+    success: false,
+    error: {
+      code: 'UNKNOWN_ERROR',
+      message: 'An unexpected error occurred.',
+      details: error,
+    },
+  };
+}
+```
+
+---
+
+### 7. Caching Strategy (Dual-Layer)
+
+**A. Service-Level Cache (In-Memory)**
+
+```typescript
+private packageCache: Map<string, { data: Package[], timestamp: number }> = new Map();
+private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+private getCacheKey(params: FetchPackagesParams): string {
+  return JSON.stringify(params);
+}
+
+private getCachedPackages(params: FetchPackagesParams): Package[] | null {
+  const key = this.getCacheKey(params);
+  const cached = this.packageCache.get(key);
+  
+  if (!cached) return null;
+  
+  const age = Date.now() - cached.timestamp;
+  if (age > this.CACHE_TTL) {
+    this.packageCache.delete(key);
+    return null;
+  }
+  
+  return cached.data;
+}
+
+private setCachedPackages(params: FetchPackagesParams, data: Package[]): void {
+  const key = this.getCacheKey(params);
+  this.packageCache.set(key, { data, timestamp: Date.now() });
+}
+
+public clearCache(): void {
+  this.packageCache.clear();
+}
+```
+
+**B. React Query Cache (Client-Side)**
+
+```typescript
+// In usePackages.ts
+export const usePackages = (params = {}) => {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['packages', params],
+    queryFn: () => packageService.fetchPackages(params),
+    staleTime: 10 * 60 * 1000,     // 10 minutes
+    cacheTime: 30 * 60 * 1000,     // 30 minutes
+    refetchOnWindowFocus: false,   // Don't refetch on tab switch
+    refetchOnMount: false,         // Don't refetch on remount
+  });
+
+  return {
+    packages: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    clearCache: () => {
+      packageService.clearCache();
+      queryClient.invalidateQueries(['packages']);
+    },
+  };
+};
+```
+
+**Combined Cache Flow:**
+
+```
+1st Request:
+Component → usePackages → packageService.fetchPackages()
+  → Check service cache (miss)
+  → Fetch from Supabase
+  → Store in service cache (5min TTL)
+  → Return to React Query (10min stale, 30min retention)
+  → Render
+
+2nd Request (within 5 min):
+Component → usePackages → packageService.fetchPackages()
+  → Check service cache (hit!)
+  → Return cached data immediately
+  → React Query serves from its cache
+
+3rd Request (6-10 min later):
+Component → usePackages → packageService.fetchPackages()
+  → Check service cache (expired, miss)
+  → Fetch from Supabase (React Query considers stale but still serves cached)
+  → Update both caches
+
+4th Request (30+ min later):
+Component → usePackages → packageService.fetchPackages()
+  → React Query cache expired
+  → Service cache expired
+  → Fresh fetch from Supabase
+```
+
+**Cache Invalidation:**
+
+```typescript
+// Manual invalidation (when package is created/updated in Class Type Manager)
+packageService.clearCache();
+queryClient.invalidateQueries(['packages']);
+```
+
+---
+
+### 8. Implementation Signature
+
+**PackageService Method:**
+
+```typescript
+/**
+ * Fetch packages with optional filtering
+ * @param params - Filtering parameters
+ * @returns ServiceResult with Package array
+ */
+public async fetchPackages(
+  params: FetchPackagesParams = {}
+): Promise<ServiceResult<Package[]>> {
+  try {
+    // Check cache first
+    const cached = this.getCachedPackages(params);
+    if (cached) {
+      return { success: true, data: cached };
+    }
+
+    // Build query
+    let query = this.supabase
+      .from('class_packages')
+      .select('id, name, code, sessions_count:class_count, active:is_active');
+
+    // Apply filters
+    if (params.isActive !== undefined && params.isActive !== null) {
+      query = query.eq('is_active', params.isActive);
+    }
+
+    if (params.type) {
+      query = query.eq('type', params.type);
+    }
+
+    // Execute query
+    const result = await query.order('name');
+
+    if (result.error) {
+      console.error('[PackageService] Fetch failed:', result.error);
+      return {
+        success: false,
+        error: {
+          code: 'FETCH_FAILED',
+          message: 'Failed to load packages. Please try again.',
+          details: result.error,
+        },
+      };
+    }
+
+    // Validate and clean data
+    const packages = (result.data || [])
+      .filter(pkg => pkg.id && pkg.name)
+      .map(pkg => ({
+        id: pkg.id,
+        name: pkg.name,
+        code: pkg.code || null,
+        sessions_count: pkg.sessions_count || 0,
+        active: pkg.active ?? true,
+      }));
+
+    // Cache result
+    this.setCachedPackages(params, packages);
+
+    return { success: true, data: packages };
+  } catch (error) {
+    console.error('[PackageService] Unexpected error:', error);
+    return {
+      success: false,
+      error: {
+        code: 'UNKNOWN_ERROR',
+        message: 'An unexpected error occurred.',
+        details: error,
+      },
+    };
+  }
+}
+```
+
+---
+
+### 9. Usage Examples
+
+**A. In CreateContainerModal:**
+
+```typescript
+import { usePackages } from '../hooks/usePackages';
+
+const CreateContainerModal = ({ isOpen, onClose }) => {
+  const { packages, isLoading, isError } = usePackages({ isActive: true });
+
+  if (isLoading) return <Spinner />;
+  if (isError) return <ErrorMessage />;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <select name="package_id">
+        <option value="">Select Package</option>
+        {packages.map(pkg => (
+          <option key={pkg.id} value={pkg.id}>
+            {pkg.name} {pkg.code && `(${pkg.code})`} - {pkg.sessions_count} sessions
+          </option>
+        ))}
+      </select>
+    </Modal>
+  );
+};
+```
+
+**B. Admin View (All Packages):**
+
+```typescript
+const { packages } = usePackages({ isActive: null }); // Fetch all
+```
+
+**C. Filtered by Type:**
+
+```typescript
+const { packages } = usePackages({ isActive: true, type: 'Individual' });
+```
+
+---
+
+### 10. Performance Considerations
+
+**A. Query Performance:**
+- Index on `is_active` column (if not exists)
+- Index on `name` for sorting
+- Total packages expected: < 100 (small dataset)
+- Query time: < 50ms
+
+**B. Cache Hit Rate:**
+- Expected: > 95% (packages rarely change)
+- Service cache: 5min TTL
+- React Query cache: 30min retention
+- Combined: Up to 30min before guaranteed fresh fetch
+
+**C. Network Payload:**
+- ~20 packages × 100 bytes/package = ~2KB
+- Negligible overhead
+
+---
+
+### 11. Edge Cases
+
+**A. No Active Packages:**
+
+```typescript
+if (packages.length === 0) {
+  return (
+    <EmptyState message="No packages available. Contact admin to create packages in Class Type Manager." />
+  );
+}
+```
+
+**B. Package Deleted After Cache:**
+
+If package is deleted in Class Type Manager but cached in V2:
+- User selects deleted package → Container creation fails
+- Error: "Package not found"
+- Solution: Clear cache on error, refetch
+
+**C. Package Name Changed:**
+
+Old name stays in cache for up to 30min:
+- Acceptable (non-critical)
+- Manual cache clear via `clearCache()` if needed
+
+---
+
+## 🎯 Summary for Task 2.2 (MINI)
+
+**What to implement in PackageService.fetchPackages():**
+
+1. **Method Signature:**
+   - `fetchPackages(params: { isActive?: boolean, type?: string }): Promise<ServiceResult<Package[]>>`
+
+2. **Query:**
+   - Table: `class_packages`
+   - Fields: `id, name, code, sessions_count:class_count, active:is_active`
+   - Filter: `is_active` (default: true)
+   - Order: `name ASC`
+
+3. **Caching:**
+   - Check in-memory cache first (5min TTL)
+   - Store result in cache after fetch
+   - Provide `clearCache()` method
+
+4. **Error Handling:**
+   - Supabase errors → return ServiceResult with error
+   - Corrupted data → filter out invalid records
+   - Empty result → return empty array (not error)
+
+5. **Data Validation:**
+   - Filter records missing `id` or `name`
+   - Default `sessions_count` to 0 if null
+   - Default `active` to true if null
+
+6. **No Joins:**
+   - Packages are standalone
+   - No need to join with class_types
+
+**File Location:** `src/features/dashboard/services/v2/package.service.ts`
+
+**Testing:**
+- Test with active packages only
+- Test with all packages
+- Test with empty result
+- Test cache hit/miss
+- Test corrupted data handling
 
 ---
 
