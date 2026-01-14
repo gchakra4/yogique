@@ -28,6 +28,7 @@ export type DashboardModule =
   | 'weekly_schedule'
   | 'class_schedule_manager'
   | 'class_type_manager'
+  | 'programs_v2'
   | 'article_workflow'
   | 'forms'
   | 'newsletterManagement'
@@ -50,6 +51,7 @@ export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
     { id: 'user_management', title: 'User Management', component: 'UserManagement', icon: 'users', order: 2 },
     { id: 'rate_management', title: 'Rate Management', component: 'InstructorRatesPage', icon: 'dollar-sign', order: 4 },
     { id: 'class_assignment', title: 'Class Management', component: 'ClassAssignmentManager', icon: 'edit', order: 5 },
+    { id: 'programs_v2', title: 'Programs', component: 'ClassesDashboard', icon: 'grid', order: 5.5 },
     { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 6 },
     { id: 'transaction_management', title: 'Transactions', component: 'TransactionManagement', icon: 'credit-card', order: 7 },
     { id: 'invoice_management', title: 'Invoice Management', component: 'InvoiceManagement', icon: 'file-text', order: 8 },
@@ -70,6 +72,7 @@ export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
     { id: 'user_management', title: 'User Management', component: 'UserManagement', icon: 'users', order: 2 },
     { id: 'instructor_management', title: 'Instructor Management', component: 'InstructorManagement', icon: 'teacher', order: 3 },
     { id: 'rate_management', title: 'Rate Management', component: 'InstructorRatesPage', icon: 'dollar-sign', order: 4 },
+    { id: 'programs_v2', title: 'Programs', component: 'ClassesDashboard', icon: 'grid', order: 5 },
     { id: 'transactions', title: 'Transactions', component: 'Transactions', icon: 'credit-card', order: 5 },
     { id: 'business_settings', title: 'Business Settings', component: 'BusinessSettings', icon: 'settings', order: 6 },
     { id: 'article_editing', title: 'Article Editing', component: 'ArticleEditing', icon: 'edit', order: 7 },
