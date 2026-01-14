@@ -8,8 +8,19 @@ interface UserRoleData {
   } | null
 }
 
+interface UserProfile {
+  role?: string;
+  full_name?: string;
+  email?: string;
+}
+
+interface EnhancedUser extends User {
+  role?: string;
+  profile?: UserProfile;
+}
+
 interface AuthContextType {
-  user: User | null
+  user: EnhancedUser | null
   loading: boolean
   userRoles: string[]
   isMantraCurator: boolean
@@ -22,21 +33,51 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<EnhancedUser | null>(null)
   const [userRoles, setUserRoles] = useState<string[]>([])
   const [isMantraCurator, setIsMantraCurator] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  const fetchUserProfile = async (authUser: User): Promise<EnhancedUser> => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, full_name, email')
+        .eq('user_id', authUser.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return { ...authUser, role: 'authenticated' };
+      }
+
+      return {
+        ...authUser,
+        role: profile?.role || 'authenticated',
+        profile: profile as UserProfile
+      };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return { ...authUser, role: 'authenticated' };
+    }
+  };
 
   const fetchUserRoles = async (session: Session | null) => {
     if (!session?.user) {
       setUserRoles([])
       setIsMantraCurator(false)
       setIsAdmin(false)
+      setUser(null)
       return
     }
 
     try {
+      // Fetch user profile with role
+      const enhancedUser = await fetchUserProfile(session.user);
+      setUser(enhancedUser);
+
+      // Fetch user_roles table data
       const { data, error } = await supabase
         .from('user_roles')
         .select('roles(name)')
@@ -47,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const roles = data?.map(item => item.roles?.name).filter((name): name is string => name != null) || []
       setUserRoles(roles)
       setIsMantraCurator(roles.includes('mantra_curator'))
-      setIsAdmin(roles.includes('admin') || roles.includes('super_admin'))
+      setIsAdmin(roles.includes('admin') || roles.includes('super_admin') || enhancedUser.role === 'super_admin')
 
     } catch (error) {
       console.error('Error fetching user roles:', error)
@@ -62,7 +103,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return
-      setUser(session?.user ?? null)
       fetchUserRoles(session).finally(() => {
         if (mounted) setLoading(false)
       })
@@ -71,7 +111,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (!mounted) return
-        setUser(session?.user ?? null)
         fetchUserRoles(session).finally(() => {
           if (mounted) setLoading(false)
         })

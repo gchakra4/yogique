@@ -48,7 +48,7 @@ export class ContainerService extends BaseService {
       // Date validation
       if (data.start_date && data.end_date) {
         if (new Date(data.start_date) >= new Date(data.end_date)) {
-          return this.error('INVALID_DATES', 'Start date must be before end date');
+          return { success: false, error: { code: 'INVALID_DATES', message: 'Start date must be before end date' } };
         }
       }
 
@@ -65,8 +65,8 @@ export class ContainerService extends BaseService {
       }
       timezone = timezone || 'Asia/Kolkata';
 
-      const insertPayload: any = {
-        code,
+        const insertPayload: any = {
+          container_code: code,
         package_id: data.package_id,
         display_name: displayName,
         instructor_id: data.instructor_id || null,
@@ -138,7 +138,7 @@ export class ContainerService extends BaseService {
       const { data: existing, error } = await this.client
         .from('class_containers')
         .select('id')
-        .eq('code', code)
+          .eq('container_code', code)
         .maybeSingle();
 
       if (error) {

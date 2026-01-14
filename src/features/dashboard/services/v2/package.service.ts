@@ -25,7 +25,7 @@ export class PackageService extends BaseService {
 
     try {
       let query = this.client.from('class_packages').select(
-        'id, name, code, class_count, is_active, metadata, created_at, updated_at'
+        'id, name, class_count, price, description, is_active, type, duration, course_type, created_at, updated_at'
       );
 
       if (safeParams.isActive !== undefined && safeParams.isActive !== null) {
@@ -52,9 +52,12 @@ export class PackageService extends BaseService {
         .map(r => ({
           id: r.id,
           name: r.name,
-          code: r.code ?? null,
+          description: r.description ?? null,
           sessions_count: typeof r.class_count === 'number' ? r.class_count : (r.class_count ? Number(r.class_count) : 0),
-          metadata: r.metadata ?? null,
+          price: r.price ?? null,
+          type: r.type ?? null,
+          duration: r.duration ?? null,
+          course_type: r.course_type ?? null,
           active: r.is_active ?? true,
           created_at: r.created_at ?? null,
           updated_at: r.updated_at ?? null,

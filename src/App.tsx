@@ -123,6 +123,11 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* Legacy hyphenated path redirect */}
+      <Route
+        path="/dashboard/classes-v2"
+        element={<Navigate to="/dashboard/programs_v2" replace />}
+      />
       {/* Universal Dashboard Route - New modular dashboard */}
       <Route
         path="/dashboard/*"

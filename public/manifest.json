@@ -1,21 +1,87 @@
 {
-    "name": "Yogique Admin",
-    "short_name": "Yogique",
-    "start_url": "/dashboard/class_assignment",
+    "name": "Yogique Classes V2",
+    "short_name": "Classes V2",
+    "description": "Manage yoga programs, assignments, and bookings - Yogique Classes V2",
+    "start_url": "/dashboard/classes-v2?source=pwa",
+    "scope": "/dashboard/",
     "display": "standalone",
+    "orientation": "portrait-primary",
+    "dir": "ltr",
+    "lang": "en-US",
     "background_color": "#ffffff",
-    "theme_color": "#0ea5a4",
-    "description": "Admin tools for Yogique: Class Assignment Manager",
+    "theme_color": "#10b981",
     "icons": [
         {
-            "src": "/icons/icon-192.svg",
-            "sizes": "192x192",
-            "type": "image/svg+xml"
+            "src": "/icons/icon-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png"
         },
         {
-            "src": "/icons/icon-512.svg",
+            "src": "/icons/icon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
             "sizes": "512x512",
-            "type": "image/svg+xml"
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-maskable-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/icons/icon-maskable-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Create Program",
+            "short_name": "Create",
+            "url": "/dashboard/classes-v2/create",
+            "description": "Open create program form"
+        },
+        {
+            "name": "View Programs",
+            "short_name": "Programs",
+            "url": "/dashboard/classes-v2",
+            "description": "Open program list"
+        },
+        {
+            "name": "Assignments",
+            "short_name": "Assignments",
+            "url": "/dashboard/classes-v2/assignments",
+            "description": "View assignments"
         }
     ]
 }
