@@ -30,8 +30,71 @@ export class ContainerService extends BaseService {
 
   async createContainer(data: any): Promise<ServiceResult<any>> {
     try {
-      // TODO: Validate using ValidationService, generate container_code, insert within transaction
-      return this.success(null as any);
+      // Validate package
+      const pkgResult = await this.validatePackage(data.package_id);
+      if (!pkgResult.success) return pkgResult as ServiceResult<any>;
+      const pkg = pkgResult.data;
+
+      // Validate instructor (optional)
+      if (data.instructor_id) {
+        const instrResult = await this.validateInstructor(data.instructor_id);
+        if (!instrResult.success) return instrResult as ServiceResult<any>;
+      }
+
+      // Capacity validation based on package.type
+      const capacityCheck = this.validateCapacity(pkg.type, data.capacity_total);
+      if (!capacityCheck.success) return capacityCheck as ServiceResult<any>;
+
+      // Date validation
+      if (data.start_date && data.end_date) {
+        if (new Date(data.start_date) >= new Date(data.end_date)) {
+          return this.error('INVALID_DATES', 'Start date must be before end date');
+        }
+      }
+
+      // Generate unique container code
+      const code = await this.generateContainerCode();
+
+      // Display name: user-provided wins, otherwise generate
+      const displayName = data.display_name?.trim() || await this.generateDisplayName(data.package_id, data.instructor_id || null);
+
+      // Determine timezone: provided -> instructor -> default
+      let timezone = data.timezone || null;
+      if (!timezone && data.instructor_id) {
+        timezone = await this.getInstructorTimezone(data.instructor_id);
+      }
+      timezone = timezone || 'Asia/Kolkata';
+
+      const insertPayload: any = {
+        code,
+        package_id: data.package_id,
+        display_name: displayName,
+        instructor_id: data.instructor_id || null,
+        timezone,
+        start_date: data.start_date || null,
+        end_date: data.end_date || null,
+        capacity_total: data.capacity_total ?? null,
+        capacity_booked: 0,
+        status: data.status || 'draft',
+        is_active: true,
+        created_by: data.created_by || null,
+      };
+
+      const { data: created, error } = await this.client
+        .from('class_containers')
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[ContainerService] createContainer error:', error);
+        return {
+          success: false,
+          error: { code: 'CREATE_FAILED', message: 'Failed to create program', details: error },
+        };
+      }
+
+      return { success: true, data: created };
     } catch (error) {
       return this.handleError(error, 'createContainer');
     }
@@ -56,12 +119,126 @@ export class ContainerService extends BaseService {
   }
 
   private async generateContainerCode(): Promise<string> {
-    // TODO: Implement code generation CONT-YYYYMMDD-XXXX
-    return `CONT-${Date.now()}`;
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const datePart = `${year}${month}${day}`;
+
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const maxAttempts = 5;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      let suffix = '';
+      for (let i = 0; i < 4; i++) {
+        suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const code = `PROG-${datePart}-${suffix}`;
+
+      const { data: existing, error } = await this.client
+        .from('class_containers')
+        .select('id')
+        .eq('code', code)
+        .maybeSingle();
+
+      if (error) {
+        // Log and try again
+        console.warn('[ContainerService] code uniqueness check failed, retrying', error);
+        continue;
+      }
+
+      if (!existing) return code;
+      // else collision, retry
+    }
+
+    throw new Error('Failed to generate unique container code');
   }
 
-  private generateDisplayName(packageName: string, instructorName: string | null, containerType: string): string {
-    const instructor = instructorName || 'Unassigned';
-    return `${packageName} - ${instructor}`;
+  private async generateDisplayName(packageId: string, instructorId: string | null): Promise<string> {
+    // Fetch package name
+    const { data: pkg, error: pkgErr } = await this.client
+      .from('class_packages')
+      .select('name')
+      .eq('id', packageId)
+      .single();
+
+    if (pkgErr || !pkg) {
+      throw new Error('Package not found');
+    }
+
+    let instructorName = 'Unassigned';
+    if (instructorId) {
+      const { data: instr } = await this.client
+        .from('profiles')
+        .select('full_name, first_name, last_name')
+        .eq('id', instructorId)
+        .maybeSingle();
+
+      if (instr) {
+        instructorName = instr.full_name || `${instr.first_name || ''} ${instr.last_name || ''}`.trim() || 'Unknown Instructor';
+      }
+    }
+
+    return `${pkg.name} - ${instructorName}`;
+  }
+
+  private async validatePackage(packageId: string): Promise<ServiceResult<any>> {
+    const { data, error } = await this.client
+      .from('class_packages')
+      .select('id, name, type, is_active')
+      .eq('id', packageId)
+      .single();
+
+    if (error || !data) {
+      return { success: false, error: { code: 'PACKAGE_NOT_FOUND', message: 'Package not found' } };
+    }
+
+    if (!data.is_active) {
+      return { success: false, error: { code: 'PACKAGE_INACTIVE', message: 'Package is not active' } };
+    }
+
+    return { success: true, data };
+  }
+
+  private async validateInstructor(instructorId: string): Promise<ServiceResult<any>> {
+    const { data, error } = await this.client
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('id', instructorId)
+      .single();
+
+    if (error || !data) {
+      return { success: false, error: { code: 'INSTRUCTOR_NOT_FOUND', message: 'Instructor not found' } };
+    }
+
+    if (!['instructor', 'admin', 'super_admin'].includes(data.role)) {
+      return { success: false, error: { code: 'INVALID_INSTRUCTOR', message: 'User is not an instructor' } };
+    }
+
+    return { success: true, data };
+  }
+
+  private async getInstructorTimezone(instructorId: string): Promise<string | null> {
+    const { data, error } = await this.client
+      .from('instructor_availability')
+      .select('timezone')
+      .eq('instructor_id', instructorId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data.timezone || null;
+  }
+
+  private validateCapacity(packageType: string, capacityTotal?: number | null): ServiceResult<void> {
+    if (packageType === 'Individual') {
+      if (capacityTotal !== null && capacityTotal !== undefined) {
+        return { success: false, error: { code: 'INVALID_CAPACITY', message: 'Individual programs cannot have capacity' } };
+      }
+    } else if (packageType === 'Public Group' || packageType === 'Private Group') {
+      if (!capacityTotal || capacityTotal <= 0) {
+        return { success: false, error: { code: 'CAPACITY_REQUIRED', message: 'Group programs must have a capacity greater than 0' } };
+      }
+    }
+    return { success: true };
   }
 }

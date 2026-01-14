@@ -19,7 +19,7 @@
 - **Total Tasks:** 65
 - **Pro Tasks:** 19 (Design & Architecture)
 - **Mini Tasks:** 46 (Implementation)
-- **Completed:** 12 / 65
+- **Completed:** 15 / 65
 - **In Progress:** 0 / 65
 - **Blocked:** 0 / 65
 
@@ -3756,54 +3756,2160 @@ Old name stays in cache for up to 30min:
 ---
 
 ### Task 2.2: Implement PackageService.fetchPackages()
-- [ ] **Model:** 🟢 MINI
-- [ ] **Priority:** High
-- [ ] **Estimated Time:** 30 minutes
-- [ ] **Dependencies:** Task 2.1 ✓
-- [ ] **Description:** Implement package fetching method
-- [ ] **Deliverable:** Working fetchPackages method
-- [ ] **Prompt:** "Implement PackageService.fetchPackages() per Task 2.1 spec. Use Supabase client, include error handling, return typed result."
-- [ ] **Output Location:** src/features/dashboard/services/v2/package.service.ts
-- [ ] **Notes:**
+- [x] **Model:** 🟢 MINI
+- [x] **Priority:** High
+- [x] **Estimated Time:** 30 minutes
+- [x] **Dependencies:** Task 2.1 ✓
+- [x] **Description:** Implement package fetching method
+- [x] **Deliverable:** Working fetchPackages method
+- [x] **Prompt:** "Implement PackageService.fetchPackages() per Task 2.1 spec. Use Supabase client, include error handling, return typed result."
+- [x] **Output Location:** src/features/dashboard/services/v2/package.service.ts
+- [x] **Notes:** ✅ Completed Jan 14, 2026 - Implemented listPackages() and getPackage() with Supabase queries, filtering, caching, and validation
 
 ---
 
 ### Task 2.3: Container CRUD Logic Design
-- [ ] **Model:** 🟣 PRO
-- [ ] **Priority:** Critical
-- [ ] **Estimated Time:** 2 hours
-- [ ] **Dependencies:** None
-- [ ] **Description:** Design container CRUD with business rules and validation
-- [ ] **Deliverable:** Container CRUD specification
-- [ ] **Prompt:** "Design ContainerService CRUD: CreateContainer with instructor_id=null handling, display name generation. UpdateContainer validations. DeleteContainer soft delete rules. Capacity validation. Container code generation algorithm. Transaction handling."
-- [ ] **Output Location:** Comment for Task 2.4
-- [ ] **Notes:**
+- [x] **Model:** 🟣 PRO
+- [x] **Priority:** Critical
+- [x] **Estimated Time:** 2 hours
+- [x] **Dependencies:** None
+- [x] **Description:** Design container CRUD with business rules and validation
+- [x] **Deliverable:** Container CRUD specification
+- [x] **Prompt:** "Design ContainerService CRUD: CreateContainer with instructor_id=null handling, display name generation. UpdateContainer validations. DeleteContainer soft delete rules. Capacity validation. Container code generation algorithm. Transaction handling."
+- [x] **Output Location:** Comment for Task 2.4
+- [x] **Notes:** ✅ Completed Jan 14, 2026 - Designed comprehensive CRUD with code generation, display name rules, soft delete, capacity validation, and transaction handling
+
+---
+
+## 📋 Task 2.3 Deliverable: Container CRUD Design
+
+### 1. Overview
+
+**Purpose:** Complete CRUD operations for `class_containers` (Programs) with business rules, validation, and data integrity
+
+**Key Requirements:**
+- Generate unique container codes
+- Auto-generate display names with instructor handling
+- Validate capacity constraints
+- Soft delete with active bookings check
+- Transaction safety for multi-step operations
+
+---
+
+### 2. Database Schema Reference
+
+**Table:** `class_containers`
+
+```sql
+CREATE TABLE class_containers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT UNIQUE NOT NULL,  -- Auto-generated unique code
+  package_id UUID NOT NULL REFERENCES class_packages(id),
+  display_name TEXT NOT NULL,  -- Auto-generated or manual
+  instructor_id UUID REFERENCES profiles(id),  -- Optional
+  timezone TEXT,  -- IANA timezone (e.g., 'Asia/Kolkata')
+  start_date DATE,
+  end_date DATE,
+  capacity_total INTEGER,  -- NULL for individual
+  capacity_booked INTEGER DEFAULT 0,  -- Cached, updated by triggers
+  status TEXT DEFAULT 'active',  -- 'draft', 'active', 'paused', 'completed', 'cancelled'
+  is_active BOOLEAN DEFAULT true,  -- Soft delete flag
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  created_by UUID REFERENCES profiles(id)
+);
+
+CREATE UNIQUE INDEX idx_class_containers_code ON class_containers(code);
+CREATE INDEX idx_class_containers_package_id ON class_containers(package_id);
+CREATE INDEX idx_class_containers_instructor_id ON class_containers(instructor_id);
+CREATE INDEX idx_class_containers_status ON class_containers(status);
+CREATE INDEX idx_class_containers_is_active ON class_containers(is_active);
+```
+
+---
+
+### 3. Container Code Generation Algorithm
+
+**Format:** `PROG-{YYYYMMDD}-{RANDOM}`
+
+**Examples:**
+- `PROG-20260114-A3X9`
+- `PROG-20260114-B7K2`
+- `PROG-20260114-C1M5`
+
+**Algorithm:**
+
+```typescript
+private async generateContainerCode(): Promise<string> {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const datePart = `${year}${month}${day}`;
+  
+  const maxAttempts = 5;
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Generate 4-character alphanumeric suffix (uppercase letters + numbers)
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let suffix = '';
+    for (let i = 0; i < 4; i++) {
+      suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    const code = `PROG-${datePart}-${suffix}`;
+    
+    // Check uniqueness
+    const { data, error } = await this.client
+      .from('class_containers')
+      .select('id')
+      .eq('code', code)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('[ContainerService] Code uniqueness check failed:', error);
+      continue; // Try again
+    }
+    
+    if (!data) {
+      // Code is unique
+      return code;
+    }
+    
+    // Code exists, try again
+  }
+  
+  throw new Error('Failed to generate unique container code after ' + maxAttempts + ' attempts');
+}
+```
+
+**Collision Handling:**
+- Probability: ~1 in 1.6M per day (36^4 combinations)
+- Retry up to 5 times
+- If all attempts fail, throw error and let user retry
+
+**Why Not Sequential?**
+- Sequential codes leak business information (volume, growth rate)
+- Random codes are more secure
+- Still human-readable for support
+
+---
+
+### 4. Display Name Generation Rules
+
+**Format:** `{PackageName} - {InstructorName}` or `{PackageName} - Unassigned`
+
+**Algorithm:**
+
+```typescript
+private async generateDisplayName(
+  packageId: string,
+  instructorId?: string | null
+): Promise<string> {
+  // Fetch package name
+  const { data: pkg, error: pkgError } = await this.client
+    .from('class_packages')
+    .select('name')
+    .eq('id', packageId)
+    .single();
+  
+  if (pkgError || !pkg) {
+    throw new Error('Package not found');
+  }
+  
+  let instructorName = 'Unassigned';
+  
+  if (instructorId) {
+    // Fetch instructor name from profiles
+    const { data: instructor, error: instrError } = await this.client
+      .from('profiles')
+      .select('full_name, first_name, last_name')
+      .eq('id', instructorId)
+      .single();
+    
+    if (!instrError && instructor) {
+      instructorName = instructor.full_name || 
+                       `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+                       'Unknown Instructor';
+    }
+  }
+  
+  return `${pkg.name} - ${instructorName}`;
+}
+```
+
+**Examples:**
+- `Monthly 12-Class Yoga - Sarah Kumar`
+- `4-Week Crash Course - Mike Chen`
+- `Corporate Wellness - Unassigned`
+
+**Manual Override:**
+- User can provide custom `display_name` in form
+- If provided, skip auto-generation
+- Validate non-empty string
+
+---
+
+### 5. CREATE Container Logic
+
+**Input Interface:**
+
+```typescript
+interface CreateContainerInput {
+  package_id: string;  // Required
+  instructor_id?: string | null;  // Optional
+  display_name?: string | null;  // Optional (auto-generated if not provided)
+  timezone?: string | null;  // Optional (defaults to instructor's or system default)
+  start_date?: string | null;  // ISO date (YYYY-MM-DD)
+  end_date?: string | null;  // ISO date
+  capacity_total?: number | null;  // NULL for individual programs
+  status?: ContainerStatus;  // Default: 'draft'
+  created_by?: string | null;  // User ID from auth context
+}
+```
+
+**Business Rules:**
+
+1. **Package Validation:**
+   - Package must exist and be active
+   - Fetch package to verify
+
+2. **Instructor Validation:**
+   - If `instructor_id` provided, verify instructor exists and is active
+   - If NULL, program is "Unassigned" (can be assigned later)
+
+3. **Capacity Rules:**
+   - If package type is 'Individual' → `capacity_total` MUST be NULL
+   - If package type is 'Public Group' or 'Private Group' → `capacity_total` is REQUIRED
+   - If package type is 'Crash Course' → `capacity_total` is OPTIONAL
+   - `capacity_booked` always starts at 0
+
+4. **Timezone:**
+   - If not provided, fetch from instructor's `instructor_availability.timezone`
+   - If instructor has no timezone, default to system timezone ('Asia/Kolkata')
+
+5. **Date Validation:**
+   - `start_date` < `end_date` (if both provided)
+   - Dates must be in the future (optional business rule)
+
+6. **Code and Display Name:**
+   - Always auto-generate `code` (never accept from user)
+   - Auto-generate `display_name` if not provided
+
+**Algorithm:**
+
+```typescript
+public async createContainer(
+  input: CreateContainerInput
+): Promise<ServiceResult<Container>> {
+  try {
+    // 1. Validate package
+    const pkgResult = await this.validatePackage(input.package_id);
+    if (!pkgResult.success) {
+      return { success: false, error: pkgResult.error };
+    }
+    const pkg = pkgResult.data!;
+    
+    // 2. Validate instructor (if provided)
+    if (input.instructor_id) {
+      const instrResult = await this.validateInstructor(input.instructor_id);
+      if (!instrResult.success) {
+        return { success: false, error: instrResult.error };
+      }
+    }
+    
+    // 3. Validate capacity rules
+    const capacityResult = this.validateCapacity(pkg.type, input.capacity_total);
+    if (!capacityResult.success) {
+      return { success: false, error: capacityResult.error };
+    }
+    
+    // 4. Validate dates
+    if (input.start_date && input.end_date) {
+      if (new Date(input.start_date) >= new Date(input.end_date)) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_DATES',
+            message: 'Start date must be before end date',
+          },
+        };
+      }
+    }
+    
+    // 5. Generate container code
+    const code = await this.generateContainerCode();
+    
+    // 6. Generate or use display name
+    const displayName = input.display_name?.trim() || 
+                        await this.generateDisplayName(input.package_id, input.instructor_id);
+    
+    // 7. Determine timezone
+    let timezone = input.timezone;
+    if (!timezone && input.instructor_id) {
+      timezone = await this.getInstructorTimezone(input.instructor_id);
+    }
+    if (!timezone) {
+      timezone = 'Asia/Kolkata'; // System default
+    }
+    
+    // 8. Insert into database
+    const { data, error } = await this.client
+      .from('class_containers')
+      .insert({
+        code,
+        package_id: input.package_id,
+        display_name: displayName,
+        instructor_id: input.instructor_id || null,
+        timezone,
+        start_date: input.start_date || null,
+        end_date: input.end_date || null,
+        capacity_total: input.capacity_total || null,
+        capacity_booked: 0,
+        status: input.status || 'draft',
+        is_active: true,
+        created_by: input.created_by || null,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[ContainerService] Create failed:', error);
+      return {
+        success: false,
+        error: {
+          code: 'CREATE_FAILED',
+          message: 'Failed to create program',
+          details: error,
+        },
+      };
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    return this.handleError(error, 'createContainer');
+  }
+}
+```
+
+**Capacity Validation Helper:**
+
+```typescript
+private validateCapacity(
+  packageType: string,
+  capacityTotal?: number | null
+): ServiceResult<void> {
+  if (packageType === 'Individual') {
+    if (capacityTotal !== null && capacityTotal !== undefined) {
+      return {
+        success: false,
+        error: {
+          code: 'INVALID_CAPACITY',
+          message: 'Individual programs cannot have capacity',
+        },
+      };
+    }
+  } else if (packageType === 'Public Group' || packageType === 'Private Group') {
+    if (!capacityTotal || capacityTotal <= 0) {
+      return {
+        success: false,
+        error: {
+          code: 'CAPACITY_REQUIRED',
+          message: 'Group programs must have a capacity greater than 0',
+        },
+      };
+    }
+  }
+  
+  return { success: true };
+}
+```
+
+---
+
+### 6. UPDATE Container Logic
+
+**Input Interface:**
+
+```typescript
+interface UpdateContainerInput {
+  instructor_id?: string | null;  // Can change or unassign
+  display_name?: string | null;  // Can update
+  timezone?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  capacity_total?: number | null;  // Can increase, but see rules
+  status?: ContainerStatus;  // Can change lifecycle status
+}
+```
+
+**Business Rules:**
+
+1. **Immutable Fields:**
+   - `code` - NEVER changeable
+   - `package_id` - NEVER changeable (would break integrity)
+   - `created_at`, `created_by` - NEVER changeable
+
+2. **Instructor Change:**
+   - Can change from one instructor to another
+   - Can unassign (set to NULL)
+   - Must validate new instructor exists and is active
+   - Trigger display name regeneration if display_name not manually set
+
+3. **Display Name:**
+   - If user provides new `display_name`, use it
+   - If user sets `display_name` to NULL, regenerate from package + instructor
+
+4. **Capacity Changes:**
+   - Can INCREASE capacity any time
+   - Can DECREASE capacity ONLY if `capacity_booked <= new_capacity`
+   - Cannot change NULL capacity to non-NULL (would break individual programs)
+   - Cannot change non-NULL to NULL (would break group programs)
+
+5. **Status Changes:**
+   - `draft` → `active`: Allowed
+   - `active` → `paused`: Allowed
+   - `active` → `completed`: Allowed if all assignments completed
+   - `active` → `cancelled`: Allowed if no active bookings (or confirm force-cancel)
+   - Cannot reactivate `completed` or `cancelled` (business rule)
+
+6. **Date Changes:**
+   - Can update dates
+   - Validate `start_date < end_date`
+   - Warn if assignments exist outside new date range (optional validation)
+
+**Algorithm:**
+
+```typescript
+public async updateContainer(
+  id: string,
+  input: UpdateContainerInput
+): Promise<ServiceResult<Container>> {
+  try {
+    // 1. Fetch existing container
+    const { data: existing, error: fetchError } = await this.client
+      .from('class_containers')
+      .select('*, class_packages!inner(type)')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError || !existing) {
+      return {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Program not found',
+        },
+      };
+    }
+    
+    // 2. Validate instructor change
+    if (input.instructor_id !== undefined && input.instructor_id !== existing.instructor_id) {
+      if (input.instructor_id) {
+        const instrResult = await this.validateInstructor(input.instructor_id);
+        if (!instrResult.success) {
+          return { success: false, error: instrResult.error };
+        }
+      }
+    }
+    
+    // 3. Validate capacity change
+    if (input.capacity_total !== undefined) {
+      const capacityResult = await this.validateCapacityChange(
+        existing.capacity_total,
+        input.capacity_total,
+        existing.capacity_booked
+      );
+      if (!capacityResult.success) {
+        return { success: false, error: capacityResult.error };
+      }
+    }
+    
+    // 4. Validate date changes
+    const newStartDate = input.start_date !== undefined ? input.start_date : existing.start_date;
+    const newEndDate = input.end_date !== undefined ? input.end_date : existing.end_date;
+    
+    if (newStartDate && newEndDate && new Date(newStartDate) >= new Date(newEndDate)) {
+      return {
+        success: false,
+        error: {
+          code: 'INVALID_DATES',
+          message: 'Start date must be before end date',
+        },
+      };
+    }
+    
+    // 5. Handle display name
+    let displayName = existing.display_name;
+    if (input.display_name !== undefined) {
+      if (input.display_name === null || input.display_name.trim() === '') {
+        // Regenerate display name
+        const newInstructorId = input.instructor_id !== undefined ? input.instructor_id : existing.instructor_id;
+        displayName = await this.generateDisplayName(existing.package_id, newInstructorId);
+      } else {
+        displayName = input.display_name.trim();
+      }
+    } else if (input.instructor_id !== undefined && input.instructor_id !== existing.instructor_id) {
+      // Instructor changed but display_name not provided → regenerate
+      displayName = await this.generateDisplayName(existing.package_id, input.instructor_id);
+    }
+    
+    // 6. Build update payload (only changed fields)
+    const updates: any = {
+      updated_at: new Date().toISOString(),
+    };
+    
+    if (input.instructor_id !== undefined) updates.instructor_id = input.instructor_id;
+    if (displayName !== existing.display_name) updates.display_name = displayName;
+    if (input.timezone !== undefined) updates.timezone = input.timezone;
+    if (input.start_date !== undefined) updates.start_date = input.start_date;
+    if (input.end_date !== undefined) updates.end_date = input.end_date;
+    if (input.capacity_total !== undefined) updates.capacity_total = input.capacity_total;
+    if (input.status !== undefined) updates.status = input.status;
+    
+    // 7. Update in database
+    const { data, error } = await this.client
+      .from('class_containers')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[ContainerService] Update failed:', error);
+      return {
+        success: false,
+        error: {
+          code: 'UPDATE_FAILED',
+          message: 'Failed to update program',
+          details: error,
+        },
+      };
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    return this.handleError(error, 'updateContainer');
+  }
+}
+```
+
+**Capacity Change Validation:**
+
+```typescript
+private async validateCapacityChange(
+  currentCapacity: number | null,
+  newCapacity: number | null,
+  currentBooked: number
+): Promise<ServiceResult<void>> {
+  // Cannot change NULL to non-NULL or vice versa (type change)
+  if ((currentCapacity === null) !== (newCapacity === null)) {
+    return {
+      success: false,
+      error: {
+        code: 'CAPACITY_TYPE_CHANGE',
+        message: 'Cannot change capacity type (individual ↔ group)',
+      },
+    };
+  }
+  
+  // If decreasing capacity, check if new capacity >= booked
+  if (newCapacity !== null && currentCapacity !== null && newCapacity < currentCapacity) {
+    if (newCapacity < currentBooked) {
+      return {
+        success: false,
+        error: {
+          code: 'CAPACITY_BELOW_BOOKED',
+          message: `Cannot reduce capacity to ${newCapacity}. Currently ${currentBooked} seats booked.`,
+        },
+      };
+    }
+  }
+  
+  return { success: true };
+}
+```
+
+---
+
+### 7. DELETE Container Logic (Soft Delete)
+
+**Business Rules:**
+
+1. **Soft Delete Only:**
+   - Set `is_active = false`
+   - Do NOT delete row (preserve historical data)
+   - Cascade: Do NOT delete assignments or bookings
+
+2. **Pre-Delete Checks:**
+   - Check for active bookings
+   - If active bookings exist → ERROR (prevent accidental deletion)
+   - Allow force delete with confirmation (optional parameter)
+
+3. **Status After Delete:**
+   - Set `status = 'cancelled'`
+   - Set `is_active = false`
+   - Keep `updated_at` timestamp
+
+4. **Restoration:**
+   - Admin can restore by setting `is_active = true` and `status = 'active'`
+
+**Algorithm:**
+
+```typescript
+public async deleteContainer(
+  id: string,
+  options?: { force?: boolean }
+): Promise<ServiceResult<void>> {
+  try {
+    // 1. Fetch container
+    const { data: container, error: fetchError } = await this.client
+      .from('class_containers')
+      .select('id, display_name, status, capacity_booked')
+      .eq('id', id)
+      .eq('is_active', true)
+      .single();
+    
+    if (fetchError || !container) {
+      return {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Program not found or already deleted',
+        },
+      };
+    }
+    
+    // 2. Check for active bookings
+    if (container.capacity_booked > 0 && !options?.force) {
+      // Count active bookings
+      const { count, error: countError } = await this.client
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('container_id', id)
+        .in('booking_status', ['confirmed', 'pending']);
+      
+      if (countError) {
+        console.error('[ContainerService] Booking check failed:', countError);
+      }
+      
+      if (count && count > 0) {
+        return {
+          success: false,
+          error: {
+            code: 'HAS_ACTIVE_BOOKINGS',
+            message: `Cannot delete program "${container.display_name}". ${count} active booking(s) exist.`,
+            details: { activeBookings: count },
+          },
+        };
+      }
+    }
+    
+    // 3. Soft delete (set is_active = false, status = 'cancelled')
+    const { error: deleteError } = await this.client
+      .from('class_containers')
+      .update({
+        is_active: false,
+        status: 'cancelled',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    
+    if (deleteError) {
+      console.error('[ContainerService] Delete failed:', deleteError);
+      return {
+        success: false,
+        error: {
+          code: 'DELETE_FAILED',
+          message: 'Failed to delete program',
+          details: deleteError,
+        },
+      };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    return this.handleError(error, 'deleteContainer');
+  }
+}
+```
+
+**Force Delete:**
+
+```typescript
+// In component
+const handleDelete = async (containerId: string) => {
+  const result = await containerService.deleteContainer(containerId);
+  
+  if (!result.success && result.error?.code === 'HAS_ACTIVE_BOOKINGS') {
+    // Show confirmation dialog
+    const confirmed = await showConfirmDialog({
+      title: 'Active Bookings Exist',
+      message: result.error.message,
+      confirmText: 'Force Delete',
+      confirmVariant: 'danger',
+    });
+    
+    if (confirmed) {
+      // Retry with force flag
+      const forceResult = await containerService.deleteContainer(containerId, { force: true });
+      if (forceResult.success) {
+        toast.success('Program deleted');
+      } else {
+        toast.error(forceResult.error?.message || 'Delete failed');
+      }
+    }
+  } else if (!result.success) {
+    toast.error(result.error?.message || 'Delete failed');
+  } else {
+    toast.success('Program deleted');
+  }
+};
+```
+
+---
+
+### 8. LIST Containers Logic
+
+**Input Interface:**
+
+```typescript
+interface ListContainersParams {
+  instructorId?: string | null;  // Filter by instructor
+  packageId?: string | null;  // Filter by package
+  status?: ContainerStatus | ContainerStatus[];  // Filter by status(es)
+  isActive?: boolean;  // Filter by soft delete flag (default: true)
+  search?: string;  // Search in display_name or code
+  limit?: number;  // Pagination
+  offset?: number;  // Pagination
+  sortBy?: 'created_at' | 'updated_at' | 'display_name' | 'start_date';
+  sortOrder?: 'asc' | 'desc';
+}
+```
+
+**Algorithm:**
+
+```typescript
+public async listContainers(
+  params: ListContainersParams = {}
+): Promise<ServiceResult<{ containers: Container[], total: number }>> {
+  try {
+    // Build query
+    let query = this.client
+      .from('class_containers')
+      .select('*, class_packages!inner(name)', { count: 'exact' });
+    
+    // Apply filters
+    if (params.isActive !== undefined) {
+      query = query.eq('is_active', params.isActive);
+    } else {
+      query = query.eq('is_active', true); // Default: only active
+    }
+    
+    if (params.instructorId) {
+      query = query.eq('instructor_id', params.instructorId);
+    }
+    
+    if (params.packageId) {
+      query = query.eq('package_id', params.packageId);
+    }
+    
+    if (params.status) {
+      if (Array.isArray(params.status)) {
+        query = query.in('status', params.status);
+      } else {
+        query = query.eq('status', params.status);
+      }
+    }
+    
+    if (params.search) {
+      const search = `%${params.search}%`;
+      query = query.or(`display_name.ilike.${search},code.ilike.${search}`);
+    }
+    
+    // Sorting
+    const sortBy = params.sortBy || 'created_at';
+    const sortOrder = params.sortOrder || 'desc';
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+    
+    // Pagination
+    if (params.limit) {
+      query = query.limit(params.limit);
+    }
+    if (params.offset) {
+      query = query.range(params.offset, params.offset + (params.limit || 10) - 1);
+    }
+    
+    // Execute
+    const { data, count, error } = await query;
+    
+    if (error) {
+      console.error('[ContainerService] List failed:', error);
+      return {
+        success: false,
+        error: {
+          code: 'LIST_FAILED',
+          message: 'Failed to load programs',
+          details: error,
+        },
+      };
+    }
+    
+    return {
+      success: true,
+      data: {
+        containers: data || [],
+        total: count || 0,
+      },
+    };
+  } catch (error) {
+    return this.handleError(error, 'listContainers');
+  }
+}
+```
+
+---
+
+### 9. GET Single Container Logic
+
+**Algorithm:**
+
+```typescript
+public async getContainer(id: string): Promise<ServiceResult<Container>> {
+  try {
+    const { data, error } = await this.client
+      .from('class_containers')
+      .select(`
+        *,
+        class_packages!inner(id, name, code, class_count),
+        profiles:instructor_id(id, full_name, email)
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (error || !data) {
+      return {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Program not found',
+        },
+      };
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    return this.handleError(error, 'getContainer');
+  }
+}
+```
+
+---
+
+### 10. Transaction Handling
+
+**Scenario 1: Create Container with Assignments (Bulk)**
+
+```typescript
+public async createContainerWithAssignments(
+  containerInput: CreateContainerInput,
+  assignmentInputs: CreateAssignmentInput[]
+): Promise<ServiceResult<{ container: Container, assignments: Assignment[] }>> {
+  // Supabase doesn't support transactions directly in client
+  // Use RPC function or handle rollback manually
+  
+  try {
+    // 1. Create container
+    const containerResult = await this.createContainer(containerInput);
+    if (!containerResult.success) {
+      return { success: false, error: containerResult.error };
+    }
+    const container = containerResult.data!;
+    
+    // 2. Create assignments
+    const assignments: Assignment[] = [];
+    for (const assignmentInput of assignmentInputs) {
+      const assignmentResult = await assignmentService.createAssignment({
+        ...assignmentInput,
+        container_id: container.id,
+      });
+      
+      if (!assignmentResult.success) {
+        // Rollback: Delete container
+        await this.deleteContainer(container.id, { force: true });
+        
+        return {
+          success: false,
+          error: {
+            code: 'ASSIGNMENT_CREATION_FAILED',
+            message: 'Failed to create assignments. Container creation rolled back.',
+            details: assignmentResult.error,
+          },
+        };
+      }
+      
+      assignments.push(assignmentResult.data!);
+    }
+    
+    return {
+      success: true,
+      data: { container, assignments },
+    };
+  } catch (error) {
+    return this.handleError(error, 'createContainerWithAssignments');
+  }
+}
+```
+
+**Scenario 2: Database-Level Transaction (RPC)**
+
+```sql
+-- Create RPC function for atomic operations
+CREATE OR REPLACE FUNCTION create_container_with_assignments(
+  container_data JSONB,
+  assignments_data JSONB[]
+) RETURNS JSONB AS $$
+DECLARE
+  new_container class_containers;
+  new_assignment class_assignments;
+  result JSONB;
+BEGIN
+  -- Insert container
+  INSERT INTO class_containers (
+    code, package_id, display_name, instructor_id, timezone,
+    start_date, end_date, capacity_total, capacity_booked, status, is_active
+  )
+  VALUES (
+    (container_data->>'code')::TEXT,
+    (container_data->>'package_id')::UUID,
+    (container_data->>'display_name')::TEXT,
+    (container_data->>'instructor_id')::UUID,
+    (container_data->>'timezone')::TEXT,
+    (container_data->>'start_date')::DATE,
+    (container_data->>'end_date')::DATE,
+    (container_data->>'capacity_total')::INTEGER,
+    0,
+    (container_data->>'status')::TEXT,
+    true
+  )
+  RETURNING * INTO new_container;
+  
+  -- Insert assignments
+  FOR i IN 1..array_length(assignments_data, 1) LOOP
+    INSERT INTO class_assignments (
+      container_id, instructor_id, class_date, start_time, end_time, timezone, status
+    )
+    VALUES (
+      new_container.id,
+      (assignments_data[i]->>'instructor_id')::UUID,
+      (assignments_data[i]->>'class_date')::DATE,
+      (assignments_data[i]->>'start_time')::TIME,
+      (assignments_data[i]->>'end_time')::TIME,
+      (assignments_data[i]->>'timezone')::TEXT,
+      (assignments_data[i]->>'status')::TEXT
+    );
+  END LOOP;
+  
+  -- Return result
+  SELECT jsonb_build_object(
+    'success', true,
+    'container_id', new_container.id
+  ) INTO result;
+  
+  RETURN result;
+EXCEPTION WHEN OTHERS THEN
+  -- Rollback handled automatically by Postgres
+  RETURN jsonb_build_object(
+    'success', false,
+    'error', SQLERRM
+  );
+END;
+$$ LANGUAGE plpgsql;
+```
+
+**Call from Service:**
+
+```typescript
+const { data, error } = await this.client.rpc('create_container_with_assignments', {
+  container_data: containerInput,
+  assignments_data: assignmentInputs,
+});
+```
+
+---
+
+### 11. Helper Methods
+
+**A. Validate Package:**
+
+```typescript
+private async validatePackage(packageId: string): Promise<ServiceResult<any>> {
+  const { data, error } = await this.client
+    .from('class_packages')
+    .select('id, name, type, is_active')
+    .eq('id', packageId)
+    .single();
+  
+  if (error || !data) {
+    return {
+      success: false,
+      error: {
+        code: 'PACKAGE_NOT_FOUND',
+        message: 'Package not found',
+      },
+    };
+  }
+  
+  if (!data.is_active) {
+    return {
+      success: false,
+      error: {
+        code: 'PACKAGE_INACTIVE',
+        message: 'Package is not active',
+      },
+    };
+  }
+  
+  return { success: true, data };
+}
+```
+
+**B. Validate Instructor:**
+
+```typescript
+private async validateInstructor(instructorId: string): Promise<ServiceResult<any>> {
+  const { data, error } = await this.client
+    .from('profiles')
+    .select('id, full_name, role')
+    .eq('id', instructorId)
+    .single();
+  
+  if (error || !data) {
+    return {
+      success: false,
+      error: {
+        code: 'INSTRUCTOR_NOT_FOUND',
+        message: 'Instructor not found',
+      },
+    };
+  }
+  
+  // Check if user has instructor role
+  if (data.role !== 'instructor' && data.role !== 'admin' && data.role !== 'super_admin') {
+    return {
+      success: false,
+      error: {
+        code: 'INVALID_INSTRUCTOR',
+        message: 'User is not an instructor',
+      },
+    };
+  }
+  
+  return { success: true, data };
+}
+```
+
+**C. Get Instructor Timezone:**
+
+```typescript
+private async getInstructorTimezone(instructorId: string): Promise<string | null> {
+  const { data, error } = await this.client
+    .from('instructor_availability')
+    .select('timezone')
+    .eq('instructor_id', instructorId)
+    .single();
+  
+  if (error || !data) {
+    return null;
+  }
+  
+  return data.timezone || null;
+}
+```
+
+---
+
+### 12. Error Codes Reference
+
+| Code | Message | Action |
+|------|---------|--------|
+| `PACKAGE_NOT_FOUND` | Package not found | Check package ID |
+| `PACKAGE_INACTIVE` | Package is not active | Select active package |
+| `INSTRUCTOR_NOT_FOUND` | Instructor not found | Check instructor ID |
+| `INVALID_INSTRUCTOR` | User is not an instructor | Assign valid instructor |
+| `INVALID_CAPACITY` | Individual programs cannot have capacity | Set capacity to NULL |
+| `CAPACITY_REQUIRED` | Group programs must have capacity | Provide capacity > 0 |
+| `CAPACITY_TYPE_CHANGE` | Cannot change capacity type | Create new container |
+| `CAPACITY_BELOW_BOOKED` | Cannot reduce capacity below booked | Cancel bookings first |
+| `INVALID_DATES` | Start date must be before end date | Fix date range |
+| `CREATE_FAILED` | Failed to create program | Retry or contact support |
+| `UPDATE_FAILED` | Failed to update program | Retry or contact support |
+| `NOT_FOUND` | Program not found | Check container ID |
+| `HAS_ACTIVE_BOOKINGS` | Cannot delete program with active bookings | Cancel bookings or force delete |
+| `DELETE_FAILED` | Failed to delete program | Retry or contact support |
+| `LIST_FAILED` | Failed to load programs | Retry or contact support |
+
+---
+
+## 🎯 Summary for Task 2.4 (MINI)
+
+**What to implement in ContainerService.createContainer():**
+
+1. **Core Method:**
+   - `createContainer(input: CreateContainerInput): Promise<ServiceResult<Container>>`
+
+2. **Validation Steps:**
+   - Validate package exists and is active
+   - Validate instructor (if provided)
+   - Validate capacity rules based on package type
+   - Validate date range
+
+3. **Generation Logic:**
+   - Generate unique `code` using `PROG-{YYYYMMDD}-{RANDOM}` format
+   - Generate `display_name` from package + instructor (or use manual)
+   - Determine timezone (instructor → system default)
+
+4. **Database Insert:**
+   - Insert into `class_containers` with all fields
+   - Handle Supabase errors
+   - Return created container
+
+5. **Helper Methods:**
+   - `generateContainerCode()` - with uniqueness check
+   - `generateDisplayName(packageId, instructorId?)` - fetch package and instructor names
+   - `validatePackage(packageId)` - check existence and active status
+   - `validateInstructor(instructorId)` - check existence and role
+   - `validateCapacity(packageType, capacity)` - enforce capacity rules
+   - `getInstructorTimezone(instructorId)` - fetch from instructor_availability
+
+**File Location:** `src/features/dashboard/services/v2/container.service.ts`
+
+**Testing Scenarios:**
+- Create with manual display name
+- Create with auto-generated display name
+- Create with instructor
+- Create without instructor (Unassigned)
+- Create individual program (NULL capacity)
+- Create group program (with capacity)
+- Validate capacity rules
+- Handle duplicate code collision
+- Handle missing package
+- Handle missing instructor
 
 ---
 
 ### Task 2.4: Implement ContainerService.createContainer()
-- [ ] **Model:** 🟢 MINI
-- [ ] **Priority:** Critical
-- [ ] **Estimated Time:** 1 hour
-- [ ] **Dependencies:** Task 2.3 ✓
-- [ ] **Description:** Implement container creation
-- [ ] **Deliverable:** Working createContainer method
-- [ ] **Prompt:** "Implement ContainerService.createContainer() per Task 2.3 spec: Validation checks, container code generation, display name generation (with instructor or 'Unassigned'), Supabase insert, error handling, return typed result."
-- [ ] **Output Location:** src/features/dashboard/services/v2/container.service.ts
-- [ ] **Notes:**
+- [x] **Model:** 🟢 MINI
+- [x] **Priority:** Critical
+- [x] **Estimated Time:** 1 hour
+- [x] **Dependencies:** Task 2.3 ✓
+- [x] **Description:** Implement container creation
+- [x] **Deliverable:** Working createContainer method
+- [x] **Prompt:** "Implement ContainerService.createContainer() per Task 2.3 spec: Validation checks, container code generation, display name generation (with instructor or 'Unassigned'), Supabase insert, error handling, return typed result."
+- [x] **Output Location:** src/features/dashboard/services/v2/container.service.ts
+- [x] **Notes:** ✅ Completed Jan 14, 2026 - Implemented createContainer with 8-step validation pipeline, code generation (PROG-YYYYMMDD-XXXX), display name generation, and 5 helper methods (validatePackage, validateInstructor, validateCapacity, getInstructorTimezone, generateContainerCode, generateDisplayName)
 
 ---
 
 ### Task 2.5: Validation Rules Strategy
-- [ ] **Model:** 🟣 PRO
-- [ ] **Priority:** High
-- [ ] **Estimated Time:** 1.5 hours
-- [ ] **Dependencies:** None
-- [ ] **Description:** Design validation strategy for containers and assignments
-- [ ] **Deliverable:** Complete validation strategy
-- [ ] **Prompt:** "Review CLASS_ASSIGNMENT_V2_ARCHITECTURE.md validation section and design: Client-side validation for containers, assignments, timezone conflict checking, crash course validations. When to validate client vs server?"
-- [ ] **Output Location:** Comment for Tasks 2.6, 2.7
-- [ ] **Notes:**
+- [x] **Model:** 🟣 PRO
+- [x] **Priority:** High
+- [x] **Estimated Time:** 1.5 hours
+- [x] **Dependencies:** None
+- [x] **Description:** Design validation strategy for containers and assignments
+- [x] **Deliverable:** Complete validation strategy
+- [x] **Prompt:** "Review CLASS_ASSIGNMENT_V2_ARCHITECTURE.md validation section and design: Client-side validation for containers, assignments, timezone conflict checking, crash course validations. When to validate client vs server?"
+- [x] **Output Location:** Comment for Tasks 2.6, 2.7
+- [x] **Notes:** ✅ Completed Jan 14, 2026 - Designed multi-layer validation with client/server split, timezone normalization, conflict detection, and comprehensive error patterns
+
+---
+
+## 📋 Task 2.5 Deliverable: Validation Rules Strategy
+
+### 1. Overview
+
+**Purpose:** Comprehensive validation strategy for container and assignment operations with clear client/server boundaries
+
+**Key Requirements:**
+- Fast client-side validation for immediate feedback
+- Server-side enforcement for data integrity
+- Timezone-aware conflict detection
+- Graceful error handling with actionable messages
+- Crash course-specific validations
+
+**Validation Layers:**
+1. **Client (Browser)** - Fast feedback, UX-focused
+2. **Service (TypeScript)** - Pre-flight checks before API calls
+3. **Database (Triggers)** - Final enforcement, data integrity
+
+---
+
+### 2. Client vs Server Validation Strategy
+
+**Decision Matrix:**
+
+| Validation Type | Client | Service | Database | Rationale |
+|----------------|--------|---------|----------|-----------|
+| **Required Fields** | ✅ Yes | ✅ Yes | ✅ Yes | Immediate feedback + enforcement |
+| **Field Format** | ✅ Yes | ✅ Yes | ❌ No | Client prevents bad input |
+| **Business Rules** | ✅ Yes | ✅ Yes | ✅ Yes | Triple validation for integrity |
+| **Capacity Check** | ✅ Yes | ✅ Yes | ✅ Yes | Prevent overbooking |
+| **Instructor Conflict** | ❌ No | ✅ Yes | ❌ No | Too expensive for real-time |
+| **Timezone Conversion** | ❌ No | ✅ Yes | ❌ No | Complex logic, service layer |
+| **Date/Time Logic** | ✅ Yes | ✅ Yes | ❌ No | Client catches typos early |
+| **Uniqueness Checks** | ❌ No | ❌ No | ✅ Yes | Race conditions, DB-only |
+
+**Why This Split?**
+
+**Client Validation (Instant):**
+- Synchronous checks (< 1ms)
+- No network calls
+- Prevents form submission with obvious errors
+- Example: Empty fields, invalid email format, negative numbers
+
+**Service Validation (Pre-Flight):**
+- Async checks (< 500ms)
+- Can query database
+- Business logic enforcement
+- Example: Instructor availability, capacity checks, date conflicts
+
+**Database Validation (Final):**
+- Triggered on INSERT/UPDATE
+- Handles race conditions
+- Last line of defense
+- Example: UNIQUE constraints, FK integrity, capacity triggers
+
+---
+
+### 3. Container Validation Rules
+
+**A. Create Container Validation**
+
+```typescript
+interface CreateContainerInput {
+  package_id: string;           // Required
+  instructor_id?: string;       // Optional (can be "Unassigned")
+  display_name?: string;        // Optional (auto-generated if not provided)
+  timezone?: string;            // Optional (defaults to instructor or 'Asia/Kolkata')
+  start_date?: string;          // Optional (ISO date)
+  end_date?: string;            // Optional (ISO date)
+  capacity_total?: number;      // Required for group, NULL for individual
+  status?: ContainerStatus;     // Optional (defaults to 'draft')
+}
+
+// Client-Side Validation
+function validateContainerClientSide(input: CreateContainerInput): ValidationResult {
+  const errors: string[] = [];
+  
+  // 1. Package required
+  if (!input.package_id || input.package_id.trim() === '') {
+    errors.push('Package selection is required');
+  }
+  
+  // 2. Display name length (if provided)
+  if (input.display_name && input.display_name.length > 200) {
+    errors.push('Display name must be 200 characters or less');
+  }
+  
+  // 3. Capacity format (if provided)
+  if (input.capacity_total !== null && input.capacity_total !== undefined) {
+    if (!Number.isInteger(input.capacity_total) || input.capacity_total < 1) {
+      errors.push('Capacity must be a positive integer');
+    }
+    if (input.capacity_total > 50) {
+      errors.push('Capacity cannot exceed 50');
+    }
+  }
+  
+  // 4. Date format and logic
+  if (input.start_date && !isValidISODate(input.start_date)) {
+    errors.push('Invalid start date format');
+  }
+  if (input.end_date && !isValidISODate(input.end_date)) {
+    errors.push('Invalid end date format');
+  }
+  if (input.start_date && input.end_date) {
+    if (new Date(input.start_date) >= new Date(input.end_date)) {
+      errors.push('End date must be after start date');
+    }
+  }
+  
+  // 5. Timezone format (if provided)
+  if (input.timezone && !isValidIANATimezone(input.timezone)) {
+    errors.push('Invalid timezone format. Use IANA timezone (e.g., Asia/Kolkata)');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings: []
+  };
+}
+
+// Service-Side Validation (Pre-Flight)
+async function validateContainerServiceSide(input: CreateContainerInput): Promise<ValidationResult> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // 1. Package exists and is active
+  const pkg = await packageService.getPackage(input.package_id);
+  if (!pkg.success || !pkg.data) {
+    errors.push('Selected package does not exist');
+    return { isValid: false, errors, warnings };
+  }
+  if (!pkg.data.is_active) {
+    errors.push('Selected package is not active');
+  }
+  
+  // 2. Instructor exists and is valid (if provided)
+  if (input.instructor_id) {
+    const instructor = await profileService.getProfile(input.instructor_id);
+    if (!instructor.success || !instructor.data) {
+      errors.push('Selected instructor does not exist');
+    } else if (!['instructor', 'admin', 'super_admin'].includes(instructor.data.role)) {
+      errors.push('Selected user is not an instructor');
+    }
+  } else {
+    warnings.push('No instructor assigned. Program will be marked as "Unassigned"');
+  }
+  
+  // 3. Capacity rules based on package type
+  const packageType = pkg.data.type;
+  if (packageType === 'Individual') {
+    if (input.capacity_total !== null && input.capacity_total !== undefined) {
+      errors.push('Individual programs cannot have capacity. Leave blank or set to NULL.');
+    }
+  } else if (packageType === 'Public Group' || packageType === 'Private Group') {
+    if (!input.capacity_total || input.capacity_total <= 0) {
+      errors.push(`${packageType} programs must have a capacity greater than 0`);
+    }
+  } else if (packageType === 'Crash Course') {
+    if (input.capacity_total && input.capacity_total <= 0) {
+      errors.push('Crash course capacity must be greater than 0 if provided');
+    }
+    // Optional for crash courses
+  }
+  
+  // 4. Future date validation (optional - business decision)
+  if (input.start_date && new Date(input.start_date) < new Date()) {
+    warnings.push('Start date is in the past. This is allowed but unusual.');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+```
+
+**B. Update Container Validation**
+
+```typescript
+interface UpdateContainerInput {
+  instructor_id?: string | null;
+  display_name?: string | null;
+  timezone?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  capacity_total?: number | null;
+  status?: ContainerStatus;
+}
+
+// Service-Side Validation
+async function validateContainerUpdate(
+  containerId: string,
+  input: UpdateContainerInput
+): Promise<ValidationResult> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // 1. Fetch existing container
+  const existing = await containerService.getContainer(containerId);
+  if (!existing.success) {
+    errors.push('Container not found');
+    return { isValid: false, errors, warnings };
+  }
+  
+  const container = existing.data;
+  
+  // 2. Immutable field checks (client should hide these fields)
+  // package_id, code, created_at, created_by - never editable
+  
+  // 3. Instructor change validation
+  if (input.instructor_id !== undefined && input.instructor_id !== container.instructor_id) {
+    if (input.instructor_id) {
+      const instructor = await profileService.getProfile(input.instructor_id);
+      if (!instructor.success) {
+        errors.push('New instructor does not exist');
+      } else if (!['instructor', 'admin', 'super_admin'].includes(instructor.data.role)) {
+        errors.push('User is not an instructor');
+      }
+    }
+    // Unassigning is allowed (setting to null)
+  }
+  
+  // 4. Capacity change validation
+  if (input.capacity_total !== undefined) {
+    const currentCapacity = container.capacity_total;
+    const newCapacity = input.capacity_total;
+    const currentBooked = container.capacity_booked || 0;
+    
+    // Cannot change capacity type (NULL ↔ non-NULL)
+    if ((currentCapacity === null) !== (newCapacity === null)) {
+      errors.push('Cannot change capacity type (individual ↔ group). Create a new program instead.');
+    }
+    
+    // Cannot reduce below booked
+    if (newCapacity !== null && currentCapacity !== null && newCapacity < currentCapacity) {
+      if (newCapacity < currentBooked) {
+        errors.push(`Cannot reduce capacity to ${newCapacity}. Currently ${currentBooked} seats booked.`);
+      } else {
+        warnings.push(`Reducing capacity from ${currentCapacity} to ${newCapacity}. ${currentBooked} seats currently booked.`);
+      }
+    }
+  }
+  
+  // 5. Date change validation
+  const newStartDate = input.start_date !== undefined ? input.start_date : container.start_date;
+  const newEndDate = input.end_date !== undefined ? input.end_date : container.end_date;
+  
+  if (newStartDate && newEndDate && new Date(newStartDate) >= new Date(newEndDate)) {
+    errors.push('End date must be after start date');
+  }
+  
+  // 6. Status change validation
+  if (input.status && input.status !== container.status) {
+    const validTransitions = {
+      'draft': ['active', 'cancelled'],
+      'active': ['paused', 'completed', 'cancelled'],
+      'paused': ['active', 'cancelled'],
+      'completed': [],  // Cannot reactivate
+      'cancelled': [],  // Cannot reactivate
+      'rescheduled': ['active']
+    };
+    
+    if (!validTransitions[container.status]?.includes(input.status)) {
+      errors.push(`Cannot transition from ${container.status} to ${input.status}`);
+    }
+    
+    if (input.status === 'cancelled' && currentBooked > 0) {
+      warnings.push(`This program has ${currentBooked} active booking(s). Consider notifying students before cancellation.`);
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+```
+
+---
+
+### 4. Assignment Validation Rules
+
+**A. Create Assignment Validation**
+
+```typescript
+interface CreateAssignmentInput {
+  container_id: string;         // Required
+  instructor_id?: string;       // Optional if set at container level
+  class_date: string;           // Required (ISO date)
+  start_time: string;           // Required (HH:MM:SS or HH:MM)
+  end_time: string;             // Required (HH:MM:SS or HH:MM)
+  timezone?: string;            // Optional (defaults to container or 'Asia/Kolkata')
+  class_status?: string;        // Optional (defaults to 'scheduled')
+  meeting_link?: string;        // Optional (Zoom URL)
+  notes?: string;               // Optional
+}
+
+// Client-Side Validation
+function validateAssignmentClientSide(input: CreateAssignmentInput): ValidationResult {
+  const errors: string[] = [];
+  
+  // 1. Required fields
+  if (!input.container_id) errors.push('Program selection is required');
+  if (!input.class_date) errors.push('Class date is required');
+  if (!input.start_time) errors.push('Start time is required');
+  if (!input.end_time) errors.push('End time is required');
+  
+  // 2. Date format
+  if (input.class_date && !isValidISODate(input.class_date)) {
+    errors.push('Invalid date format. Use YYYY-MM-DD.');
+  }
+  
+  // 3. Time format
+  if (input.start_time && !isValidTimeFormat(input.start_time)) {
+    errors.push('Invalid start time format. Use HH:MM.');
+  }
+  if (input.end_time && !isValidTimeFormat(input.end_time)) {
+    errors.push('Invalid end time format. Use HH:MM.');
+  }
+  
+  // 4. Time logic
+  if (input.start_time && input.end_time) {
+    const start = parseTime(input.start_time);
+    const end = parseTime(input.end_time);
+    if (start >= end) {
+      errors.push('End time must be after start time');
+    }
+    const duration = end - start; // in minutes
+    if (duration < 15) {
+      errors.push('Class duration must be at least 15 minutes');
+    }
+    if (duration > 240) {
+      errors.push('Class duration cannot exceed 4 hours');
+    }
+  }
+  
+  // 5. Date not too far in past
+  if (input.class_date) {
+    const date = new Date(input.class_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) {
+      errors.push('Cannot create assignment in the past');
+    }
+  }
+  
+  // 6. Meeting link format (if provided)
+  if (input.meeting_link && !isValidURL(input.meeting_link)) {
+    errors.push('Invalid meeting link URL');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings: []
+  };
+}
+
+// Service-Side Validation (Pre-Flight)
+async function validateAssignmentServiceSide(input: CreateAssignmentInput): Promise<ValidationResult> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // 1. Container exists and is active
+  const container = await containerService.getContainer(input.container_id);
+  if (!container.success || !container.data) {
+    errors.push('Selected program does not exist');
+    return { isValid: false, errors, warnings };
+  }
+  if (!container.data.is_active) {
+    errors.push('Selected program is not active');
+  }
+  
+  // 2. Instructor validation
+  let effectiveInstructorId = input.instructor_id || container.data.instructor_id;
+  
+  if (!effectiveInstructorId) {
+    errors.push('Instructor is required. Set at program level or provide here.');
+  } else {
+    const instructor = await profileService.getProfile(effectiveInstructorId);
+    if (!instructor.success) {
+      errors.push('Instructor does not exist');
+    } else if (!['instructor', 'admin', 'super_admin'].includes(instructor.data.role)) {
+      errors.push('Selected user is not an instructor');
+    }
+  }
+  
+  // 3. Date within container date range (if set)
+  if (container.data.start_date || container.data.end_date) {
+    const assignmentDate = new Date(input.class_date);
+    if (container.data.start_date && assignmentDate < new Date(container.data.start_date)) {
+      warnings.push(`Assignment date is before program start date (${container.data.start_date})`);
+    }
+    if (container.data.end_date && assignmentDate > new Date(container.data.end_date)) {
+      warnings.push(`Assignment date is after program end date (${container.data.end_date})`);
+    }
+  }
+  
+  // 4. Instructor conflict check (CRITICAL)
+  if (effectiveInstructorId) {
+    const conflictResult = await validationService.checkInstructorConflict(
+      effectiveInstructorId,
+      input.class_date,
+      input.start_time,
+      input.end_time,
+      input.timezone || container.data.timezone || 'Asia/Kolkata'
+    );
+    
+    if (conflictResult.hasConflict) {
+      const conflictDetails = conflictResult.conflictingAssignments.map(a => 
+        `${a.class_date} ${a.start_time}-${a.end_time}`
+      ).join(', ');
+      errors.push(`Instructor conflict detected: ${conflictDetails}`);
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+```
+
+---
+
+### 5. Timezone Conflict Detection Strategy
+
+**Problem:** Instructors may be assigned classes in different timezones. Need to detect overlaps.
+
+**Solution: Normalize to Instructor's Timezone**
+
+```typescript
+/**
+ * Conflict Detection Algorithm:
+ * 1. Get instructor's preferred timezone from instructor_availability table
+ * 2. Convert all assignment times to instructor's timezone
+ * 3. Compare normalized times for overlaps
+ */
+
+interface ConflictResult {
+  hasConflict: boolean;
+  conflictingAssignments: Assignment[];
+}
+
+async function checkInstructorConflict(
+  instructorId: string,
+  date: string,
+  startTime: string,
+  endTime: string,
+  timezone: string = 'Asia/Kolkata'
+): Promise<ConflictResult> {
+  // Step 1: Get instructor's preferred timezone
+  const { data: availability } = await supabase
+    .from('instructor_availability')
+    .select('timezone')
+    .eq('instructor_id', instructorId)
+    .maybeSingle();
+  
+  const instructorTz = availability?.timezone || 'Asia/Kolkata';
+  
+  // Step 2: Normalize input times to instructor timezone
+  const normalizedStart = convertToTimezone(startTime, timezone, instructorTz, date);
+  const normalizedEnd = convertToTimezone(endTime, timezone, instructorTz, date);
+  
+  // Step 3: Fetch existing assignments for the same date
+  const { data: existingAssignments } = await supabase
+    .from('class_assignments')
+    .select('id, class_date, start_time, end_time, timezone')
+    .eq('instructor_id', instructorId)
+    .eq('class_date', date)  // Same calendar date
+    .in('class_status', ['scheduled', 'confirmed', 'ongoing']);
+  
+  // Step 4: Check for overlaps
+  const conflicts = (existingAssignments || []).filter(existing => {
+    // Normalize existing assignment times to instructor timezone
+    const existingStart = convertToTimezone(
+      existing.start_time,
+      existing.timezone || 'Asia/Kolkata',
+      instructorTz,
+      existing.class_date
+    );
+    const existingEnd = convertToTimezone(
+      existing.end_time,
+      existing.timezone || 'Asia/Kolkata',
+      instructorTz,
+      existing.class_date
+    );
+    
+    // Check overlap: [start1, end1) overlaps [start2, end2) if start1 < end2 AND end1 > start2
+    return normalizedStart < existingEnd && normalizedEnd > existingStart;
+  });
+  
+  return {
+    hasConflict: conflicts.length > 0,
+    conflictingAssignments: conflicts
+  };
+}
+
+/**
+ * Timezone Conversion Helper
+ * Uses date-fns-tz for reliability
+ */
+function convertToTimezone(
+  time: string,              // HH:MM or HH:MM:SS
+  fromTz: string,            // Source timezone
+  toTz: string,              // Target timezone
+  date: string               // YYYY-MM-DD (needed for DST handling)
+): string {
+  const { zonedTimeToUtc, utcToZonedTime, format } = require('date-fns-tz');
+  
+  // Combine date and time
+  const dateTimeString = `${date}T${time}`;
+  
+  // Convert to UTC from source timezone
+  const utcDate = zonedTimeToUtc(dateTimeString, fromTz);
+  
+  // Convert from UTC to target timezone
+  const targetDate = utcToZonedTime(utcDate, toTz);
+  
+  // Return as HH:MM:SS
+  return format(targetDate, 'HH:mm:ss', { timeZone: toTz });
+}
+```
+
+**Edge Cases:**
+
+1. **Daylight Saving Time (DST):**
+   - `date-fns-tz` handles DST automatically
+   - Always include date in conversion (DST transitions happen on specific dates)
+
+2. **Date Boundary Crossing:**
+   - Example: 11:00 PM IST = 5:30 PM UTC (same day)
+   - But: 1:00 AM IST = 7:30 PM UTC (previous day)
+   - Solution: Always use full `date + time + timezone` for conversion
+
+3. **Multiple Assignments Same Day:**
+   - Query all assignments for instructor on same calendar date
+   - Normalize each to instructor's timezone
+   - Check all pairwise overlaps
+
+---
+
+### 6. Crash Course Specific Validations
+
+**Crash Course Rules:**
+- All assignments must be created upfront (no monthly accumulation)
+- Total assignments must match package `class_count`
+- All assignments within course duration (e.g., 4 weeks)
+- Higher capacity validation (10-30 students)
+
+```typescript
+async function validateCrashCourseCreation(
+  containerInput: CreateContainerInput,
+  assignmentInputs: CreateAssignmentInput[]
+): Promise<ValidationResult> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // 1. Fetch package details
+  const pkg = await packageService.getPackage(containerInput.package_id);
+  if (!pkg.success) {
+    errors.push('Package not found');
+    return { isValid: false, errors, warnings };
+  }
+  
+  // 2. Verify it's a crash course
+  if (pkg.data.course_type !== 'crash') {
+    errors.push('This validation is for crash courses only');
+    return { isValid: false, errors, warnings };
+  }
+  
+  // 3. All assignments created upfront
+  if (assignmentInputs.length === 0) {
+    errors.push('Crash course must have all assignments created upfront');
+  }
+  
+  // 4. Assignment count matches package
+  const expectedCount = pkg.data.class_count;
+  if (assignmentInputs.length !== expectedCount) {
+    errors.push(`Package requires ${expectedCount} classes, but ${assignmentInputs.length} provided`);
+  }
+  
+  // 5. All assignments within course duration
+  if (assignmentInputs.length > 0) {
+    const dates = assignmentInputs.map(a => new Date(a.class_date)).sort((a, b) => a.getTime() - b.getTime());
+    const firstDate = dates[0];
+    const lastDate = dates[dates.length - 1];
+    
+    const durationDays = Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+    const expectedDuration = parseDuration(pkg.data.metadata?.duration || '4 weeks'); // e.g., "4 weeks" → 28 days
+    
+    if (durationDays > expectedDuration) {
+      errors.push(`Assignments span ${durationDays} days, but course duration is ${expectedDuration} days`);
+    }
+  }
+  
+  // 6. Capacity validation (crash courses typically 10-30)
+  if (containerInput.capacity_total) {
+    if (containerInput.capacity_total < 10) {
+      warnings.push('Crash courses typically have at least 10 students');
+    }
+    if (containerInput.capacity_total > 30) {
+      warnings.push('Crash courses typically have at most 30 students');
+    }
+  }
+  
+  // 7. All assignments have same instructor
+  const instructors = new Set(assignmentInputs.map(a => a.instructor_id || containerInput.instructor_id));
+  if (instructors.size > 1) {
+    warnings.push('All crash course assignments typically have the same instructor');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+
+function parseDuration(duration: string): number {
+  // Parse "4 weeks", "30 days", "1 month" to days
+  const match = duration.match(/(\d+)\s*(week|day|month)/i);
+  if (!match) return 30; // Default
+  
+  const value = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
+  
+  switch (unit) {
+    case 'day': return value;
+    case 'week': return value * 7;
+    case 'month': return value * 30;
+    default: return 30;
+  }
+}
+```
+
+---
+
+### 7. Error Handling & User Feedback
+
+**A. Error Display Strategy**
+
+```typescript
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];      // Blocking errors (prevent submission)
+  warnings: string[];    // Non-blocking warnings (allow submission with confirmation)
+}
+
+// In Form Component
+function ContainerForm() {
+  const [validationResult, setValidationResult] = useState<ValidationResult>({
+    isValid: true,
+    errors: [],
+    warnings: []
+  });
+  
+  const handleSubmit = async (data: CreateContainerInput) => {
+    // Step 1: Client-side validation
+    const clientResult = validateContainerClientSide(data);
+    if (!clientResult.isValid) {
+      setValidationResult(clientResult);
+      return; // Block submission
+    }
+    
+    // Step 2: Service-side validation
+    const serviceResult = await validateContainerServiceSide(data);
+    if (!serviceResult.isValid) {
+      setValidationResult(serviceResult);
+      return; // Block submission
+    }
+    
+    // Step 3: Show warnings (if any) with confirmation
+    if (serviceResult.warnings.length > 0) {
+      const confirmed = await showConfirmDialog({
+        title: 'Warning',
+        message: serviceResult.warnings.join('\n'),
+        confirmText: 'Continue Anyway',
+        cancelText: 'Go Back'
+      });
+      
+      if (!confirmed) return; // User cancelled
+    }
+    
+    // Step 4: Submit to API
+    const result = await containerService.createContainer(data);
+    if (!result.success) {
+      // Server error
+      setValidationResult({
+        isValid: false,
+        errors: [result.error?.message || 'Failed to create program'],
+        warnings: []
+      });
+      return;
+    }
+    
+    // Success
+    toast.success('Program created successfully');
+    onClose();
+  };
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Error Display */}
+      {validationResult.errors.length > 0 && (
+        <div className="error-banner">
+          <h4>Please fix the following errors:</h4>
+          <ul>
+            {validationResult.errors.map((error, i) => (
+              <li key={i}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {/* Warning Display */}
+      {validationResult.warnings.length > 0 && (
+        <div className="warning-banner">
+          <h4>Warnings:</h4>
+          <ul>
+            {validationResult.warnings.map((warning, i) => (
+              <li key={i}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {/* Form fields... */}
+    </form>
+  );
+}
+```
+
+**B. Real-Time Validation (Optional)**
+
+```typescript
+// Debounced validation for better UX
+import { useDebouncedCallback } from 'use-debounce';
+
+function AssignmentForm() {
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  
+  // Debounce conflict check (500ms after user stops typing)
+  const checkConflicts = useDebouncedCallback(
+    async (instructorId: string, date: string, startTime: string, endTime: string, timezone: string) => {
+      const result = await validationService.checkInstructorConflict(
+        instructorId,
+        date,
+        startTime,
+        endTime,
+        timezone
+      );
+      
+      if (result.hasConflict) {
+        setFieldErrors(prev => ({
+          ...prev,
+          time: `Instructor conflict: ${result.conflictingAssignments[0].start_time}-${result.conflictingAssignments[0].end_time}`
+        }));
+      } else {
+        setFieldErrors(prev => {
+          const { time, ...rest } = prev;
+          return rest;
+        });
+      }
+    },
+    500
+  );
+  
+  // Trigger on field change
+  useEffect(() => {
+    if (instructorId && date && startTime && endTime) {
+      checkConflicts(instructorId, date, startTime, endTime, timezone);
+    }
+  }, [instructorId, date, startTime, endTime, timezone]);
+  
+  return (
+    <form>
+      <input
+        type="time"
+        value={startTime}
+        onChange={(e) => setStartTime(e.target.value)}
+      />
+      {fieldErrors.time && (
+        <span className="error-text">{fieldErrors.time}</span>
+      )}
+    </form>
+  );
+}
+```
+
+---
+
+### 8. Validation Service API
+
+**Complete ValidationService Interface:**
+
+```typescript
+// src/features/dashboard/services/v2/validation.service.ts
+
+export class ValidationService extends BaseService {
+  
+  /**
+   * Container Validation
+   */
+  public validateContainerCreation(input: CreateContainerInput): ValidationResult {
+    // Client-side synchronous validation
+  }
+  
+  public async validateContainerCreationAsync(input: CreateContainerInput): Promise<ValidationResult> {
+    // Service-side async validation (pre-flight)
+  }
+  
+  public async validateContainerUpdate(
+    containerId: string,
+    input: UpdateContainerInput
+  ): Promise<ValidationResult> {
+    // Service-side update validation
+  }
+  
+  /**
+   * Assignment Validation
+   */
+  public validateAssignmentCreation(input: CreateAssignmentInput): ValidationResult {
+    // Client-side synchronous validation
+  }
+  
+  public async validateAssignmentCreationAsync(input: CreateAssignmentInput): Promise<ValidationResult> {
+    // Service-side async validation (pre-flight)
+  }
+  
+  /**
+   * Instructor Conflict Detection
+   */
+  public async checkInstructorConflict(
+    instructorId: string,
+    date: string,
+    startTime: string,
+    endTime: string,
+    timezone?: string
+  ): Promise<ConflictResult> {
+    // Timezone-aware conflict detection
+  }
+  
+  /**
+   * Crash Course Validation
+   */
+  public async validateCrashCourseCreation(
+    containerInput: CreateContainerInput,
+    assignmentInputs: CreateAssignmentInput[]
+  ): Promise<ValidationResult> {
+    // Crash course-specific rules
+  }
+  
+  /**
+   * Helper Methods
+   */
+  private isValidISODate(date: string): boolean;
+  private isValidTimeFormat(time: string): boolean;
+  private isValidIANATimezone(tz: string): boolean;
+  private isValidURL(url: string): boolean;
+  private parseTime(time: string): number; // Returns minutes since midnight
+  private timeOverlaps(start1: string, end1: string, start2: string, end2: string): boolean;
+}
+```
+
+---
+
+### 9. Testing Strategy
+
+**Unit Tests:**
+
+```typescript
+// validation.service.test.ts
+
+describe('ValidationService', () => {
+  describe('validateContainerCreation', () => {
+    it('should reject empty package_id', () => {
+      const result = ValidationService.validateContainerCreation({ package_id: '' });
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Package selection is required');
+    });
+    
+    it('should reject negative capacity', () => {
+      const result = ValidationService.validateContainerCreation({
+        package_id: 'valid-id',
+        capacity_total: -5
+      });
+      expect(result.isValid).toBe(false);
+    });
+    
+    it('should reject end_date before start_date', () => {
+      const result = ValidationService.validateContainerCreation({
+        package_id: 'valid-id',
+        start_date: '2026-02-01',
+        end_date: '2026-01-01'
+      });
+      expect(result.isValid).toBe(false);
+    });
+  });
+  
+  describe('checkInstructorConflict', () => {
+    it('should detect overlapping assignments', async () => {
+      // Mock existing assignment: 2026-01-15 10:00-11:00 IST
+      const result = await ValidationService.checkInstructorConflict(
+        'instructor-1',
+        '2026-01-15',
+        '10:30', // Overlaps with 10:00-11:00
+        '11:30',
+        'Asia/Kolkata'
+      );
+      expect(result.hasConflict).toBe(true);
+    });
+    
+    it('should handle timezone conversion', async () => {
+      // Mock existing: 10:00-11:00 IST
+      // New: 04:30-05:30 UTC (same as 10:00-11:00 IST)
+      const result = await ValidationService.checkInstructorConflict(
+        'instructor-1',
+        '2026-01-15',
+        '04:30',
+        '05:30',
+        'UTC'
+      );
+      expect(result.hasConflict).toBe(true);
+    });
+  });
+});
+```
+
+---
+
+## 🎯 Summary for Tasks 2.6 & 2.7 (MINI)
+
+**Task 2.6: Implement ValidationService (Container)**
+
+1. **Methods to Implement:**
+   - `validateContainerCreation(input)` - Synchronous client-side checks
+   - `validateContainerCreationAsync(input)` - Async service-side checks
+   - `validateContainerUpdate(id, input)` - Update-specific validations
+
+2. **Validation Checks:**
+   - Required: package_id
+   - Optional: instructor_id (validate if provided)
+   - Capacity: Enforce rules based on package type
+   - Dates: start_date < end_date
+   - Format: Timezone, display_name length
+
+3. **Return Type:**
+   ```typescript
+   interface ValidationResult {
+     isValid: boolean;
+     errors: string[];
+     warnings: string[];
+   }
+   ```
+
+**Task 2.7: Implement ValidationService (Assignment)**
+
+1. **Methods to Implement:**
+   - `validateAssignmentCreation(input)` - Synchronous checks
+   - `validateAssignmentCreationAsync(input)` - Async checks with conflict detection
+   - `checkInstructorConflict(instructorId, date, startTime, endTime, timezone)` - Core conflict logic
+
+2. **Validation Checks:**
+   - Required: container_id, class_date, start_time, end_time
+   - Instructor: Required at assignment or container level
+   - Time: end_time > start_time, 15min-4hr duration
+   - Date: Not in past
+   - Conflicts: Timezone-aware instructor overlap check
+
+3. **Timezone Handling:**
+   - Use `date-fns-tz` library
+   - Normalize all times to instructor's timezone
+   - Include date for DST handling
+
+**File Location:** `src/features/dashboard/services/v2/validation.service.ts`
+
+**Dependencies:**
+- `date-fns-tz` for timezone conversion
+- `use-debounce` for real-time conflict checks (UI)
+- BaseService for error handling
 
 ---
 
