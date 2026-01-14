@@ -13,9 +13,10 @@ export class PackageService extends BaseService {
   }
 
   async listPackages(params?: { type?: string; isActive?: boolean; useCache?: boolean }): Promise<ServiceResult<any[]>> {
-    const cacheKey = JSON.stringify(params || {});
+    const safeParams = params || {};
+    const cacheKey = JSON.stringify({ type: safeParams.type ?? null, isActive: safeParams.isActive ?? null });
 
-    if (params?.useCache !== false) {
+    if (safeParams.useCache !== false) {
       const cached = this.packageCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
         return this.success(cached.data);
@@ -23,10 +24,45 @@ export class PackageService extends BaseService {
     }
 
     try {
-      // TODO: Implement supabase query joining class_types
-      const data: any[] = [];
-      this.packageCache.set(cacheKey, { data, timestamp: Date.now() });
-      return this.success(data);
+      let query = this.client.from('class_packages').select(
+        'id, name, code, class_count, is_active, metadata, created_at, updated_at'
+      );
+
+      if (safeParams.isActive !== undefined && safeParams.isActive !== null) {
+        query = query.eq('is_active', safeParams.isActive);
+      } else {
+        // default to active packages only
+        query = query.eq('is_active', true);
+      }
+
+      if (safeParams.type) {
+        query = query.eq('type', safeParams.type);
+      }
+
+      const result = await query.order('name', { ascending: true });
+
+      if (result.error) {
+        return this.handleError(result.error, 'listPackages');
+      }
+
+      const rows: any[] = result.data || [];
+
+      const packages = rows
+        .filter(r => r && r.id && r.name)
+        .map(r => ({
+          id: r.id,
+          name: r.name,
+          code: r.code ?? null,
+          sessions_count: typeof r.class_count === 'number' ? r.class_count : (r.class_count ? Number(r.class_count) : 0),
+          metadata: r.metadata ?? null,
+          active: r.is_active ?? true,
+          created_at: r.created_at ?? null,
+          updated_at: r.updated_at ?? null,
+        }));
+
+      this.packageCache.set(cacheKey, { data: packages, timestamp: Date.now() });
+
+      return this.success(packages);
     } catch (error) {
       return this.handleError(error, 'listPackages');
     }
@@ -34,8 +70,38 @@ export class PackageService extends BaseService {
 
   async getPackage(id: string): Promise<ServiceResult<any>> {
     try {
-      // TODO: Check cache then fetch
-      return this.success(null as any);
+      if (!id) return this.handleError({ message: 'Invalid id' }, 'getPackage');
+
+      // Attempt to find in cache first
+      for (const [, v] of this.packageCache.entries()) {
+        const found = (v.data || []).find((p: any) => p.id === id);
+        if (found) return this.success(found);
+      }
+
+      const { data, error } = await this.client
+        .from('class_packages')
+        .select('id, name, code, class_count, is_active, metadata, created_at, updated_at')
+        .eq('id', id)
+        .single();
+
+      if (error) return this.handleError(error, 'getPackage');
+
+      if (!data || !data.id || !data.name) {
+        return this.handleError({ message: 'Package not found or invalid' }, 'getPackage');
+      }
+
+      const pkg = {
+        id: data.id,
+        name: data.name,
+        code: data.code ?? null,
+        sessions_count: typeof data.class_count === 'number' ? data.class_count : (data.class_count ? Number(data.class_count) : 0),
+        metadata: data.metadata ?? null,
+        active: data.is_active ?? true,
+        created_at: data.created_at ?? null,
+        updated_at: data.updated_at ?? null,
+      };
+
+      return this.success(pkg);
     } catch (error) {
       return this.handleError(error, 'getPackage');
     }
