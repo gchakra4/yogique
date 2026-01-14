@@ -82,15 +82,288 @@
 ---
 
 ### Task 1.5: Route Configuration Strategy
-- [ ] **Model:** 🟣 PRO
-- [ ] **Priority:** High
-- [ ] **Estimated Time:** 1 hour
-- [ ] **Dependencies:** None
-- [ ] **Description:** Decide on route naming, permission levels, avoid V1 conflicts
-- [ ] **Deliverable:** Route configuration strategy document
-- [ ] **Prompt:** "Review roleConfig.ts and BOOKING_ASSIGNMENT_ROLES_MODULES.md. Decide: Best route name (/programs-v2 or /classes-v2)? Which roles get access initially? How to avoid conflicts with existing class_assignment route? Should we use feature flags?"
-- [ ] **Output Location:** Comment for Task 1.6
-- [ ] **Notes:**
+- [x] **Model:** 🟣 PRO
+- [x] **Priority:** High
+- [x] **Estimated Time:** 1 hour
+- [x] **Dependencies:** None
+- [x] **Description:** Decide on route naming, permission levels, avoid V1 conflicts
+- [x] **Deliverable:** Route configuration strategy document
+- [x] **Prompt:** "Review roleConfig.ts and BOOKING_ASSIGNMENT_ROLES_MODULES.md. Decide: Best route name (/programs-v2 or /classes-v2)? Which roles get access initially? How to avoid conflicts with existing class_assignment route? Should we use feature flags?"
+- [x] **Output Location:** Comment for Task 1.6
+- [x] **Notes:** ✅ Completed Jan 14, 2026
+
+---
+
+## 📋 Task 1.5 Deliverable: Route Configuration Strategy
+
+### Decision Summary
+
+| Aspect | Decision | Rationale |
+|--------|----------|-----------|
+| **Route Name** | `/dashboard/programs-v2` | Business-friendly, aligns with "Programs" terminology in architecture |
+| **Module ID** | `programs_v2` | Clear versioning, no conflicts with `class_assignment` |
+| **Component Name** | `ClassesDashboard` | Technical clarity (maps to ClassesV2 folder) |
+| **Display Title** | `Programs` (super_admin/admin)<br>`My Programs` (instructor - future) | User-facing, simple naming |
+| **Initial Access** | `super_admin`, `admin` only | Safe rollout to power users first |
+| **Feature Flags** | ❌ No - use role-based access | Simpler; role config sufficient for gradual rollout |
+| **V1 Coexistence** | Keep `class_assignment` route active | Zero disruption; validate V2 before deprecating V1 |
+
+### Route Configuration to Add
+
+```typescript
+// In roleConfig.ts
+
+export type DashboardModule =
+  | 'overview'
+  | 'user_management'
+  // ... existing modules
+  | 'class_assignment'        // ← Keep existing V1
+  | 'programs_v2'              // ← Add new V2
+  | 'booking_management'
+  // ... other modules
+
+export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
+  super_admin: [
+    { id: 'message_monitor', title: 'Message Monitoring', component: 'MessageMonitor', icon: 'monitor', order: 3 },
+    { id: 'user_management', title: 'User Management', component: 'UserManagement', icon: 'users', order: 2 },
+    { id: 'rate_management', title: 'Rate Management', component: 'InstructorRatesPage', icon: 'dollar-sign', order: 4 },
+    
+    // ✅ Keep V1 for now (order 5)
+    { id: 'class_assignment', title: 'Class Management (V1)', component: 'ClassAssignmentManager', icon: 'edit', order: 5 },
+    
+    // ✅ Add V2 (order 5.5 - between V1 and article management)
+    { id: 'programs_v2', title: 'Programs', component: 'ClassesDashboard', icon: 'grid', order: 5.5 },
+    
+    { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 6 },
+    // ... rest of super_admin modules
+  ],
+
+  admin: [
+    { id: 'overview', title: 'Overview', component: 'Overview', icon: 'dashboard', order: 1 },
+    { id: 'user_management', title: 'User Management', component: 'UserManagement', icon: 'users', order: 2 },
+    { id: 'instructor_management', title: 'Instructor Management', component: 'InstructorManagement', icon: 'teacher', order: 3 },
+    { id: 'rate_management', title: 'Rate Management', component: 'InstructorRatesPage', icon: 'dollar-sign', order: 4 },
+    
+    // ✅ Add V2 to admin role (no V1 access for admin currently)
+    { id: 'programs_v2', title: 'Programs', component: 'ClassesDashboard', icon: 'grid', order: 5 },
+    
+    { id: 'transactions', title: 'Transactions', component: 'Transactions', icon: 'credit-card', order: 6 },
+    // ... rest of admin modules
+  ],
+
+  yoga_acharya: [
+    { id: 'teaching_dashboard', title: 'Teaching Dashboard', component: 'TeachingDashboard', icon: 'graduation-cap', order: 1 },
+    
+    // ✅ Keep V1 for yoga_acharya (they already use it)
+    { id: 'class_assignment', title: 'Class Management (V1)', component: 'ClassAssignmentManager', icon: 'edit', order: 3 },
+    
+    // 🔮 FUTURE: Add V2 access in Phase 8 after testing
+    // { id: 'programs_v2', title: 'Programs', component: 'ClassesDashboard', icon: 'grid', order: 2 },
+    
+    { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 4 },
+    // ... rest of yoga_acharya modules
+  ],
+
+  instructor: [
+    { id: 'teaching_dashboard', title: 'Teaching Dashboard', component: 'TeachingDashboard', icon: 'graduation-cap', order: 1 },
+    
+    // 🔮 FUTURE: Add read-only V2 access (Phase 8)
+    // { id: 'programs_v2', title: 'My Programs', component: 'ClassesDashboard', icon: 'grid', order: 2, readOnly: true },
+    
+    { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 2 },
+  ],
+
+  // ... other roles unchanged
+};
+```
+
+### Component Registration
+
+```typescript
+// In UniversalDashboard.tsx
+
+// Lazy load V2 component
+const ClassesDashboard = React.lazy(() => import('./Modules/ClassesV2/ClassesDashboard'));
+
+// Add to component map
+const componentMap = {
+  ClassAssignmentManager,          // ← V1 (keep)
+  ClassesDashboard,                 // ← V2 (new)
+  ArticleManagement,
+  UserManagement,
+  // ... rest of components
+};
+```
+
+### Conflict Avoidance Strategy
+
+**1. Module ID Separation**
+- V1: `class_assignment` → `/dashboard/class-assignments`
+- V2: `programs_v2` → `/dashboard/programs-v2`
+- No route collision; both can run simultaneously
+
+**2. Database Isolation**
+- V1: Queries with `class_container_id IS NULL` OR uses grouping logic
+- V2: Queries with `class_container_id IS NOT NULL` (strict requirement)
+- Minimal overlap in practice
+
+**3. Permission Granularity**
+```typescript
+// Future enhancement (not in Phase 1)
+interface ModuleConfig {
+  id: DashboardModule | string;
+  title: string;
+  component: string;
+  icon?: string;
+  order: number;
+  permissions?: {                    // Optional fine-grained permissions
+    create?: boolean;
+    read?: boolean;
+    update?: boolean;
+    delete?: boolean;
+    assign?: boolean;                 // For booking assignment
+  };
+}
+
+// Example:
+{ 
+  id: 'programs_v2', 
+  title: 'My Programs', 
+  component: 'ClassesDashboard', 
+  icon: 'grid', 
+  order: 2,
+  permissions: { read: true, create: false, update: false, delete: false }  // Read-only for instructors
+}
+```
+
+### Feature Flag Consideration (Rejected)
+
+**Why No Feature Flags:**
+- Role-based access sufficient for controlled rollout
+- Simpler codebase (no conditional rendering based on flags)
+- Existing `roleConfig.ts` pattern well-established
+- Can add roles incrementally (super_admin → admin → yoga_acharya → instructor)
+
+**If Needed Later:**
+- Could add to user profile: `features_enabled: string[]`
+- Check with: `user.features_enabled?.includes('programs_v2')`
+- But: Adds complexity without clear benefit for this use case
+
+### Rollout Plan
+
+**Phase 1 (Current):** Foundation
+- Add to `super_admin` and `admin` roles only
+- V1 remains primary for all other roles
+- Both accessible via sidebar navigation
+
+**Phase 2-7:** Development & Testing
+- super_admin/admin test and provide feedback
+- V1 remains untouched as fallback
+
+**Phase 8:** Gradual Expansion
+- Add read-only access for `instructor` role
+- Monitor usage and errors
+- Collect user feedback
+
+**Phase 9 (Future):** Full Migration
+- Add to `yoga_acharya` role
+- Add student view (read-only for their bookings)
+- Deprecate V1 route (mark as "Legacy" in title)
+- Eventually remove V1 when validated
+
+### Access Control Examples
+
+```typescript
+// Example permission check in component
+import { hasModuleAccess } from '@/shared/config/roleConfig';
+
+const ClassesDashboard = () => {
+  const { user } = useAuth();
+  
+  // Check if user has access to V2
+  const hasV2Access = hasModuleAccess(user.role, 'programs_v2');
+  
+  if (!hasV2Access) {
+    return <Navigate to="/dashboard" />;
+  }
+  
+  // Further granular checks
+  const canCreateContainers = ['super_admin', 'admin'].includes(user.role);
+  const canDeleteContainers = user.role === 'super_admin';
+  const canAssignBookings = ['super_admin', 'admin', 'yoga_acharya'].includes(user.role);
+  
+  return (
+    <div>
+      {canCreateContainers && <Button onClick={openCreateModal}>+ Create Program</Button>}
+      {/* ... rest of component */}
+    </div>
+  );
+};
+```
+
+### Migration Path for Users
+
+**Week 1-4:** Dual Access
+- super_admin sees both "Class Management (V1)" and "Programs" in sidebar
+- Can compare workflows side-by-side
+- Report issues without blocking regular work
+
+**Week 5-8:** Validation
+- Admin users added to V2
+- Collect feedback on UI/UX
+- Fix bugs and refine features
+
+**Week 9+:** Deprecation Planning
+- Remove V1 access once V2 validated
+- Update documentation
+- Train users on new workflows
+
+### URL Structure
+
+```
+Current (V1):
+/dashboard/class-assignments           → ClassAssignmentManager (legacy)
+
+New (V2):
+/dashboard/programs-v2                 → ClassesDashboard (main view)
+/dashboard/programs-v2?container=123   → Deep link to specific container drawer
+
+Future (Optional):
+/dashboard/programs-v2/analytics       → Analytics sub-route
+/dashboard/programs-v2/reports         → Reports sub-route
+```
+
+### Icon Selection
+
+**Recommended Icon:** `grid` (Material/Lucide icon)
+- Represents modular structure (programs as containers)
+- Distinct from V1's `edit` icon
+- Business-friendly, modern aesthetic
+
+**Alternatives:**
+- `layers` - but already used for Class Type Manager
+- `package` - too technical
+- `calendar` - conflicts with Booking Management
+- `folder` - too generic
+
+---
+
+## 🎯 Summary for Task 1.6 (MINI)
+
+**What to update in `roleConfig.ts`:**
+
+1. Add `'programs_v2'` to `DashboardModule` type union
+2. Add module config to `super_admin` array at order 5.5
+3. Add module config to `admin` array at order 5
+4. Import and register `ClassesDashboard` in `UniversalDashboard.tsx`
+5. Keep all V1 routes unchanged
+
+**Implementation Notes:**
+- No feature flags needed
+- V1 and V2 coexist peacefully
+- Gradual rollout via role additions
+- Clear versioning in module ID and route
+- Business-friendly naming in UI ("Programs" not "Containers")
 
 ---
 
