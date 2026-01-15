@@ -57,7 +57,7 @@ export default function AssignStudentsModal({ container, isOpen, onClose, onSucc
 
     const toggleAll = () => {
         if (selected.size === bookings.length) setSelected(new Set());
-        else setSelected(new Set(bookings.map(b => b.id)));
+        else setSelected(new Set(bookings.map(b => b.booking_id)));
     };
 
     const availableSlots = (container.capacity_total ?? Infinity) - (container.capacity_booked ?? 0);
@@ -111,15 +111,19 @@ export default function AssignStudentsModal({ container, isOpen, onClose, onSucc
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-80 overflow-auto">
                             {bookings.length === 0 && !loading && (<div className="text-sm text-gray-600">No bookings available</div>)}
-                            {bookings.map(b => (
-                                <label key={b.id} className={`flex items-start gap-3 p-3 border rounded ${selected.has(b.id) ? 'ring-2 ring-emerald-300' : ''}`}>
-                                    <input type="checkbox" checked={selected.has(b.id)} onChange={() => toggle(b.id)} />
-                                    <div>
-                                        <div className="font-medium">{b.student_name || b.student_id || b.id}</div>
-                                        <div className="text-xs text-gray-500">{b.id} • {b.status}</div>
-                                    </div>
-                                </label>
-                            ))}
+                            {bookings.map(b => {
+                                const bid = b.booking_id || b.bookingId || b.id;
+                                const studentName = (b.first_name || b.firstName ? `${b.first_name || b.firstName} ${b.last_name || b.lastName || ''}`.trim() : undefined) || b.student_name || b.student_id;
+                                return (
+                                    <label key={bid} className={`flex items-start gap-3 p-3 border rounded ${selected.has(bid) ? 'ring-2 ring-emerald-300' : ''}`}>
+                                        <input type="checkbox" checked={selected.has(bid)} onChange={() => toggle(bid)} />
+                                        <div>
+                                            <div className="font-medium">{studentName || bid}</div>
+                                            <div className="text-xs text-gray-500">{bid} • {b.status}</div>
+                                        </div>
+                                    </label>
+                                );
+                            })}
                         </div>
 
                         <div>

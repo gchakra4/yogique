@@ -7,6 +7,9 @@ import { usePackages } from '@/features/dashboard/components/Modules/ClassesV2/h
 import useMobileDetect from '@/features/dashboard/hooks/v2/useMobileDetect';
 
 // Types
+import { useToast } from '@/shared/contexts/ToastContext';
+import ContainerDrawer from './components/ContainerDrawer';
+import EditContainerModal from './components/modals/EditContainerModal';
 import { Container } from './types/container.types';
 
 // Components
@@ -56,6 +59,7 @@ const ClassesDashboard: React.FC = () => {
 
     const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
     const [drawerContainerId, setDrawerContainerId] = useState<string | null>(null);
+    const { success: toastSuccess } = useToast();
 
     // Derived state (placeholder filtering logic)
     const filteredContainers = useMemo(() => {
@@ -268,28 +272,18 @@ const ClassesDashboard: React.FC = () => {
                 )}
             </main>
 
-            {/* Drawer placeholder */}
-            {drawerContainerId && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={handleCloseDrawer}>
-                    <div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between p-6 border-b">
-                            <h2 className="text-xl font-bold">Program Details</h2>
-                            <button
-                                onClick={handleCloseDrawer}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-gray-600">Drawer content for program: {drawerContainerId}</p>
-                            <p className="text-sm text-gray-500 mt-2">TODO: Implement ContainerDrawer component</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Real ContainerDrawer */}
+            <ContainerDrawer
+                isOpen={!!drawerContainerId}
+                onClose={handleCloseDrawer}
+                container={containers.find(c => (c as any).id === drawerContainerId) ?? null}
+                onEdit={() => drawerContainerId && handleEditClick(drawerContainerId)}
+                onDelete={() => drawerContainerId && handleDeleteClick(drawerContainerId)}
+                onCreateAssignment={() => { /* parent hook could open create-assignment modal */ }}
+                onAssignStudents={() => { /* refresh or no-op */ }}
+                width={isDesktop ? 'wide' : 'default'}
+            />
+            {/* Toast is handled by global ToastProvider */}
 
             {/* Create Program Modal */}
             <CreateContainerModal
@@ -297,29 +291,28 @@ const ClassesDashboard: React.FC = () => {
                 onClose={closeAllModals}
                 onSuccess={(created) => {
                     console.log('Created container', created);
-                    // Refresh list and close modal
+                    // Refresh list
                     refetch();
+                    // Auto-open drawer for newly created container
+                    const id = (created && (created.id || created)) as string | undefined;
+                    if (id) setDrawerContainerId(id);
+                    // Use centralized toast
+                    toastSuccess('Program created');
                 }}
             />
 
             {isEditModalOpen && selectedContainer && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" onClick={closeAllModals}>
-                    <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold">Edit Program</h2>
-                            <button
-                                onClick={closeAllModals}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <p className="text-gray-600">Edit program form for: {(selectedContainer as any).display_name}</p>
-                        <p className="text-sm text-gray-500 mt-2">TODO: Implement EditContainerModal component</p>
-                    </div>
-                </div>
+                <EditContainerModal
+                    isOpen={isEditModalOpen}
+                    onClose={closeAllModals}
+                    container={selectedContainer}
+                    onSuccess={(updated) => {
+                        // Refresh list and show toast
+                        refetch();
+                        toastSuccess('Program updated');
+                        closeAllModals();
+                    }}
+                />
             )}
 
             {isDeleteModalOpen && selectedContainer && (

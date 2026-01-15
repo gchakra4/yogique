@@ -55,7 +55,7 @@ export class AssignmentBookingsService extends BaseService {
       const { data: existing, error: exErr } = await this.client
         .from('assignment_bookings')
         .select('booking_id')
-        .eq('container_id', containerId)
+        .eq('class_container_id', containerId)
         .in('booking_id', bookingIds);
 
       if (exErr) return this.handleError(exErr, 'assignBookingsToContainer: fetch existing links');
@@ -79,7 +79,20 @@ export class AssignmentBookingsService extends BaseService {
       }
 
       // Insert links
-      const insertRows = toAssign.map(bookingId => ({ container_id: containerId, booking_id: bookingId, created_by: options?.performedBy || null }));
+      // Find an existing class_assignment for this container to attach bookings to
+      const { data: assignmentRow, error: asErr } = await this.client
+        .from('class_assignments')
+        .select('id')
+        .eq('class_container_id', containerId)
+        .limit(1)
+        .maybeSingle();
+
+      if (asErr) return this.handleError(asErr, 'assignBookingsToContainer: fetch assignment for container');
+      if (!assignmentRow || !assignmentRow.id) {
+        return { success: false, error: { code: 'NO_ASSIGNMENT', message: 'No class assignment found for this container. Create a scheduled class first.' } };
+      }
+
+      const insertRows = toAssign.map(bookingId => ({ assignment_id: assignmentRow.id, booking_id: bookingId, class_container_id: containerId }));
 
       const { data: inserted, error: insErr } = await this.client
         .from('assignment_bookings')
@@ -125,14 +138,44 @@ export class AssignmentBookingsService extends BaseService {
 
   async getBookingsForProgram(containerId: string): Promise<ServiceResult<any[]>> {
     try {
-      const { data, error } = await this.client
+      // The schema links bookings to assignments (assignment_bookings.assignment_id),
+      // and assignments reference containers via class_assignments.container_id.
+      // Steps: 1) fetch assignment ids for the container, 2) fetch assignment_bookings for those assignments,
+      // 3) fetch bookings by booking_id and return combined results.
+
+      const { data: assignments, error: aErr } = await this.client
+        .from('class_assignments')
+        .select('id, created_at')
+        .eq('class_container_id', containerId);
+
+      if (aErr) return this.handleError(aErr, 'getBookingsForProgram: fetch assignments');
+
+      const assignmentIds = (assignments || []).map((r: any) => r.id);
+      if (assignmentIds.length === 0) return this.success([]);
+
+      const { data: links, error: lErr } = await this.client
         .from('assignment_bookings')
-        .select(`booking_id, bookings(id, created_at, status, package_id, student_id), profiles:bookings!inner.student_id(id, full_name, email)`, )
-        .eq('container_id', containerId)
+        .select('assignment_id, booking_id, created_at')
+        .in('assignment_id', assignmentIds)
         .order('created_at', { ascending: false });
 
-      if (error) return this.handleError(error, 'getBookingsForProgram');
-      return this.success(data || []);
+      if (lErr) return this.handleError(lErr, 'getBookingsForProgram: fetch links');
+
+      const bookingIds = Array.from(new Set((links || []).map((r: any) => r.booking_id)));
+      if (bookingIds.length === 0) return this.success([]);
+
+      const { data: bookings, error: bErr } = await this.client
+        .from('bookings')
+        .select('booking_id, created_at, status, class_package_id, first_name, last_name, email')
+        .in('booking_id', bookingIds)
+        .order('created_at', { ascending: false });
+
+      if (bErr) return this.handleError(bErr, 'getBookingsForProgram: fetch bookings');
+
+      const bookingsMap = new Map((bookings || []).map((b: any) => [b.booking_id, b]));
+      const result = (links || []).map((ln: any) => ({ assignment_id: ln.assignment_id, booking_id: ln.booking_id, created_at: ln.created_at, booking: bookingsMap.get(ln.booking_id) || null }));
+
+      return this.success(result);
     } catch (error) {
       return this.handleError(error, 'getBookingsForProgram');
     }
@@ -142,7 +185,7 @@ export class AssignmentBookingsService extends BaseService {
     try {
       const { data, error } = await this.client
         .from('assignment_bookings')
-        .select('container_id, class_containers(id, display_name, capacity_total, capacity_booked)')
+        .select('class_container_id, class_containers(id, display_name, capacity_total, capacity_booked)')
         .eq('booking_id', bookingId);
 
       if (error) return this.handleError(error, 'getProgramsForBooking');
@@ -157,7 +200,7 @@ export class AssignmentBookingsService extends BaseService {
       const { data: removed, error: remErr } = await this.client
         .from('assignment_bookings')
         .delete()
-        .match({ container_id: containerId, booking_id: bookingId })
+        .match({ class_container_id: containerId, booking_id: bookingId })
         .select();
 
       if (remErr) return this.handleError(remErr, 'unassignBookingFromProgram');
@@ -196,10 +239,11 @@ export class AssignmentBookingsService extends BaseService {
       const packageId = container.package_id;
 
       // Base query: bookings matching package and not already assigned to this container
+      // bookings table uses `class_package_id` for the package foreign key and `booking_id` as the PK
       let query = this.client
         .from('bookings')
-        .select('id, created_at, status, package_id, student_id, recurring, starts_at')
-        .eq('package_id', packageId)
+        .select('booking_id, created_at, status, class_package_id, first_name, last_name, email, is_recurring')
+        .eq('class_package_id', packageId)
         .neq('status', 'cancelled');
 
       if (filters?.status && filters.status.length > 0) {
@@ -207,31 +251,31 @@ export class AssignmentBookingsService extends BaseService {
       }
 
       if (filters?.recurringOnly) {
-        query = (query as any).eq('recurring', true);
+        query = (query as any).eq('is_recurring', true);
       }
 
       if (filters?.search) {
-        // simple ilike on id as fallback; improve later with joined profile search
-        query = (query as any).ilike('id', `%${filters.search}%`);
+        // search by booking_id
+        query = (query as any).ilike('booking_id', `%${filters.search}%`);
       }
 
       const { data: bookings, error: bErr } = await query;
       if (bErr) return this.handleError(bErr, 'getAvailableBookings: fetch bookings');
 
       // Exclude those already linked to this container
-      const bookingIds = (bookings || []).map((b: any) => b.id);
+      const bookingIds = (bookings || []).map((b: any) => b.booking_id);
       if (bookingIds.length === 0) return this.success([]);
 
       const { data: linked, error: lErr } = await this.client
         .from('assignment_bookings')
         .select('booking_id')
-        .eq('container_id', containerId)
+        .eq('class_container_id', containerId)
         .in('booking_id', bookingIds);
 
       if (lErr) return this.handleError(lErr, 'getAvailableBookings: fetch linked');
 
       const linkedSet = new Set((linked || []).map((r: any) => r.booking_id));
-      const available = (bookings || []).filter((b: any) => !linkedSet.has(b.id));
+      const available = (bookings || []).filter((b: any) => !linkedSet.has(b.booking_id));
 
       return this.success(available);
     } catch (error) {
