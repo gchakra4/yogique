@@ -2,7 +2,7 @@ import { usePackages } from '@/features/dashboard/components/Modules/ClassesV2/h
 import { useInstructors } from '@/features/dashboard/hooks/useInstructors';
 import { ContainerService } from '@/features/dashboard/services/v2/container.service';
 import Modal from '@/shared/components/ui/Modal';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface CreateContainerModalProps {
     isOpen: boolean;
@@ -27,6 +27,26 @@ const CreateContainerModal: React.FC<CreateContainerModalProps> = ({ isOpen, onC
     const packageOptions = useMemo(() => packages, [packages]);
     const instructorOptions = useMemo(() => instructors, [instructors]);
 
+    const selectedPackage = useMemo(() => packageOptions.find((p: any) => p.id === packageId), [packageOptions, packageId]);
+
+    const selectedPackageLabel = useMemo(() => {
+        if (!selectedPackage) return null;
+        const type = (selectedPackage as any).type || '';
+        const courseType = (selectedPackage as any).course_type || '';
+        const duration = (selectedPackage as any).duration || '';
+
+        let freqLabel = '';
+        if (courseType) {
+            if (courseType.toLowerCase() === 'regular') freqLabel = 'Monthly';
+            else if (courseType.toLowerCase() === 'crash') freqLabel = 'Crash';
+            else freqLabel = courseType.charAt(0).toUpperCase() + courseType.slice(1);
+        }
+
+        const parts = [type, freqLabel].filter(Boolean);
+        const main = parts.join(' ');
+        return main + (duration ? ` • ${duration}` : '');
+    }, [selectedPackage]);
+
     const reset = () => {
         setName('');
         setPackageId('');
@@ -37,6 +57,13 @@ const CreateContainerModal: React.FC<CreateContainerModalProps> = ({ isOpen, onC
         setDescription('');
         setError(null);
     };
+
+    // If selected package is an Individual package, force capacity to 1 and make it uneditable
+    useEffect(() => {
+        if (selectedPackage && (selectedPackage as any).type === 'Individual') {
+            setCapacity(1);
+        }
+    }, [selectedPackage]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -103,6 +130,13 @@ const CreateContainerModal: React.FC<CreateContainerModalProps> = ({ isOpen, onC
                                     <option key={p.id} value={p.id}>{p.name}</option>
                                 ))}
                             </select>
+                            {selectedPackage && (
+                                <div className="mt-2">
+                                    <div className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-amber-50 text-amber-800 border border-amber-100">
+                                        {selectedPackageLabel || (selectedPackage as any).type || 'Package'}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div>
@@ -119,7 +153,18 @@ const CreateContainerModal: React.FC<CreateContainerModalProps> = ({ isOpen, onC
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs text-gray-600">Capacity</label>
-                            <input type="number" value={capacity as any} onChange={(e) => setCapacity(e.target.value === '' ? '' : Number(e.target.value))} className="mt-1 w-full rounded border px-3 py-2" placeholder="Max students" min={1} />
+                            <input
+                                type="number"
+                                value={selectedPackage && (selectedPackage as any).type === 'Individual' ? 1 : (capacity as any)}
+                                onChange={(e) => setCapacity(e.target.value === '' ? '' : Number(e.target.value))}
+                                className={`mt-1 w-full rounded border px-3 py-2 ${selectedPackage && (selectedPackage as any).type === 'Individual' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                placeholder="Max students"
+                                min={1}
+                                disabled={selectedPackage && (selectedPackage as any).type === 'Individual'}
+                            />
+                            {selectedPackage && (selectedPackage as any).type === 'Individual' && (
+                                <div className="text-sm text-red-600 mt-2">Individual programs cannot have capacity</div>
+                            )}
                         </div>
 
                         <div>

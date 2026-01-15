@@ -12,8 +12,33 @@ export class ContainerService extends BaseService {
 
   async listContainers(params?: any): Promise<ServiceResult<{ containers: any[]; total: number }>> {
     try {
-      // TODO: Implement optimized supabase query with joins and pagination
-      return this.success({ containers: [], total: 0 });
+      const q = this.client.from('class_containers').select(
+        `id, container_code, display_name, container_type, package_id, instructor_id, max_booking_count, current_booking_count, capacity_total, capacity_booked, status, is_active, start_date, end_date, created_at`
+      );
+
+      // Apply basic filters
+      if (params) {
+        if (params.isActive !== undefined) q.eq('is_active', params.isActive);
+        if (params.packageId) q.eq('package_id', params.packageId);
+        if (params.instructorId) q.eq('instructor_id', params.instructorId);
+        if (params.containerType) q.eq('container_type', params.containerType);
+        if (params.status) q.eq('status', params.status);
+      }
+
+      // Ordering and limit defaults
+      q.order('created_at', { ascending: false }).limit(100);
+
+      const { data, error } = await q;
+      if (error) return this.handleError(error, 'listContainers');
+
+      const containers = (data || []).map((row: any) => ({
+        ...row,
+        // normalize capacity fields for consumers
+        capacity_total: row.capacity_total ?? row.max_booking_count ?? null,
+        capacity_booked: row.capacity_booked ?? row.current_booking_count ?? 0,
+      }));
+
+      return this.success({ containers, total: containers.length });
     } catch (error) {
       return this.handleError(error, 'listContainers');
     }
@@ -65,15 +90,40 @@ export class ContainerService extends BaseService {
       }
       timezone = timezone || 'Asia/Kolkata';
 
-        const insertPayload: any = {
-          container_code: code,
+      // Map package type to container_type and booking capacity fields
+      const pkgType = (pkg && pkg.type) ? pkg.type : null;
+      let container_type = 'public_group';
+      let max_booking_count: number | null = null;
+
+      if (pkgType === 'Individual') {
+        container_type = 'individual';
+        max_booking_count = 1;
+      } else if (pkgType === 'Public Group') {
+        container_type = 'public_group';
+        max_booking_count = data.capacity_total ?? null;
+      } else if (pkgType === 'Private Group') {
+        container_type = 'private_group';
+        max_booking_count = data.capacity_total ?? null;
+      } else {
+        // Fallback
+        container_type = 'public_group';
+        max_booking_count = data.capacity_total ?? null;
+      }
+
+      const insertPayload: any = {
+        container_code: code,
         package_id: data.package_id,
         display_name: displayName,
         instructor_id: data.instructor_id || null,
         timezone,
         start_date: data.start_date || null,
         end_date: data.end_date || null,
-        capacity_total: data.capacity_total ?? null,
+        // DB schema uses container_type / max_booking_count / current_booking_count
+        container_type,
+        max_booking_count: max_booking_count,
+        current_booking_count: 0,
+        // Keep capacity_* fields for compatibility with other code paths
+        capacity_total: data.capacity_total ?? max_booking_count ?? null,
         capacity_booked: 0,
         status: data.status || 'draft',
         is_active: true,

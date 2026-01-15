@@ -1,5 +1,6 @@
+import { usePackages } from '@/features/dashboard/components/Modules/ClassesV2/hooks/usePackages';
 import Modal from '@/shared/components/ui/Modal';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface EditContainerModalProps {
     isOpen: boolean;
@@ -9,7 +10,23 @@ interface EditContainerModalProps {
 }
 
 export const EditContainerModal: React.FC<EditContainerModalProps> = ({ isOpen, onClose, container, onSuccess }) => {
+    const { packages = [] } = usePackages({ isActive: true });
+
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [capacity, setCapacity] = useState<number | ''>(container?.capacity_total ?? '');
+
+    const selectedPackage = useMemo(() => packages.find((p: any) => p.id === container?.package_id), [packages, container?.package_id]);
+
+    useEffect(() => {
+        setCapacity(container?.capacity_total ?? '');
+    }, [container]);
+
+    // Force capacity to 1 when package is Individual
+    useEffect(() => {
+        if (selectedPackage && (selectedPackage as any).type === 'Individual') {
+            setCapacity(1);
+        }
+    }, [selectedPackage]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -37,7 +54,17 @@ export const EditContainerModal: React.FC<EditContainerModalProps> = ({ isOpen, 
 
                     <div>
                         <label className="block text-xs text-gray-600 dark:text-slate-400">Capacity</label>
-                        <input type="number" defaultValue={container?.capacity_total ?? ''} className="mt-1 w-full rounded border px-3 py-2" />
+                        <input
+                            type="number"
+                            value={selectedPackage && (selectedPackage as any).type === 'Individual' ? 1 : (capacity as any)}
+                            onChange={(e) => setCapacity(e.target.value === '' ? '' : Number(e.target.value))}
+                            className={`mt-1 w-full rounded border px-3 py-2 ${selectedPackage && (selectedPackage as any).type === 'Individual' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            min={1}
+                            disabled={selectedPackage && (selectedPackage as any).type === 'Individual'}
+                        />
+                        {selectedPackage && (selectedPackage as any).type === 'Individual' && (
+                            <div className="text-sm text-red-600 mt-2">Individual programs cannot have capacity</div>
+                        )}
                     </div>
                 </div>
 

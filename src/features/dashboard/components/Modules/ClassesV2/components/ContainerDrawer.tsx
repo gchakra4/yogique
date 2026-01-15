@@ -1,4 +1,5 @@
 import AssignmentBookingsService from '@/features/dashboard/services/v2/assignment-bookings.service';
+import { supabase } from '@/shared/lib/supabase';
 import FocusTrap from 'focus-trap-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -35,6 +36,8 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
     const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(false);
+    const [assignments, setAssignments] = useState<any[]>([]);
+    const [isLoadingAssignments, setIsLoadingAssignments] = useState(false);
     const location = useLocation();
     const panelRef = useRef<HTMLDivElement | null>(null);
     const ANIM_MS = 300;
@@ -68,9 +71,35 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
 
     useEffect(() => {
         if (isOpen && container?.id) fetchEnrolled();
+        if (isOpen && container?.id) fetchAssignments();
         if (!isOpen) setEnrolledStudents([]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, container?.id]);
+
+    const fetchAssignments = async () => {
+        if (!container?.id) return;
+        setIsLoadingAssignments(true);
+        try {
+            const { data, error } = await supabase
+                .from('class_assignments')
+                .select('id, date, start_time, end_time, instructor_id, class_status, notes')
+                .eq('class_container_id', container.id)
+                .order('date', { ascending: true })
+                .limit(200);
+
+            if (error) {
+                console.warn('fetchAssignments error', error);
+                setAssignments([]);
+            } else {
+                setAssignments(data || []);
+            }
+        } catch (e) {
+            console.warn('fetchAssignments exception', e);
+            setAssignments([]);
+        } finally {
+            setIsLoadingAssignments(false);
+        }
+    };
 
     const handleRequestClose = () => {
         setIsClosing(true);
@@ -197,14 +226,37 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                 </div>
                             </section>
 
-                            {/* Assignments placeholder */}
+                            {/* Assignments */}
                             <section className="mb-4">
-                                <h4 className="text-sm font-medium mb-2">Assignments</h4>
-                                <div className="rounded-md border border-gray-100 dark:border-slate-800 p-3">
-                                    <p className="text-sm text-gray-500">Assignments will appear here.</p>
-                                    <div className="mt-3">
-                                        <button onClick={onCreateAssignment} className="text-sm text-emerald-600">+ Create Assignment</button>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-sm font-medium">Assignments</h4>
+                                    <div className="text-sm">
+                                        <button onClick={onCreateAssignment} className="text-sm text-emerald-600 mr-3">+ Create Assignment</button>
+                                        <button onClick={fetchAssignments} className="text-sm text-gray-500">Refresh</button>
                                     </div>
+                                </div>
+
+                                <div className="rounded-md border border-gray-100 dark:border-slate-800 p-3">
+                                    {isLoadingAssignments ? (
+                                        <p className="text-sm text-gray-500">Loading assignments...</p>
+                                    ) : assignments.length === 0 ? (
+                                        <p className="text-sm text-gray-500">No assignments found for this container.</p>
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {assignments.map((a: any, idx: number) => (
+                                                <li key={`${a.id ?? a.assignment_code ?? a.date}-${idx}`} className="flex items-center justify-between">
+                                                    <div>
+                                                        <div className="text-sm font-medium">{a.date ? new Date(a.date).toLocaleDateString() : '—'} {a.start_time ? `• ${a.start_time}` : ''}</div>
+                                                        <div className="text-xs text-gray-500">{a.instructor?.full_name ?? a.instructor_id ?? 'Unassigned'} • {a.class_status ?? '—'}</div>
+                                                    </div>
+                                                    <div className="text-sm text-right">
+                                                        <button onClick={() => onEdit?.()} className="text-xs text-emerald-600 mr-3">Edit</button>
+                                                        {/* deletion/editing of assignments may be handled by parent modals */}
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                             </section>
 
@@ -218,11 +270,11 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                         <p className="text-sm text-gray-500">No students enrolled.</p>
                                     ) : (
                                         <ul className="space-y-2">
-                                            {enrolledStudents.map((e: any) => (
-                                                <li key={e.booking_id} className="flex items-center justify-between">
+                                            {enrolledStudents.map((e: any, idx: number) => (
+                                                <li key={`${e.booking_id}-${idx}`} className="flex items-center justify-between">
                                                     <div>
-                                                        <div className="text-sm font-medium">{e.bookings?.student_name || e.bookings?.student_id || e.booking_id}</div>
-                                                        <div className="text-xs text-gray-500">{e.bookings?.status}</div>
+                                                        <div className="text-sm font-medium">{(e.booking && (e.booking.first_name || e.booking.last_name)) ? `${e.booking.first_name ?? ''} ${e.booking.last_name ?? ''}`.trim() : e.booking?.booking_id || e.booking_id}</div>
+                                                        <div className="text-xs text-gray-500">{e.booking?.status}</div>
                                                     </div>
                                                     <div>
                                                         <button
