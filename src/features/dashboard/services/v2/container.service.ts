@@ -13,7 +13,7 @@ export class ContainerService extends BaseService {
   async listContainers(params?: any): Promise<ServiceResult<{ containers: any[]; total: number }>> {
     try {
       const q = this.client.from('class_containers').select(
-        `id, container_code, display_name, container_type, package_id, instructor_id, max_booking_count, current_booking_count, capacity_total, capacity_booked, status, is_active, start_date, end_date, created_at`
+        `id, container_code, display_name, container_type, package_id, instructor_id, max_booking_count, current_booking_count, capacity_total, capacity_booked, status, is_active, start_date, end_date, created_at, instructor:profiles!instructor_id(full_name)`
       );
 
       // Apply basic filters
@@ -36,6 +36,8 @@ export class ContainerService extends BaseService {
         // normalize capacity fields for consumers
         capacity_total: row.capacity_total ?? row.max_booking_count ?? null,
         capacity_booked: row.capacity_booked ?? row.current_booking_count ?? 0,
+        // expose instructor_name for UI convenience (may be undefined)
+        instructor_name: row.instructor?.full_name || null,
       }));
 
       return this.success({ containers, total: containers.length });

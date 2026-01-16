@@ -91,6 +91,7 @@ export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
 
   yoga_acharya: [
     { id: 'teaching_dashboard', title: 'Teaching Dashboard', component: 'TeachingDashboard', icon: 'graduation-cap', order: 1 },
+    { id: 'programs_v2', title: 'Programs', component: 'ClassesDashboard', icon: 'grid', order: 2 },
     { id: 'class_assignment', title: 'Class Management', component: 'ClassAssignmentManager', icon: 'edit', order: 3 },
     { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 4 },
     { id: 'weekly_schedule', title: 'Weekly Schedule', component: 'WeeklySchedule', icon: 'schedule', order: 5 },

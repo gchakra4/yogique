@@ -33,7 +33,9 @@ export default function CreateAssignmentModal({
                 const svc = await import('@/features/dashboard/services/v2/assignment.service')
                 const service = (svc as any).default ?? (svc as any)
                 if (typeof service.createAssignment === 'function') {
-                    created = await service.createAssignment(data)
+                    const result = await service.createAssignment(data)
+                    if (result && result.success) created = result.data
+                    else throw new Error(result?.error?.message || 'Service failed to create assignment')
                 } else {
                     throw new Error('createAssignment not found on service')
                 }
@@ -58,7 +60,7 @@ export default function CreateAssignmentModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/40" onClick={onClose} />
             <div className="relative bg-white w-full max-w-2xl mx-4 rounded shadow-lg p-6">
                 <div className="flex items-center justify-between mb-4">

@@ -9,6 +9,7 @@ import useMobileDetect from '@/features/dashboard/hooks/v2/useMobileDetect';
 // Types
 import { useToast } from '@/shared/contexts/ToastContext';
 import ContainerDrawer from './components/ContainerDrawer';
+import CreateAssignmentModal from './components/modals/CreateAssignmentModal';
 import EditContainerModal from './components/modals/EditContainerModal';
 import { Container } from './types/container.types';
 
@@ -59,6 +60,7 @@ const ClassesDashboard: React.FC = () => {
 
     const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
     const [drawerContainerId, setDrawerContainerId] = useState<string | null>(null);
+    const [isCreateAssignmentModalOpen, setIsCreateAssignmentModalOpen] = useState<boolean>(false);
     const { success: toastSuccess } = useToast();
 
     // Derived state (placeholder filtering logic)
@@ -279,10 +281,27 @@ const ClassesDashboard: React.FC = () => {
                 container={containers.find(c => (c as any).id === drawerContainerId) ?? null}
                 onEdit={() => drawerContainerId && handleEditClick(drawerContainerId)}
                 onDelete={() => drawerContainerId && handleDeleteClick(drawerContainerId)}
-                onCreateAssignment={() => { /* parent hook could open create-assignment modal */ }}
+                onCreateAssignment={() => setIsCreateAssignmentModalOpen(true)}
                 onAssignStudents={() => { /* refresh or no-op */ }}
                 width={isDesktop ? 'wide' : 'default'}
             />
+
+            {/* Create Assignment Modal (pre-filled from selected drawer container) */}
+            {drawerContainerId && (
+                <CreateAssignmentModal
+                    isOpen={isCreateAssignmentModalOpen}
+                    onClose={() => setIsCreateAssignmentModalOpen(false)}
+                    containerId={drawerContainerId}
+                    containerInstructor={containers.find(c => (c as any).id === drawerContainerId) ? { id: (containers.find(c => (c as any).id === drawerContainerId) as any).instructor_id, name: (containers.find(c => (c as any).id === drawerContainerId) as any).instructor_name } : null}
+                    containerTimezone={containers.find(c => (c as any).id === drawerContainerId) ? (containers.find(c => (c as any).id === drawerContainerId) as any).timezone : null}
+                    onCreated={(assignment) => {
+                        // Refresh containers/assignments and notify
+                        refetch();
+                        toastSuccess('Assignment created');
+                        setIsCreateAssignmentModalOpen(false);
+                    }}
+                />
+            )}
             {/* Toast is handled by global ToastProvider */}
 
             {/* Create Program Modal */}
