@@ -1,6 +1,8 @@
+import { useInstructors } from '@/features/dashboard/hooks/useInstructors';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { supabase } from '@/shared/lib/supabase';
 import { addMinutes, format } from 'date-fns';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // Minimal types for the form
 type AssignmentStatus = 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
@@ -83,14 +85,7 @@ export default function AssignmentForm({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [assignment?.id, containerId]);
 
-    const instructors = useMemo(() => {
-        // Minimal static list placeholder. Replace with real data hook.
-        return [
-            { id: 'ins_1', name: 'Alex Sharma' },
-            { id: 'ins_2', name: 'Maya Singh' },
-            { id: 'ins_3', name: 'Ravi Patel' },
-        ];
-    }, []);
+    const { instructors, loading: instructorsLoading, error: instructorsError } = useInstructors();
 
     function setField<K extends keyof Assignment>(key: K, value: Assignment[K]) {
         setForm((s) => ({ ...s, [key]: value }));
@@ -198,27 +193,48 @@ export default function AssignmentForm({
         conflictTimer.current = window.setTimeout(async () => {
             setIsCheckingConflicts(true);
             setConflictError(null);
-            conflictAbort.current = new AbortController();
             try {
-                const res = await fetch('/api/v2/assignments/check-conflict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        class_date: date,
-                        start_time: start,
-                        end_time: end,
-                        instructor_id: instructor,
-                        timezone: tz,
-                        exclude_assignment_id: assignment?.id || null,
-                    }),
-                    signal: conflictAbort.current.signal,
+                // Query assignments for the same instructor and date
+                const { data: rows, error } = await supabase
+                    .from('class_assignments')
+                    .select(`id, class_container_id, date, start_time, end_time, timezone, class_status, instructor_id`)
+                    .eq('instructor_id', instructor)
+                    .eq('date', date)
+                    .neq('class_status', 'cancelled')
+                    .neq('class_status', 'rescheduled');
+
+                if (error) throw error;
+
+                // Simple overlap check using HH:MM strings
+                const newStart = start;
+                const newEnd = end;
+
+                const toMinutes = (t: string | null | undefined) => {
+                    if (!t) return 0;
+                    // accept formats like HH:MM or HH:MM:SS
+                    const parts = t.split(':');
+                    const hh = Number(parts[0] || 0);
+                    const mm = Number(parts[1] || 0);
+                    return hh * 60 + mm;
+                };
+
+                const conflictsFound = (rows || []).filter((r: any) => {
+                    // exclude the same assignment when editing
+                    if (assignment?.id && r.id === assignment.id) return false;
+                    const existingStart = r.start_time;
+                    const existingEnd = r.end_time;
+                    return (existingStart || '') < newEnd && (existingEnd || '') > newStart;
+                }).map((r: any) => {
+                    const exStartMin = toMinutes(r.start_time);
+                    const exEndMin = toMinutes(r.end_time);
+                    const newStartMin = toMinutes(newStart);
+                    const newEndMin = toMinutes(newEnd);
+                    const overlap = Math.max(0, Math.min(exEndMin, newEndMin) - Math.max(exStartMin, newStartMin));
+                    return { assignment: r, overlap_minutes: overlap };
                 });
 
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
-                setConflicts(data?.conflicts || []);
+                setConflicts(conflictsFound || []);
             } catch (err: any) {
-                if (err.name === 'AbortError') return;
                 console.error('Conflict check failed', err);
                 setConflictError(err?.message || 'Unable to check conflicts.');
                 setConflicts([]);

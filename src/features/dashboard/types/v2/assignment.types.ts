@@ -11,6 +11,7 @@ export interface Assignment {
   end_at?: string | null;
   instructor_id?: string | null;
   meeting_link?: string | null;
+  zoom_meeting?: { url?: string } | null;
   capacity_total?: number | null;
   capacity_booked?: number | null;
   status: AssignmentStatus;
