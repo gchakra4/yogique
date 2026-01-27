@@ -78,21 +78,30 @@ export class AssignmentBookingsService extends BaseService {
         }
       }
 
-      // Insert links
-      // Find an existing class_assignment for this container to attach bookings to
-      const { data: assignmentRow, error: asErr } = await this.client
+      // Insert links - Link booking to ALL assignments in the container
+      // Get ALL class_assignments for this container (not just one)
+      const { data: assignmentRows, error: asErr } = await this.client
         .from('class_assignments')
         .select('id')
         .eq('class_container_id', containerId)
-        .limit(1)
-        .maybeSingle();
+        .order('date', { ascending: true });
 
-      if (asErr) return this.handleError(asErr, 'assignBookingsToContainer: fetch assignment for container');
-      if (!assignmentRow || !assignmentRow.id) {
-        return { success: false, error: { code: 'NO_ASSIGNMENT', message: 'No class assignment found for this container. Create a scheduled class first.' } };
+      if (asErr) return this.handleError(asErr, 'assignBookingsToContainer: fetch assignments for container');
+      if (!assignmentRows || assignmentRows.length === 0) {
+        return { success: false, error: { code: 'NO_ASSIGNMENT', message: 'No class assignments found for this container. Create scheduled classes first.' } };
       }
 
-      const insertRows = toAssign.map(bookingId => ({ assignment_id: assignmentRow.id, booking_id: bookingId, class_container_id: containerId }));
+      // Create assignment_bookings entries for EVERY booking × EVERY assignment combination
+      const insertRows: any[] = [];
+      for (const bookingId of toAssign) {
+        for (const assignment of assignmentRows) {
+          insertRows.push({
+            assignment_id: assignment.id,
+            booking_id: bookingId,
+            class_container_id: containerId
+          });
+        }
+      }
 
       const { data: inserted, error: insErr } = await this.client
         .from('assignment_bookings')
@@ -102,8 +111,9 @@ export class AssignmentBookingsService extends BaseService {
       if (insErr) return this.handleError(insErr, 'assignBookingsToContainer: insert links');
 
       // Update container booked count (best-effort increment)
+      // Note: We count unique bookings, not total assignment_bookings entries
       try {
-        const increment = (inserted || []).length;
+        const increment = toAssign.length; // Number of unique students added
         if (increment > 0) {
           await this.client
             .from('class_containers')
@@ -123,14 +133,26 @@ export class AssignmentBookingsService extends BaseService {
             user_id: options.performedBy || null,
             resource_type: 'container',
             resource_id: containerId,
-            metadata: { bookingIds: toAssign, containerCapacity: capacityTotal, capacityBooked },
+            metadata: { 
+              bookingIds: toAssign, 
+              containerCapacity: capacityTotal, 
+              capacityBooked,
+              assignmentsCount: assignmentRows.length,
+              totalLinksCreated: insertRows.length
+            },
           });
         } catch (auditErr) {
           console.warn('[AssignmentBookingsService] audit log failed', auditErr);
         }
       }
 
-      return this.success({ assignedCount: (inserted || []).length, assigned: inserted || [], skipped });
+      return this.success({ 
+        assignedCount: toAssign.length,  // Number of unique students
+        assigned: inserted || [], 
+        skipped,
+        assignmentsLinked: assignmentRows.length,  // How many classes they were linked to
+        totalLinksCreated: insertRows.length  // Total assignment_bookings entries
+      });
     } catch (error) {
       return this.handleError(error, 'assignBookingsToContainer');
     }
