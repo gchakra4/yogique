@@ -111,8 +111,35 @@ export class AssignmentService extends BaseService {
 
   async updateAssignment(id: string, data: any): Promise<ServiceResult<any>> {
     try {
-      // TODO: Validate and update
-      return this.success(null as any);
+      if (!id) throw new Error('Assignment ID is required');
+
+      const updatePayload: any = {};
+
+      // Only update fields that are provided
+      if (data.class_date) updatePayload.date = data.class_date;
+      if (data.start_time) updatePayload.start_time = data.start_time;
+      if (data.end_time) updatePayload.end_time = data.end_time;
+      if (data.timezone) updatePayload.timezone = data.timezone;
+      if (data.instructor_id !== undefined) updatePayload.instructor_id = data.instructor_id;
+      if (data.status) updatePayload.class_status = data.status;
+      if (data.notes !== undefined) updatePayload.notes = data.notes;
+      if (data.meeting_link !== undefined) {
+        updatePayload.zoom_meeting = data.meeting_link ? { url: data.meeting_link } : null;
+      }
+
+      if (Object.keys(updatePayload).length === 0) {
+        return { success: false, error: { code: 'NO_UPDATES', message: 'No fields to update' } };
+      }
+
+      const { data: updated, error } = await this.client
+        .from('class_assignments')
+        .update(updatePayload)
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      return this.success(updated);
     } catch (error) {
       return this.handleError(error, 'updateAssignment');
     }

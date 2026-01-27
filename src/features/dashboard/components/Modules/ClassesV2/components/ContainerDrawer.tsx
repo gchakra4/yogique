@@ -5,6 +5,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CapacityIndicator } from './CapacityIndicator';
 import AssignStudentsModal from './modals/AssignStudentsModal';
+import DeleteConfirmModal from './modals/DeleteConfirmModal';
+import EditAssignmentModal from './modals/EditAssignmentModal';
 
 interface ContainerDrawerProps {
     isOpen: boolean;
@@ -13,6 +15,7 @@ interface ContainerDrawerProps {
     onEdit?: () => void;
     onDelete?: () => void;
     onCreateAssignment?: () => void;
+    onEditAssignment?: (assignmentId: string) => void;
     onAssignStudents?: () => void;
     width?: 'default' | 'wide' | 'full';
     closeOnBackdropClick?: boolean;
@@ -26,6 +29,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
     onEdit,
     onDelete,
     onCreateAssignment,
+    onEditAssignment,
     onAssignStudents,
     width = 'default',
     closeOnBackdropClick = true,
@@ -34,6 +38,10 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
     const [isClosing, setIsClosing] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [isUnassignModalOpen, setIsUnassignModalOpen] = useState(false);
+    const [unassignTarget, setUnassignTarget] = useState<any | null>(null);
+    const [isEditAssignmentModalOpen, setIsEditAssignmentModalOpen] = useState(false);
+    const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
     const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
     const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(false);
     const [assignments, setAssignments] = useState<any[]>([]);
@@ -120,8 +128,16 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
         setIsLoadingEnrolled(true);
         try {
             const res = await bookingsService.getBookingsForProgram(container.id);
-            if (res.success) setEnrolledStudents(res.data || []);
-            else {
+            if (res.success) {
+                // Deduplicate students by booking_id
+                const uniqueStudentsMap = new Map<string, any>();
+                (res.data || []).forEach((item: any) => {
+                    if (!uniqueStudentsMap.has(item.booking_id)) {
+                        uniqueStudentsMap.set(item.booking_id, item);
+                    }
+                });
+                setEnrolledStudents(Array.from(uniqueStudentsMap.values()));
+            } else {
                 console.warn('Failed to fetch enrolled students', res.error);
                 setEnrolledStudents([]);
             }
@@ -216,7 +232,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                     <div>
                                         <p className="text-xs text-gray-500">Capacity</p>
                                         <div className="mt-1">
-                                            <CapacityIndicator current={container?.capacity_used ?? 0} max={container?.capacity_total ?? 0} size="sm" showLabel />
+                                            <CapacityIndicator current={enrolledStudents.length} max={container?.capacity_total ?? container?.max_booking_count ?? 0} size="sm" showLabel />
                                         </div>
                                     </div>
                                 </div>
@@ -250,7 +266,15 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                                         <div className="text-xs text-gray-500">{a.instructor?.full_name ?? a.instructor_id ?? 'Unassigned'} • {a.class_status ?? '—'}</div>
                                                     </div>
                                                     <div className="text-sm text-right">
-                                                        <button onClick={() => onEdit?.()} className="text-xs text-emerald-600 mr-3">Edit</button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedAssignment(a);
+                                                                setIsEditAssignmentModalOpen(true);
+                                                            }}
+                                                            className="text-xs text-emerald-600 mr-3"
+                                                        >
+                                                            Edit
+                                                        </button>
                                                         {/* deletion/editing of assignments may be handled by parent modals */}
                                                     </div>
                                                 </li>
@@ -278,14 +302,12 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                                     </div>
                                                     <div>
                                                         <button
-                                                            onClick={async () => {
-                                                                try {
-                                                                    await bookingsService.unassignBookingFromProgram(container.id, e.booking_id);
-                                                                    await fetchEnrolled();
-                                                                    onAssignStudents?.();
-                                                                } catch (err) {
-                                                                    console.warn('unassign failed', err);
-                                                                }
+                                                            onClick={() => {
+                                                                const studentName = (e.booking && (e.booking.first_name || e.booking.last_name))
+                                                                    ? `${e.booking.first_name ?? ''} ${e.booking.last_name ?? ''}`.trim()
+                                                                    : e.booking?.booking_id || e.booking_id;
+                                                                setUnassignTarget({ bookingId: e.booking_id, studentName });
+                                                                setIsUnassignModalOpen(true);
                                                             }}
                                                             className="text-sm text-rose-600"
                                                         >
@@ -331,6 +353,44 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                     setIsAssignModalOpen(false);
                     await fetchEnrolled();
                     onAssignStudents?.();
+                }}
+            />
+
+            <DeleteConfirmModal
+                isOpen={isUnassignModalOpen}
+                onClose={() => {
+                    setIsUnassignModalOpen(false);
+                    setUnassignTarget(null);
+                }}
+                title="Unassign student"
+                message={unassignTarget ? `Are you sure you want to unassign ${unassignTarget.studentName} from this program?` : 'Are you sure you want to unassign this student from this program?'}
+                onConfirm={async () => {
+                    try {
+                        if (!container?.id || !unassignTarget?.bookingId) return;
+                        await bookingsService.unassignBookingFromProgram(container.id, unassignTarget.bookingId);
+                        await fetchEnrolled();
+                        onAssignStudents?.();
+                    } catch (err) {
+                        console.warn('unassign failed', err);
+                    } finally {
+                        setIsUnassignModalOpen(false);
+                        setUnassignTarget(null);
+                    }
+                }}
+            />
+
+            <EditAssignmentModal
+                isOpen={isEditAssignmentModalOpen}
+                onClose={() => {
+                    setIsEditAssignmentModalOpen(false);
+                    setSelectedAssignment(null);
+                }}
+                assignment={selectedAssignment}
+                containerId={container?.id}
+                onUpdated={async () => {
+                    setIsEditAssignmentModalOpen(false);
+                    setSelectedAssignment(null);
+                    await fetchAssignments();
                 }}
             />
         </div>

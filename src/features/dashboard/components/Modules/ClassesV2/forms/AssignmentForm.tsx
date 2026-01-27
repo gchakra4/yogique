@@ -79,6 +79,13 @@ export default function AssignmentForm({
     const conflictTimer = useRef<number | null>(null);
     const conflictAbort = useRef<AbortController | null>(null);
 
+    // Bulk mode state
+    const [bulkMode, setBulkMode] = useState(false);
+    const [packageId, setPackageId] = useState<string>('');
+    const [totalClasses, setTotalClasses] = useState<number>(0);
+    const [weeklyDays, setWeeklyDays] = useState<number[]>([]);
+    const [packages, setPackages] = useState<any[]>([]);
+
     useEffect(() => {
         setForm(initial);
         setErrors({});
@@ -86,6 +93,25 @@ export default function AssignmentForm({
     }, [assignment?.id, containerId]);
 
     const { instructors, loading: instructorsLoading, error: instructorsError } = useInstructors();
+
+    // Fetch packages for bulk mode
+    useEffect(() => {
+        async function fetchPackages() {
+            const { data, error } = await supabase.from('class_packages').select('id, name, class_count').eq('is_active', true);
+            if (!error && data) setPackages(data);
+        }
+        fetchPackages();
+    }, []);
+
+    // Auto-populate total_classes when package selected
+    useEffect(() => {
+        if (packageId && packages.length > 0) {
+            const pkg = packages.find(p => p.id === packageId);
+            if (pkg && pkg.class_count) {
+                setTotalClasses(Number(pkg.class_count));
+            }
+        }
+    }, [packageId, packages]);
 
     function setField<K extends keyof Assignment>(key: K, value: Assignment[K]) {
         setForm((s) => ({ ...s, [key]: value }));
@@ -127,9 +153,46 @@ export default function AssignmentForm({
         if (isEdit && !canUpdate) return;
 
         if (!validateForm()) return;
+
+        // Bulk mode validation
+        if (bulkMode) {
+            if (!packageId) {
+                setErrors(prev => ({ ...prev, package: 'Package is required for bulk creation' }));
+                return;
+            }
+            if (!totalClasses || totalClasses <= 0) {
+                setErrors(prev => ({ ...prev, totalClasses: 'Total classes must be greater than 0' }));
+                return;
+            }
+            if (weeklyDays.length === 0) {
+                setErrors(prev => ({ ...prev, weeklyDays: 'Select at least one day of the week' }));
+                return;
+            }
+        }
+
         setIsSubmitting(true);
         try {
-            await onSubmit(form);
+            if (bulkMode) {
+                // Build bulk creation payload
+                const bulkData = {
+                    assignment_type: 'monthly',
+                    monthly_assignment_method: 'weekly_recurrence',
+                    container_id: containerId,
+                    package_id: packageId,
+                    total_classes: totalClasses,
+                    weekly_days: weeklyDays,
+                    start_date: form.class_date,
+                    start_time: form.start_time,
+                    end_time: form.end_time,
+                    instructor_id: form.instructor_id,
+                    timezone: form.timezone,
+                    notes: form.notes,
+                    booking_type: 'individual' // Default, can be made configurable
+                };
+                await onSubmit(bulkData as any);
+            } else {
+                await onSubmit(form);
+            }
         } catch (err: any) {
             setErrors((prev) => ({ ...prev, form: err?.message || 'Submission failed' }));
         } finally {
@@ -314,6 +377,102 @@ export default function AssignmentForm({
                     <span className="text-sm text-blue-900">Checking for conflicts…</span>
                 </div>
             )}
+            {/* Bulk Mode Toggle */}
+            {!isEdit && (
+                <div className="bg-gray-50 p-4 rounded border">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={bulkMode}
+                            onChange={(e) => setBulkMode(e.target.checked)}
+                            className="w-4 h-4"
+                        />
+                        <span className="font-medium">Bulk Monthly Creation</span>
+                    </label>
+                    <p className="text-sm text-gray-600 mt-1">
+                        Create multiple classes automatically based on weekly schedule and package class count
+                    </p>
+                </div>
+            )}
+
+            {/* Bulk Mode Fields */}
+            {bulkMode && !isEdit && (
+                <div className="bg-blue-50 p-4 rounded border border-blue-200 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium">Package <span className="text-red-500">*</span></label>
+                        <select
+                            value={packageId}
+                            onChange={(e) => setPackageId(e.target.value)}
+                            className={`mt-1 block w-full p-2 border ${errors.package ? 'border-red-500' : 'border-gray-300'} rounded`}
+                        >
+                            <option value="">Select package</option>
+                            {packages.map((pkg) => (
+                                <option key={pkg.id} value={pkg.id}>
+                                    {pkg.name} ({pkg.class_count} classes)
+                                </option>
+                            ))}
+                        </select>
+                        {errors.package && <p className="text-sm text-red-600">{errors.package}</p>}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium">Total Classes <span className="text-red-500">*</span></label>
+                        <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={totalClasses || ''}
+                            onChange={(e) => setTotalClasses(Number(e.target.value))}
+                            className={`mt-1 block w-full p-2 border ${errors.totalClasses ? 'border-red-500' : 'border-gray-300'} rounded`}
+                            placeholder="Auto-filled from package"
+                        />
+                        {errors.totalClasses && <p className="text-sm text-red-600">{errors.totalClasses}</p>}
+                        <p className="text-xs text-gray-600 mt-1">Will generate up to this many classes within the first calendar month</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Weekly Days <span className="text-red-500">*</span></label>
+                        <div className="grid grid-cols-4 gap-2">
+                            {[
+                                { label: 'Sun', value: 0 },
+                                { label: 'Mon', value: 1 },
+                                { label: 'Tue', value: 2 },
+                                { label: 'Wed', value: 3 },
+                                { label: 'Thu', value: 4 },
+                                { label: 'Fri', value: 5 },
+                                { label: 'Sat', value: 6 },
+                            ].map((day) => (
+                                <label key={day.value} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={weeklyDays.includes(day.value)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setWeeklyDays([...weeklyDays, day.value].sort((a, b) => a - b));
+                                            } else {
+                                                setWeeklyDays(weeklyDays.filter((d) => d !== day.value));
+                                            }
+                                        }}
+                                        className="w-4 h-4"
+                                    />
+                                    <span className="text-sm">{day.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                        {errors.weeklyDays && <p className="text-sm text-red-600 mt-1">{errors.weeklyDays}</p>}
+                    </div>
+
+                    <div className="bg-white p-3 rounded border">
+                        <p className="text-sm font-medium text-gray-700">Preview:</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                            {weeklyDays.length > 0 && totalClasses > 0
+                                ? `Will generate up to ${totalClasses} classes on ${weeklyDays.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ')} from ${form.class_date}`
+                                : 'Select days and package to preview'}
+                        </p>
+                    </div>
+                </div>
+            )}
+
 
             {!isCheckingConflicts && conflictError && (
                 <div className="bg-red-50 border-l-4 border-red-400 p-3 mb-4">
@@ -353,7 +512,9 @@ export default function AssignmentForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium">Class Date <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium">
+                        {bulkMode ? 'Start Date' : 'Class Date'} <span className="text-red-500">*</span>
+                    </label>
                     <input
                         type="date"
                         value={form.class_date}
@@ -362,6 +523,7 @@ export default function AssignmentForm({
                         aria-invalid={!!errors.class_date}
                     />
                     {errors.class_date && <p className="text-sm text-red-600">{errors.class_date}</p>}
+                    {bulkMode && <p className="text-xs text-gray-600 mt-1">First class will be on or after this date</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
