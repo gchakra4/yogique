@@ -1,7 +1,16 @@
 /**
  * Booking = student's booking record which may be assigned to a Container/Assignment
  */
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+export type BookingStatus = 
+  | 'pending'
+  | 'confirmed'
+  | 'classes_assigned'
+  | 'active'
+  | 'user_cancelled'
+  | 'admin_cancelled'
+  | 'completed'
+  | 'suspended'
+  | 'discontinued';
 
 export interface Booking {
   /** Primary key (uuid) */

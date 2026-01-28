@@ -62,6 +62,16 @@ export default function AssignToProgram({ booking, isOpen, onClose, onSuccess, b
         try {
             const res = await bookingsService.assignBookingsToContainer(selectedProgram, [booking.id], { allowCapacityOverride: allowOverride })
             if (res && res.success) {
+                // Update booking status to 'classes_assigned' after successful assignment
+                const { error: statusError } = await supabase.rpc('mark_booking_classes_assigned', {
+                    p_booking_id: booking.id
+                })
+
+                if (statusError) {
+                    console.error('Failed to update booking status:', statusError)
+                    // Don't fail the whole operation, just log the error
+                }
+
                 onSuccess()
             } else {
                 setError(res?.error || 'Assignment failed')

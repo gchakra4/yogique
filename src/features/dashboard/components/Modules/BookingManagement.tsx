@@ -1,11 +1,14 @@
 import {
   AlertTriangle,
+  Ban,
   Calendar,
   CheckCircle,
   Edit,
   Eye,
   Filter,
   Mail,
+  Pause,
+  Play,
   PlusCircle,
   Search,
   Trash2,
@@ -70,6 +73,8 @@ interface Booking {
   user_cancelled?: boolean
   cancelled_by?: string | null
   cancelled_at?: string | null
+  cancelled_reason?: string | null
+  discontinued_reason?: string | null
 }
 
 export function BookingManagement() {
@@ -305,33 +310,65 @@ export function BookingManagement() {
     }
   }
 
-  const handleUpdateBookingStatus = async (id: string, status: string) => {
+  const handleUpdateBookingStatus = async (id: string, status: string, reason?: string) => {
     try {
-      // When admin cancels a booking via this action, record cancelled_by = 'admin'
-      const updatePayload: any = { status }
-      if (status === 'cancelled' || status === 'canceled') updatePayload.cancelled_by = 'admin'
-      else updatePayload.cancelled_by = null
+      let result
 
-      const { error } = await supabase
-        .from('bookings')
-        .update(updatePayload)
-        .eq('id', id)
-
-      if (error) throw error
-
-      // Update local state
-      setBookings(bookings.map(booking =>
-        booking.id === id ? { ...booking, ...updatePayload } : booking
-      ))
-
-      if (selectedBooking && selectedBooking.id === id) {
-        setSelectedBooking({ ...selectedBooking, ...updatePayload })
+      // Use the appropriate RPC function for status updates
+      if (status === 'confirmed') {
+        const { data, error } = await supabase.rpc('confirm_booking', { p_booking_id: id })
+        if (error) throw error
+        result = data
+      } else {
+        const { data, error } = await supabase.rpc('update_booking_status', {
+          p_booking_id: id,
+          p_new_status: status,
+          p_reason: reason || `Status changed to ${status} by admin`
+        })
+        if (error) throw error
+        result = data
       }
 
-      setSuccessMessage(`Booking status updated to ${status}`)
+      if (result && !result.success) {
+        throw new Error(result.error || 'Failed to update status')
+      }
+
+      // Refresh bookings to get updated data
+      await fetchBookings()
+
+      // If viewing this booking, refresh its assigned programs too
+      if (selectedBooking && selectedBooking.id === id) {
+        const updated = bookings.find(b => b.id === id)
+        if (updated) setSelectedBooking(updated)
+        fetchAssignedPrograms(id)
+      }
+
+      setSuccessMessage(`Booking status updated to ${status.replace('_', ' ')}`)
       setTimeout(() => setSuccessMessage(''), 3000)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating booking status:', error)
+      setSuccessMessage('')
+      alert(`Error: ${error.message || 'Failed to update status'}`)
+    }
+  }
+
+  const handleSuspendBooking = async (id: string) => {
+    const reason = prompt('Enter reason for suspension (e.g., Payment overdue):')
+    if (reason) {
+      await handleUpdateBookingStatus(id, 'suspended', reason)
+    }
+  }
+
+  const handleDiscontinueBooking = async (id: string) => {
+    const reason = prompt('Enter reason for discontinuation:')
+    if (reason) {
+      await handleUpdateBookingStatus(id, 'discontinued', reason)
+    }
+  }
+
+  const handleActivateBooking = async (id: string) => {
+    if (confirm('Mark this booking as active?')) {
+      await handleUpdateBookingStatus(id, 'active', 'Booking activated')
     }
   }
 
@@ -408,10 +445,17 @@ export function BookingManagement() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-orange-100 text-orange-800'
-      case 'confirmed': return 'bg-green-100 text-green-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      case 'completed': return 'bg-blue-100 text-blue-800'
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+      case 'confirmed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'classes_assigned': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+      case 'completed': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400'
+      case 'user_cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+      case 'admin_cancelled': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+      case 'suspended': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
+      case 'discontinued': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+      // Legacy statuses
+      case 'cancelled': return 'bg-orange-100 text-orange-800'
       case 'rescheduled': return 'bg-yellow-100 text-yellow-800'
       default: return 'bg-gray-100 text-gray-800'
     }
@@ -554,9 +598,15 @@ export function BookingManagement() {
                 <option value="all">All Statuses</option>
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="classes_assigned">Classes Assigned</option>
+                <option value="active">Active</option>
                 <option value="user_cancelled">User Cancelled</option>
+                <option value="admin_cancelled">Admin Cancelled</option>
+                <option value="suspended">Suspended</option>
+                <option value="discontinued">Discontinued</option>
                 <option value="completed">Completed</option>
+                {/* Legacy statuses */}
+                <option value="cancelled">Cancelled (Legacy)</option>
                 <option value="rescheduled">Rescheduled</option>
               </select>
             </div>
@@ -696,21 +746,54 @@ export function BookingManagement() {
                           </button>
                         )}
 
-                        {/* Mark completed for confirmed bookings */}
-                        {booking.status === 'confirmed' && (
+                        {/* Activate button for confirmed/classes_assigned bookings */}
+                        {(booking.status === 'confirmed' || booking.status === 'classes_assigned') && (
                           <button
-                            onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
-                            className="text-blue-600 hover:text-blue-900 p-1"
-                            title="Mark as Completed"
+                            onClick={() => handleActivateBooking(booking.id)}
+                            className="text-green-600 hover:text-green-900 p-1"
+                            title="Mark as Active"
                           >
-                            <CheckCircle className="w-4 h-4" />
+                            <Play className="w-4 h-4" />
                           </button>
                         )}
 
-                        {/* Cancel button for pending and confirmed */}
+                        {/* Suspend button for active bookings */}
+                        {booking.status === 'active' && (
+                          <button
+                            onClick={() => handleSuspendBooking(booking.id)}
+                            className="text-amber-600 hover:text-amber-900 p-1"
+                            title="Suspend (Non-payment)"
+                          >
+                            <Pause className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* Reactivate suspended bookings */}
+                        {booking.status === 'suspended' && (
+                          <button
+                            onClick={() => handleActivateBooking(booking.id)}
+                            className="text-green-600 hover:text-green-900 p-1"
+                            title="Reactivate"
+                          >
+                            <Play className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* Discontinue button for confirmed/active/classes_assigned */}
+                        {(booking.status === 'confirmed' || booking.status === 'active' || booking.status === 'classes_assigned') && (
+                          <button
+                            onClick={() => handleDiscontinueBooking(booking.id)}
+                            className="text-gray-600 hover:text-gray-900 p-1"
+                            title="Discontinue Booking"
+                          >
+                            <Ban className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* Admin cancel button for pending/confirmed */}
                         {(booking.status === 'pending' || booking.status === 'confirmed') && (
                           <button
-                            onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
+                            onClick={() => handleUpdateBookingStatus(booking.id, 'admin_cancelled', 'Cancelled by admin')}
                             className="text-red-600 hover:text-red-900 p-1"
                             title="Cancel Booking"
                           >

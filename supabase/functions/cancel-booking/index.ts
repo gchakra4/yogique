@@ -55,14 +55,14 @@ serve(async (req) => {
 
     const body: Record<string, any> = {
       // Mark booking as cancelled and record who cancelled it
-      status: 'cancelled',
+      status: 'user_cancelled',  // Updated to use new enum status
       user_cancelled: true,
       cancelled_at: new Date().toISOString(),
       cancelled_by: 'user',
+      cancelled_reason: note || 'Cancelled by user via cancellation link',
       cancel_token: null,
       cancel_token_expires_at: null
     }
-    if (note) body.cancellation_reason = note
 
     const resp = await fetch(url, {
       method: 'PATCH',

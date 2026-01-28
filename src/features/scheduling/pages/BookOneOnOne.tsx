@@ -45,6 +45,7 @@ export function BookOneOnOne() {
         price: number
         class_count: number
         course_type: 'regular' | 'crash'
+        is_recurring?: boolean
         description?: string
         duration?: string
         validity_days?: number
@@ -401,6 +402,10 @@ export function BookOneOnOne() {
                 participants_count: 1,
                 equipment_needed: false,
                 class_package_id: selectedPackage?.id || null,
+
+                // Set is_recurring based on package's is_recurring field
+                // True = recurring monthly billing with T-5 automation, False = one-time
+                is_recurring: selectedPackage?.is_recurring || false,
 
                 // Store health conditions in booking_notes
                 booking_notes: formData.healthConditions ? `Health Conditions: ${formData.healthConditions}` : null
