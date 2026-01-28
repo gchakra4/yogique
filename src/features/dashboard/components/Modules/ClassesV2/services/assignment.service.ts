@@ -65,10 +65,32 @@ export class AssignmentService {
 
     // Single assignment path
     if (assignmentType !== 'monthly') {
+      // Derive package_id from container if not provided (satisfies DB constraint)
+      let class_package_id = data.class_package_id || data.package_id || null
+      const scheduled_class_id = data.scheduled_class_id || null
+      if (!class_package_id && !scheduled_class_id && (data.container_id || data.class_container_id)) {
+        try {
+          const cid = data.container_id || data.class_container_id
+          const { data: container, error: cErr } = await supabase
+            .from('class_containers')
+            .select('package_id')
+            .eq('id', cid)
+            .maybeSingle()
+          if (!cErr && container && container.package_id) class_package_id = container.package_id
+        } catch (e) {
+          // ignore and validate below
+        }
+      }
+      // Enforce DB constraint: either scheduled_class_id OR class_package_id must be set
+      if (!class_package_id && !scheduled_class_id) {
+        throw new Error('Either class_package_id (package) or scheduled_class_id must be provided for assignment creation')
+      }
+
       const payload: any = {
         class_container_id: data.container_id || data.class_container_id || null,
-        package_id: data.package_id || null,
-        class_package_id: data.package_id || null,
+        package_id: class_package_id || null,
+        class_package_id: class_package_id || null,
+        ...(scheduled_class_id ? { scheduled_class_id } : {}),
         date: data.date || data.class_date,
         start_time: data.start_time,
         end_time: data.end_time,
