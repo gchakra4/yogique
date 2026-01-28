@@ -218,8 +218,8 @@ export class AssignmentService {
       return { success: true, count: 0, message: 'No assignments generated (check date range)' }
     }
 
-    // Insert all assignments. Retry without `calendar_month` if PostgREST schema cache
-    // reports the column is missing (PGRST204). This supports older DBs without migration.
+    // Insert all assignments. If PostgREST reports missing columns in the schema cache
+    // (PGRST204), iteratively strip the reported missing columns from the payload and retry.
     async function tryInsert(rows: any[]) {
       const { data: insertedAssignments, error: insertErr } = await supabase
         .from('class_assignments')
@@ -231,23 +231,44 @@ export class AssignmentService {
     let insertedAssignments: any[] | null = null
     let insertErr: any = null
 
-    ({ insertedAssignments, insertErr } = await tryInsert(assignments))
+    // Attempt insertion with iterative retry on missing-column errors
+    let rowsToInsert = assignments.map(a => ({ ...a }))
+    const maxRetries = 5
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const res = await tryInsert(rowsToInsert)
+      insertedAssignments = res.insertedAssignments
+      insertErr = res.insertErr
+      if (!insertErr) break
 
-    if (insertErr) {
       const msg: string = insertErr?.message || ''
+      // Try to extract missing column name from error message like: Could not find the 'X' column
+      const m = msg.match(/Could not find the '\"?'?([^'\"\s]+)\"?'? column/i) || msg.match(/Could not find the '([^']+)' column/i)
+      const col = m ? m[1] : null
+      if (col) {
+        console.warn(`PostgREST schema cache missing column '${col}', stripping it and retrying (attempt ${attempt + 1})`)
+        rowsToInsert = rowsToInsert.map(r => {
+          const copy = { ...r }
+          if (col in copy) delete copy[col]
+          return copy
+        })
+        // continue retry loop
+        continue
+      }
+
+      // If we couldn't parse a missing column name, but the code is PGRST204, attempt a generic retry
       const code: string = insertErr?.code || insertErr?.status || ''
-      const calendarMissing = msg.includes("Could not find the 'calendar_month'") || msg.includes('calendar_month') || String(code) === 'PGRST204'
-      if (calendarMissing) {
-        console.warn('calendar_month column not present in DB schema cache; retrying insert without it')
-        const slim = assignments.map(a => {
-          const copy = { ...a }
+      if (String(code) === 'PGRST204' || msg.includes('schema cache')) {
+        console.warn(`Insert failed with PGRST204 but missing column not parsed; retrying without 'calendar_month' as fallback (attempt ${attempt + 1})`)
+        rowsToInsert = rowsToInsert.map(r => {
+          const copy = { ...r }
           if ('calendar_month' in copy) delete copy.calendar_month
           return copy
         })
-        const retry = await tryInsert(slim)
-        insertedAssignments = retry.insertedAssignments
-        insertErr = retry.insertErr
+        continue
       }
+
+      // Unknown error, break and report
+      break
     }
 
     if (insertErr) {
