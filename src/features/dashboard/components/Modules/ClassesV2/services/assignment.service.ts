@@ -218,12 +218,38 @@ export class AssignmentService {
       return { success: true, count: 0, message: 'No assignments generated (check date range)' }
     }
 
-    // Insert all assignments
-    const { data: insertedAssignments, error: insertErr } = await supabase
-      .from('class_assignments')
-      .insert(assignments)
-      .select('id')
-    
+    // Insert all assignments. Retry without `calendar_month` if PostgREST schema cache
+    // reports the column is missing (PGRST204). This supports older DBs without migration.
+    async function tryInsert(rows: any[]) {
+      const { data: insertedAssignments, error: insertErr } = await supabase
+        .from('class_assignments')
+        .insert(rows)
+        .select('id')
+      return { insertedAssignments, insertErr }
+    }
+
+    let insertedAssignments: any[] | null = null
+    let insertErr: any = null
+
+    ({ insertedAssignments, insertErr } = await tryInsert(assignments))
+
+    if (insertErr) {
+      const msg: string = insertErr?.message || ''
+      const code: string = insertErr?.code || insertErr?.status || ''
+      const calendarMissing = msg.includes("Could not find the 'calendar_month'") || msg.includes('calendar_month') || String(code) === 'PGRST204'
+      if (calendarMissing) {
+        console.warn('calendar_month column not present in DB schema cache; retrying insert without it')
+        const slim = assignments.map(a => {
+          const copy = { ...a }
+          if ('calendar_month' in copy) delete copy.calendar_month
+          return copy
+        })
+        const retry = await tryInsert(slim)
+        insertedAssignments = retry.insertedAssignments
+        insertErr = retry.insertErr
+      }
+    }
+
     if (insertErr) {
       console.error('Failed to insert monthly assignments', insertErr)
       throw insertErr
