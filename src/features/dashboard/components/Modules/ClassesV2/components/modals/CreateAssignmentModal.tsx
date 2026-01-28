@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
 import { supabase } from '@/shared/lib/supabase'
+import { useEffect, useState } from 'react'
 import AssignmentForm from '../../forms/AssignmentForm'
 
 interface Props {
@@ -27,7 +27,7 @@ export default function CreateAssignmentModal({
     useEffect(() => {
         async function fetchEnrolledBookings() {
             if (!isOpen || !containerId) return
-            
+
             try {
                 const { data, error } = await supabase
                     .from('container_bookings')

@@ -129,7 +129,7 @@ export default function FillShortfallModal({ isOpen, onClose, container, onFille
                 .from('container_bookings')
                 .select('booking_id')
                 .eq('class_container_id', container.id)
-            
+
             const enrolledBookingIds = (bookingsData || []).map(b => b.booking_id)
 
             // Get instructor and default times from first assignment or container
@@ -201,11 +201,11 @@ export default function FillShortfallModal({ isOpen, onClose, container, onFille
                         })
                     }
                 }
-                
+
                 const { error: linkErr } = await supabase
                     .from('assignment_bookings')
                     .insert(assignmentBookings)
-                
+
                 if (linkErr) {
                     console.warn('Failed to link students to adjustment classes:', linkErr)
                 }
