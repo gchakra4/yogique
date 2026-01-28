@@ -412,6 +412,11 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                     setSelectedAssignment(null);
                     await fetchAssignments();
                 }}
+                onDeleted={async () => {
+                    setIsEditAssignmentModalOpen(false);
+                    setSelectedAssignment(null);
+                    await fetchAssignments();
+                }}
             />
 
             <FillShortfallModal
