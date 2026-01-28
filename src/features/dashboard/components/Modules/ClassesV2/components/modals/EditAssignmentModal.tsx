@@ -79,7 +79,7 @@ export default function EditAssignmentModal({
                 // Prefer local ClassesV2 assignment service for updates
                 let svcMod: any = null
                 try {
-                    const local = await import('../services/assignment.service')
+                    const local = await import('../../services/assignment.service')
                     svcMod = (local as any).default ?? (local as any)
                 } catch (localErr) {
                     const remote = await import('@/features/dashboard/services/v2/assignment.service')

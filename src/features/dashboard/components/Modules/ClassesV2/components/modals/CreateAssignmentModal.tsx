@@ -33,7 +33,7 @@ export default function CreateAssignmentModal({
                 // Prefer the local ClassesV2 assignment service which supports bulk/monthly payloads.
                 let svcMod: any = null
                 try {
-                    const local = await import('../services/assignment.service')
+                    const local = await import('../../services/assignment.service')
                     svcMod = (local as any).default ?? (local as any)
                 } catch (localErr) {
                     // Fallback to global v2 service if local not available

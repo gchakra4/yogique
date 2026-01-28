@@ -7,6 +7,7 @@ import { CapacityIndicator } from './CapacityIndicator';
 import AssignStudentsModal from './modals/AssignStudentsModal';
 import DeleteConfirmModal from './modals/DeleteConfirmModal';
 import EditAssignmentModal from './modals/EditAssignmentModal';
+import FillShortfallModal from './modals/FillShortfallModal';
 
 interface ContainerDrawerProps {
     isOpen: boolean;
@@ -48,6 +49,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
     const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(false);
     const [assignments, setAssignments] = useState<any[]>([]);
     const [isLoadingAssignments, setIsLoadingAssignments] = useState(false);
+    const [isFillShortfallModalOpen, setIsFillShortfallModalOpen] = useState(false);
     const location = useLocation();
     const panelRef = useRef<HTMLDivElement | null>(null);
     const ANIM_MS = 300;
@@ -250,6 +252,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                     <h4 className="text-sm font-medium">Assignments</h4>
                                     <div className="text-sm">
                                         <button onClick={onCreateAssignment} className="text-sm text-emerald-600 mr-3">+ Create Assignment</button>
+                                        <button onClick={() => setIsFillShortfallModalOpen(true)} className="text-sm text-amber-600 mr-3">Fill Shortfall</button>
                                         <button onClick={fetchAssignments} className="text-sm text-gray-500">Refresh</button>
                                     </div>
                                 </div>
@@ -407,6 +410,16 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                 onUpdated={async () => {
                     setIsEditAssignmentModalOpen(false);
                     setSelectedAssignment(null);
+                    await fetchAssignments();
+                }}
+            />
+
+            <FillShortfallModal
+                isOpen={isFillShortfallModalOpen}
+                onClose={() => setIsFillShortfallModalOpen(false)}
+                container={container}
+                onFilled={async () => {
+                    setIsFillShortfallModalOpen(false);
                     await fetchAssignments();
                 }}
             />
