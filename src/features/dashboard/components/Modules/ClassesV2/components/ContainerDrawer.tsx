@@ -300,17 +300,33 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                         <ul className="space-y-2">
                                             {assignments.map((a: any, idx: number) => {
                                                 const enrolledCount = a.enrolled_students?.length || 0;
-                                                const displayStudents = (a.enrolled_students || []).slice(0, 2);
-                                                const hasMore = enrolledCount > 2;
 
                                                 return (
                                                     <li key={`${a.id ?? a.assignment_code ?? a.date}-${idx}`} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
-                                                        <div className="flex items-start justify-between mb-2">
+                                                        <div className="flex items-start justify-between">
                                                             <div className="flex-1">
-                                                                <div className="text-sm font-medium">{a.date ? new Date(a.date).toLocaleDateString() : '—'} {a.start_time ? `• ${a.start_time}` : ''}</div>
-                                                                <div className="text-xs text-gray-500">{a.instructor?.full_name ?? a.instructor_id ?? 'Unassigned'} • {a.class_status ?? '—'}</div>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedAssignment(a);
+                                                                        setIsEditAssignmentModalOpen(true);
+                                                                    }}
+                                                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline text-left"
+                                                                >
+                                                                    {a.date ? new Date(a.date).toLocaleDateString() : '—'} {a.start_time ? `• ${a.start_time}` : ''}
+                                                                </button>
+                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                    {a.instructor?.full_name ?? a.instructor_id ?? 'Unassigned'} • {a.class_status ?? '—'}
+                                                                    {enrolledCount > 0 && (
+                                                                        <span className="ml-2">
+                                                                            <svg className="w-3 h-3 inline mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                                            </svg>
+                                                                            {enrolledCount}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                            <div className="text-sm text-right flex gap-2">
+                                                            <div className="text-sm text-right">
                                                                 <button
                                                                     onClick={() => {
                                                                         setSelectedAssignment(a);
@@ -322,22 +338,6 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                                                 </button>
                                                             </div>
                                                         </div>
-
-                                                        {/* Enrolled Students */}
-                                                        {enrolledCount > 0 && (
-                                                            <div className="mt-2 pt-2 border-t border-gray-100">
-                                                                <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-1">
-                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                                                    </svg>
-                                                                    <span className="font-medium">{enrolledCount} enrolled</span>
-                                                                </div>
-                                                                <div className="text-xs text-gray-500 pl-5">
-                                                                    {displayStudents.map((s: any) => s.name).join(', ')}
-                                                                    {hasMore && ` +${enrolledCount - 2} more`}
-                                                                </div>
-                                                            </div>
-                                                        )}
                                                     </li>
                                                 );
                                             })}
