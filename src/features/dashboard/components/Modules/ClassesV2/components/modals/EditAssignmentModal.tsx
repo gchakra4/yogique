@@ -9,6 +9,7 @@ interface Props {
     assignment: any | null
     containerId?: string
     onUpdated?: (assignment: any) => void
+    onDeleted?: (assignmentId: string) => void
 }
 
 export default function EditAssignmentModal({
@@ -17,11 +18,13 @@ export default function EditAssignmentModal({
     assignment,
     containerId,
     onUpdated,
+    onDeleted,
 }: Props) {
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const [enrolledStudents, setEnrolledStudents] = useState<any[]>([])
     const [loadingStudents, setLoadingStudents] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
     // Fetch enrolled students for this assignment
     useEffect(() => {
@@ -55,6 +58,7 @@ export default function EditAssignmentModal({
             setError(null)
             setLoading(false)
             setEnrolledStudents([])
+            setShowDeleteConfirm(false)
         }
     }, [isOpen])
 
@@ -69,6 +73,27 @@ export default function EditAssignmentModal({
         status: assignment.class_status || assignment.status || 'scheduled',
     }
 
+    async function handleDelete() {
+        setError(null)
+        setLoading(true)
+        try {
+            const { error: deleteErr } = await supabase
+                .from('class_assignments')
+                .delete()
+                .eq('id', assignment.id)
+
+            if (deleteErr) throw deleteErr
+
+            onDeleted?.(assignment.id)
+            onClose()
+        } catch (err: any) {
+            setError(err?.message || 'Failed to delete class')
+        } finally {
+            setLoading(false)
+            setShowDeleteConfirm(false)
+        }
+    }
+
     async function handleSubmit(data: any) {
         setError(null)
         setLoading(true)
@@ -76,8 +101,17 @@ export default function EditAssignmentModal({
             // Try to use local service if available
             let updated: any = null
             try {
-                const svc = await import('@/features/dashboard/services/v2/assignment.service')
-                const service = (svc as any).default ?? (svc as any)
+                // Prefer local ClassesV2 assignment service for updates
+                let svcMod: any = null
+                try {
+                    const local = await import('../../services/assignment.service')
+                    svcMod = (local as any).default ?? (local as any)
+                } catch (localErr) {
+                    const remote = await import('@/features/dashboard/services/v2/assignment.service')
+                    svcMod = (remote as any).default ?? (remote as any)
+                }
+
+                const service = svcMod
                 if (typeof service.updateAssignment === 'function') {
                     const result = await service.updateAssignment(assignment.id, data)
                     if (result && result.success) updated = result.data
@@ -166,6 +200,47 @@ export default function EditAssignmentModal({
                 />
 
                 {loading && <div className="mt-4 text-sm text-gray-600">Updating class…</div>}
+
+                {/* Delete Confirmation */}
+                {showDeleteConfirm && (
+                    <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-800 mb-3">
+                            Are you sure you want to delete this class? This will also remove all student assignments for this specific class.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleDelete}
+                                disabled={loading}
+                                className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {loading ? 'Deleting...' : 'Yes, Delete'}
+                            </button>
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={loading}
+                                className="px-4 py-2 text-sm bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete Button */}
+                {!showDeleteConfirm && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end">
+                        <button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Class
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     )

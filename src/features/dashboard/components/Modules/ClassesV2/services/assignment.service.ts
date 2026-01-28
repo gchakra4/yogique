@@ -65,10 +65,32 @@ export class AssignmentService {
 
     // Single assignment path
     if (assignmentType !== 'monthly') {
+      // Derive package_id from container if not provided (satisfies DB constraint)
+      let class_package_id = data.class_package_id || data.package_id || null
+      const scheduled_class_id = data.scheduled_class_id || null
+      if (!class_package_id && !scheduled_class_id && (data.container_id || data.class_container_id)) {
+        try {
+          const cid = data.container_id || data.class_container_id
+          const { data: container, error: cErr } = await supabase
+            .from('class_containers')
+            .select('package_id')
+            .eq('id', cid)
+            .maybeSingle()
+          if (!cErr && container && container.package_id) class_package_id = container.package_id
+        } catch (e) {
+          // ignore and validate below
+        }
+      }
+      // Enforce DB constraint: either scheduled_class_id OR class_package_id must be set
+      if (!class_package_id && !scheduled_class_id) {
+        throw new Error('Either class_package_id (package) or scheduled_class_id must be provided for assignment creation')
+      }
+
       const payload: any = {
         class_container_id: data.container_id || data.class_container_id || null,
-        package_id: data.package_id || null,
-        class_package_id: data.package_id || null,
+        package_id: class_package_id || null,
+        class_package_id: class_package_id || null,
+        ...(scheduled_class_id ? { scheduled_class_id } : {}),
         date: data.date || data.class_date,
         start_time: data.start_time,
         end_time: data.end_time,
@@ -118,6 +140,23 @@ export class AssignmentService {
 
     const assignments: any[] = []
 
+    // Determine instructor: prefer provided, otherwise try to derive from container
+    let defaultInstructorId: string | null = data.instructor_id || null
+    if (!defaultInstructorId && (data.container_id || data.class_container_id)) {
+      try {
+        const cid = data.container_id || data.class_container_id
+        const { data: container, error: cErr } = await supabase.from('class_containers').select('instructor_id').eq('id', cid).maybeSingle()
+        if (!cErr && container && container.instructor_id) defaultInstructorId = container.instructor_id
+      } catch (e) {
+        // ignore and validate below
+      }
+    }
+
+    // If still missing, monthly generation requires an instructor (DB enforces NOT NULL).
+    if (!defaultInstructorId) {
+      throw new Error('Instructor is required for monthly assignment creation. Please select an instructor or assign one to the program.')
+    }
+
     if (method === 'weekly_recurrence') {
       const weeklyDays: number[] = Array.isArray(data.weekly_days) ? data.weekly_days.map(Number).filter(n => !isNaN(n) && n >= 0 && n <= 6) : []
       if (weeklyDays.length === 0) throw new Error('weekly_days required for weekly_recurrence (0=Sunday, 6=Saturday)')
@@ -152,7 +191,7 @@ export class AssignmentService {
             date: formatDateUTC(classDate),
             start_time: data.start_time,
             end_time: data.end_time,
-            instructor_id: data.instructor_id || null,
+            instructor_id: defaultInstructorId,
             payment_amount: data.payment_amount || 0,
             schedule_type: 'monthly',
             assigned_by: data.assigned_by || null,
@@ -196,7 +235,7 @@ export class AssignmentService {
           date: sel.date,
           start_time: sel.start_time,
           end_time: sel.end_time,
-          instructor_id: data.instructor_id || null,
+          instructor_id: defaultInstructorId,
           payment_amount: data.payment_amount || 0,
           schedule_type: 'monthly',
           assigned_by: data.assigned_by || null,
@@ -218,12 +257,59 @@ export class AssignmentService {
       return { success: true, count: 0, message: 'No assignments generated (check date range)' }
     }
 
-    // Insert all assignments
-    const { data: insertedAssignments, error: insertErr } = await supabase
-      .from('class_assignments')
-      .insert(assignments)
-      .select('id')
-    
+    // Insert all assignments. If PostgREST reports missing columns in the schema cache
+    // (PGRST204), iteratively strip the reported missing columns from the payload and retry.
+    async function tryInsert(rows: any[]) {
+      const { data: insertedAssignments, error: insertErr } = await supabase
+        .from('class_assignments')
+        .insert(rows)
+        .select('id')
+      return { insertedAssignments, insertErr }
+    }
+
+    let insertedAssignments: any[] | null = null
+    let insertErr: any = null
+
+    // Attempt insertion with iterative retry on missing-column errors
+    let rowsToInsert = assignments.map(a => ({ ...a }))
+    const maxRetries = 5
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const res = await tryInsert(rowsToInsert)
+      insertedAssignments = res.insertedAssignments
+      insertErr = res.insertErr
+      if (!insertErr) break
+
+      const msg: string = insertErr?.message || ''
+      // Try to extract missing column name from error message like: Could not find the 'X' column
+      const m = msg.match(/Could not find the '\"?'?([^'\"\s]+)\"?'? column/i) || msg.match(/Could not find the '([^']+)' column/i)
+      const col = m ? m[1] : null
+      if (col) {
+        console.warn(`PostgREST schema cache missing column '${col}', stripping it and retrying (attempt ${attempt + 1})`)
+        rowsToInsert = rowsToInsert.map(r => {
+          const copy = { ...r }
+          if (col in copy) delete copy[col]
+          return copy
+        })
+        // continue retry loop
+        continue
+      }
+
+      // If we couldn't parse a missing column name, but the code is PGRST204, attempt a generic retry
+      const code: string = insertErr?.code || insertErr?.status || ''
+      if (String(code) === 'PGRST204' || msg.includes('schema cache')) {
+        console.warn(`Insert failed with PGRST204 but missing column not parsed; retrying without 'calendar_month' as fallback (attempt ${attempt + 1})`)
+        rowsToInsert = rowsToInsert.map(r => {
+          const copy = { ...r }
+          if ('calendar_month' in copy) delete copy.calendar_month
+          return copy
+        })
+        continue
+      }
+
+      // Unknown error, break and report
+      break
+    }
+
     if (insertErr) {
       console.error('Failed to insert monthly assignments', insertErr)
       throw insertErr

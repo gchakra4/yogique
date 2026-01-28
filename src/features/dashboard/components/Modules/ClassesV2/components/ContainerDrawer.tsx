@@ -7,6 +7,7 @@ import { CapacityIndicator } from './CapacityIndicator';
 import AssignStudentsModal from './modals/AssignStudentsModal';
 import DeleteConfirmModal from './modals/DeleteConfirmModal';
 import EditAssignmentModal from './modals/EditAssignmentModal';
+import FillShortfallModal from './modals/FillShortfallModal';
 
 interface ContainerDrawerProps {
     isOpen: boolean;
@@ -48,6 +49,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
     const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(false);
     const [assignments, setAssignments] = useState<any[]>([]);
     const [isLoadingAssignments, setIsLoadingAssignments] = useState(false);
+    const [isFillShortfallModalOpen, setIsFillShortfallModalOpen] = useState(false);
     const location = useLocation();
     const panelRef = useRef<HTMLDivElement | null>(null);
     const ANIM_MS = 300;
@@ -90,21 +92,55 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
         if (!container?.id) return;
         setIsLoadingAssignments(true);
         try {
+            // Fetch assignments with enrolled student counts
             const { data, error } = await supabase
                 .from('class_assignments')
-                .select('id, date, start_time, end_time, instructor_id, class_status, notes')
+                .select(`
+                    id, 
+                    date, 
+                    start_time, 
+                    end_time, 
+                    instructor_id, 
+                    class_status, 
+                    notes,
+                    assignment_bookings!inner(booking_id, bookings:booking_id(first_name, last_name, email))
+                `)
                 .eq('class_container_id', container.id)
                 .order('date', { ascending: true })
                 .limit(200);
 
-            if (error) {
-                console.warn('fetchAssignments error', error);
-                setAssignments([]);
-            } else {
-                setAssignments(data || []);
-            }
-        } catch (e) {
-            console.warn('fetchAssignments exception', e);
+            if (error) throw error;
+
+            // Group students by assignment
+            const assignmentsMap = new Map();
+            (data || []).forEach((row: any) => {
+                if (!assignmentsMap.has(row.id)) {
+                    assignmentsMap.set(row.id, {
+                        id: row.id,
+                        date: row.date,
+                        start_time: row.start_time,
+                        end_time: row.end_time,
+                        instructor_id: row.instructor_id,
+                        class_status: row.class_status,
+                        notes: row.notes,
+                        enrolled_students: []
+                    });
+                }
+
+                const assignment = assignmentsMap.get(row.id);
+                if (row.assignment_bookings?.[0]?.bookings) {
+                    const booking = row.assignment_bookings[0].bookings;
+                    const name = `${booking.first_name || ''} ${booking.last_name || ''}`.trim() || booking.email || 'Unknown';
+                    assignment.enrolled_students.push({
+                        booking_id: row.assignment_bookings[0].booking_id,
+                        name
+                    });
+                }
+            });
+
+            setAssignments(Array.from(assignmentsMap.values()));
+        } catch (err) {
+            console.warn('Failed to fetch assignments', err);
             setAssignments([]);
         } finally {
             setIsLoadingAssignments(false);
@@ -250,6 +286,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                     <h4 className="text-sm font-medium">Assignments</h4>
                                     <div className="text-sm">
                                         <button onClick={onCreateAssignment} className="text-sm text-emerald-600 mr-3">+ Create Assignment</button>
+                                        <button onClick={() => setIsFillShortfallModalOpen(true)} className="text-sm text-amber-600 mr-3">Fill Shortfall</button>
                                         <button onClick={fetchAssignments} className="text-sm text-gray-500">Refresh</button>
                                     </div>
                                 </div>
@@ -261,26 +298,49 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                         <p className="text-sm text-gray-500">No assignments found for this container.</p>
                                     ) : (
                                         <ul className="space-y-2">
-                                            {assignments.map((a: any, idx: number) => (
-                                                <li key={`${a.id ?? a.assignment_code ?? a.date}-${idx}`} className="flex items-center justify-between">
-                                                    <div>
-                                                        <div className="text-sm font-medium">{a.date ? new Date(a.date).toLocaleDateString() : '—'} {a.start_time ? `• ${a.start_time}` : ''}</div>
-                                                        <div className="text-xs text-gray-500">{a.instructor?.full_name ?? a.instructor_id ?? 'Unassigned'} • {a.class_status ?? '—'}</div>
-                                                    </div>
-                                                    <div className="text-sm text-right">
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedAssignment(a);
-                                                                setIsEditAssignmentModalOpen(true);
-                                                            }}
-                                                            className="text-xs text-emerald-600 mr-3"
-                                                        >
-                                                            Edit
-                                                        </button>
-                                                        {/* deletion/editing of assignments may be handled by parent modals */}
-                                                    </div>
-                                                </li>
-                                            ))}
+                                            {assignments.map((a: any, idx: number) => {
+                                                const enrolledCount = a.enrolled_students?.length || 0;
+
+                                                return (
+                                                    <li key={`${a.id ?? a.assignment_code ?? a.date}-${idx}`} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-1">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedAssignment(a);
+                                                                        setIsEditAssignmentModalOpen(true);
+                                                                    }}
+                                                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline text-left"
+                                                                >
+                                                                    {a.date ? new Date(a.date).toLocaleDateString() : '—'} {a.start_time ? `• ${a.start_time}` : ''}
+                                                                </button>
+                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                    {a.instructor?.full_name ?? a.instructor_id ?? 'Unassigned'} • {a.class_status ?? '—'}
+                                                                    {enrolledCount > 0 && (
+                                                                        <span className="ml-2">
+                                                                            <svg className="w-3 h-3 inline mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                                            </svg>
+                                                                            {enrolledCount}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-sm text-right">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedAssignment(a);
+                                                                        setIsEditAssignmentModalOpen(true);
+                                                                    }}
+                                                                    className="text-xs text-emerald-600 hover:underline"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
                                         </ul>
                                     )}
                                 </div>
@@ -407,6 +467,21 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                 onUpdated={async () => {
                     setIsEditAssignmentModalOpen(false);
                     setSelectedAssignment(null);
+                    await fetchAssignments();
+                }}
+                onDeleted={async () => {
+                    setIsEditAssignmentModalOpen(false);
+                    setSelectedAssignment(null);
+                    await fetchAssignments();
+                }}
+            />
+
+            <FillShortfallModal
+                isOpen={isFillShortfallModalOpen}
+                onClose={() => setIsFillShortfallModalOpen(false)}
+                container={container}
+                onFilled={async () => {
+                    setIsFillShortfallModalOpen(false);
                     await fetchAssignments();
                 }}
             />

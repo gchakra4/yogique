@@ -1,3 +1,4 @@
+import { Users } from 'lucide-react';
 import React from 'react';
 
 interface Container {
@@ -11,6 +12,7 @@ interface Container {
     assignment_count?: number;
     next_session_date?: string | null; // YYYY-MM-DD
     next_session_time?: string | null; // HH:MM
+    enrolled_students?: Array<{ name: string; booking_id: string }>;
 }
 
 interface ContainerCardProps {
@@ -53,6 +55,12 @@ const CapacityIndicator: React.FC<{ current?: number | null; max?: number | null
 
 export const ContainerCard: React.FC<ContainerCardProps> = ({ container, onClick, onEdit, onDelete, onArchive, onRestore }) => {
     const [showMenu, setShowMenu] = React.useState(false);
+    const [showEnrolled, setShowEnrolled] = React.useState(false);
+
+    const enrolledCount = container.capacity_enrolled ?? 0;
+    const enrolledStudents = container.enrolled_students ?? [];
+    const displayStudents = enrolledStudents.slice(0, 3);
+    const hasMore = enrolledStudents.length > 3;
 
     return (
         <div
@@ -138,12 +146,47 @@ export const ContainerCard: React.FC<ContainerCardProps> = ({ container, onClick
                     <CapacityIndicator current={container.capacity_enrolled ?? 0} max={container.capacity_total ?? 0} />
                 </div>
 
+                {/* Enrolled Students Preview */}
+                {enrolledCount > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-slate-300">
+                                <Users className="w-3.5 h-3.5" />
+                                <span>{enrolledCount} Enrolled</span>
+                            </div>
+                            {enrolledStudents.length > 0 && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setShowEnrolled(!showEnrolled); }}
+                                    className="text-xs text-emerald-600 hover:text-emerald-700"
+                                >
+                                    {showEnrolled ? 'Hide' : 'Show'}
+                                </button>
+                            )}
+                        </div>
+                        {showEnrolled && enrolledStudents.length > 0 && (
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                                {enrolledStudents.map((student, idx) => (
+                                    <div key={`${student.booking_id}-${idx}`} className="text-xs text-gray-600 dark:text-slate-400 truncate pl-5">
+                                        • {student.name}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {!showEnrolled && displayStudents.length > 0 && (
+                            <div className="text-xs text-gray-500 dark:text-slate-500 pl-5">
+                                {displayStudents.map(s => s.name).join(', ')}
+                                {hasMore && ` +${enrolledStudents.length - 3} more`}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div className="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
                     <div className="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3M16 7V3M3 11h18M5 21h14a2 2 0 002-2V7H3v12a2 2 0 002 2z" />
                         </svg>
-                        <span>{container.assignment_count ?? 0} assignments</span>
+                        <span>{container.assignment_count ?? 0} classes</span>
                     </div>
                     <div>{container.next_session_date ? `${formatDate(container.next_session_date)} ${container.next_session_time ?? ''}` : '—'}</div>
                 </div>
