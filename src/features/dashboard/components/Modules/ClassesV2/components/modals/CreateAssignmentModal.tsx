@@ -30,8 +30,18 @@ export default function CreateAssignmentModal({
             // Try to use local service if available
             let created: any = null
             try {
-                const svc = await import('@/features/dashboard/services/v2/assignment.service')
-                const service = (svc as any).default ?? (svc as any)
+                // Prefer the local ClassesV2 assignment service which supports bulk/monthly payloads.
+                let svcMod: any = null
+                try {
+                    const local = await import('../services/assignment.service')
+                    svcMod = (local as any).default ?? (local as any)
+                } catch (localErr) {
+                    // Fallback to global v2 service if local not available
+                    const remote = await import('@/features/dashboard/services/v2/assignment.service')
+                    svcMod = (remote as any).default ?? (remote as any)
+                }
+
+                const service = svcMod
                 if (typeof service.createAssignment === 'function') {
                     const result = await service.createAssignment(data)
                     if (result && result.success) created = result.data
