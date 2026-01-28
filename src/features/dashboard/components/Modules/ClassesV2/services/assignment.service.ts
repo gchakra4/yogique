@@ -118,6 +118,23 @@ export class AssignmentService {
 
     const assignments: any[] = []
 
+    // Determine instructor: prefer provided, otherwise try to derive from container
+    let defaultInstructorId: string | null = data.instructor_id || null
+    if (!defaultInstructorId && (data.container_id || data.class_container_id)) {
+      try {
+        const cid = data.container_id || data.class_container_id
+        const { data: container, error: cErr } = await supabase.from('class_containers').select('instructor_id').eq('id', cid).maybeSingle()
+        if (!cErr && container && container.instructor_id) defaultInstructorId = container.instructor_id
+      } catch (e) {
+        // ignore and validate below
+      }
+    }
+
+    // If still missing, monthly generation requires an instructor (DB enforces NOT NULL).
+    if (!defaultInstructorId) {
+      throw new Error('Instructor is required for monthly assignment creation. Please select an instructor or assign one to the program.')
+    }
+
     if (method === 'weekly_recurrence') {
       const weeklyDays: number[] = Array.isArray(data.weekly_days) ? data.weekly_days.map(Number).filter(n => !isNaN(n) && n >= 0 && n <= 6) : []
       if (weeklyDays.length === 0) throw new Error('weekly_days required for weekly_recurrence (0=Sunday, 6=Saturday)')
@@ -152,7 +169,7 @@ export class AssignmentService {
             date: formatDateUTC(classDate),
             start_time: data.start_time,
             end_time: data.end_time,
-            instructor_id: data.instructor_id || null,
+            instructor_id: defaultInstructorId,
             payment_amount: data.payment_amount || 0,
             schedule_type: 'monthly',
             assigned_by: data.assigned_by || null,
@@ -196,7 +213,7 @@ export class AssignmentService {
           date: sel.date,
           start_time: sel.start_time,
           end_time: sel.end_time,
-          instructor_id: data.instructor_id || null,
+          instructor_id: defaultInstructorId,
           payment_amount: data.payment_amount || 0,
           schedule_type: 'monthly',
           assigned_by: data.assigned_by || null,
