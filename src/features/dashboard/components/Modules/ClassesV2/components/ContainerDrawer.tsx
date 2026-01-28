@@ -126,7 +126,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                         enrolled_students: []
                     });
                 }
-                
+
                 const assignment = assignmentsMap.get(row.id);
                 if (row.assignment_bookings?.[0]?.bookings) {
                     const booking = row.assignment_bookings[0].bookings;
@@ -302,7 +302,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                                 const enrolledCount = a.enrolled_students?.length || 0;
                                                 const displayStudents = (a.enrolled_students || []).slice(0, 2);
                                                 const hasMore = enrolledCount > 2;
-                                                
+
                                                 return (
                                                     <li key={`${a.id ?? a.assignment_code ?? a.date}-${idx}`} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
                                                         <div className="flex items-start justify-between mb-2">
@@ -322,7 +322,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         {/* Enrolled Students */}
                                                         {enrolledCount > 0 && (
                                                             <div className="mt-2 pt-2 border-t border-gray-100">

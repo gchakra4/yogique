@@ -31,11 +31,55 @@ export class ContainerService extends BaseService {
       const { data, error } = await q;
       if (error) return this.handleError(error, 'listContainers');
 
+      // Fetch actual enrolled counts from assignment_bookings to avoid stale capacity_booked values
+      const containerIds = (data || []).map((r: any) => r.id);
+      let enrolledCounts: Map<string, number> = new Map();
+      
+      if (containerIds.length > 0) {
+        try {
+          // Get distinct booking_id counts per container via class_assignments
+          const { data: assignments } = await this.client
+            .from('class_assignments')
+            .select('id, class_container_id')
+            .in('class_container_id', containerIds);
+
+          const assignmentIds = (assignments || []).map((a: any) => a.id);
+          
+          if (assignmentIds.length > 0) {
+            const { data: bookingLinks } = await this.client
+              .from('assignment_bookings')
+              .select('booking_id, assignment_id')
+              .in('assignment_id', assignmentIds);
+
+            // Group by container and count distinct booking_ids
+            const containerBookings: Map<string, Set<string>> = new Map();
+            const assignmentToContainer = new Map((assignments || []).map((a: any) => [a.id, a.class_container_id]));
+            
+            (bookingLinks || []).forEach((link: any) => {
+              const containerId = assignmentToContainer.get(link.assignment_id);
+              if (containerId) {
+                if (!containerBookings.has(containerId)) {
+                  containerBookings.set(containerId, new Set());
+                }
+                containerBookings.get(containerId)!.add(link.booking_id);
+              }
+            });
+
+            containerBookings.forEach((bookingIds, containerId) => {
+              enrolledCounts.set(containerId, bookingIds.size);
+            });
+          }
+        } catch (countErr) {
+          console.warn('[ContainerService] Failed to fetch enrolled counts:', countErr);
+        }
+      }
+
       const containers = (data || []).map((row: any) => ({
         ...row,
         // normalize capacity fields for consumers
         capacity_total: row.capacity_total ?? row.max_booking_count ?? null,
-        capacity_booked: row.capacity_booked ?? row.current_booking_count ?? 0,
+        // Use actual count from assignment_bookings, not the cached capacity_booked
+        capacity_booked: enrolledCounts.get(row.id) ?? 0,
         // expose instructor_name for UI convenience (may be undefined)
         instructor_name: row.instructor?.full_name || null,
       }));
