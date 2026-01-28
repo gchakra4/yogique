@@ -1,5 +1,5 @@
 import { supabase } from '@/shared/lib/supabase'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Props {
     isOpen: boolean
@@ -124,6 +124,14 @@ export default function FillShortfallModal({ isOpen, onClose, container, onFille
             const packageId = container.package_id
             if (!packageId) throw new Error('Container must have a package assigned')
 
+            // Fetch enrolled bookings to attach to new classes
+            const { data: bookingsData } = await supabase
+                .from('container_bookings')
+                .select('booking_id')
+                .eq('class_container_id', container.id)
+            
+            const enrolledBookingIds = (bookingsData || []).map(b => b.booking_id)
+
             // Get instructor and default times from first assignment or container
             // Instructor is now optional - can be assigned later
             const { data: firstAssignment } = await supabase
@@ -142,6 +150,7 @@ export default function FillShortfallModal({ isOpen, onClose, container, onFille
             // (bypassing the adjustment service validation which checks instructors table)
             let created = 0
             const errors: string[] = []
+            const createdAssignmentIds: string[] = []
 
             for (const rec of analysis.recommendations) {
                 try {
@@ -171,11 +180,34 @@ export default function FillShortfallModal({ isOpen, onClose, container, onFille
 
                     if (insertErr) {
                         errors.push(`${rec.dateString}: ${insertErr.message}`)
-                    } else {
+                    } else if (inserted) {
                         created++
+                        createdAssignmentIds.push(inserted.id)
                     }
                 } catch (err: any) {
                     errors.push(`${rec.dateString}: ${err?.message || 'Failed'}`)
+                }
+            }
+
+            // Attach enrolled students to all created assignments
+            if (createdAssignmentIds.length > 0 && enrolledBookingIds.length > 0) {
+                const assignmentBookings = []
+                for (const assignmentId of createdAssignmentIds) {
+                    for (const bookingId of enrolledBookingIds) {
+                        assignmentBookings.push({
+                            assignment_id: assignmentId,
+                            booking_id: bookingId,
+                            class_container_id: container.id
+                        })
+                    }
+                }
+                
+                const { error: linkErr } = await supabase
+                    .from('assignment_bookings')
+                    .insert(assignmentBookings)
+                
+                if (linkErr) {
+                    console.warn('Failed to link students to adjustment classes:', linkErr)
                 }
             }
 

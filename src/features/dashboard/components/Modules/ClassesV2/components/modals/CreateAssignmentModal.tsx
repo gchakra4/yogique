@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/shared/lib/supabase'
 import AssignmentForm from '../../forms/AssignmentForm'
 
 interface Props {
@@ -20,6 +21,29 @@ export default function CreateAssignmentModal({
 }: Props) {
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
+    const [enrolledBookings, setEnrolledBookings] = useState<string[]>([])
+
+    // Fetch enrolled bookings for this container
+    useEffect(() => {
+        async function fetchEnrolledBookings() {
+            if (!isOpen || !containerId) return
+            
+            try {
+                const { data, error } = await supabase
+                    .from('container_bookings')
+                    .select('booking_id')
+                    .eq('class_container_id', containerId)
+
+                if (!error && data) {
+                    setEnrolledBookings(data.map(b => b.booking_id))
+                }
+            } catch (err) {
+                console.warn('Failed to fetch enrolled bookings', err)
+            }
+        }
+
+        fetchEnrolledBookings()
+    }, [isOpen, containerId])
 
     if (!isOpen) return null
 
@@ -27,6 +51,12 @@ export default function CreateAssignmentModal({
         setError(null)
         setLoading(true)
         try {
+            // Automatically attach enrolled bookings to the new assignment
+            const dataWithBookings = {
+                ...data,
+                booking_ids: enrolledBookings.length > 0 ? enrolledBookings : undefined
+            }
+
             // Try to use local service if available
             let created: any = null
             try {
@@ -43,7 +73,7 @@ export default function CreateAssignmentModal({
 
                 const service = svcMod
                 if (typeof service.createAssignment === 'function') {
-                    const result = await service.createAssignment(data)
+                    const result = await service.createAssignment(dataWithBookings)
                     if (result && result.success) created = result.data
                     else throw new Error(result?.error?.message || 'Service failed to create assignment')
                 } else {
@@ -54,7 +84,7 @@ export default function CreateAssignmentModal({
                 const res = await fetch('/api/assignments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
+                    body: JSON.stringify(dataWithBookings),
                 })
                 if (!res.ok) throw new Error(`Server responded ${res.status}`)
                 created = await res.json()
