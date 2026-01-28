@@ -35,6 +35,7 @@ interface ClassPackage {
   type?: 'Individual' | 'Corporate' | 'Private group'
   duration?: string
   course_type?: 'regular' | 'crash'
+  is_recurring?: boolean
   created_at?: string
   updated_at?: string
 }
@@ -90,6 +91,7 @@ export function ClassTypeManager() {
     is_archived: false,
     type: 'Individual',
     course_type: 'regular',
+    is_recurring: false,
     duration: ''
   })
 
@@ -655,6 +657,7 @@ export function ClassTypeManager() {
       is_archived: false,
       type: 'Individual',
       course_type: 'regular',
+      is_recurring: false,
       duration: ''
     })
     setEditingClassType(null)
@@ -1142,6 +1145,20 @@ export function ClassTypeManager() {
                         Active Package
                       </label>
                     </div>
+
+                    <div className="flex items-center pt-2">
+                      <input
+                        type="checkbox"
+                        id="package_is_recurring"
+                        checked={packageFormData.is_recurring || false}
+                        onChange={(e) => handlePackageInputChange('is_recurring', e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="package_is_recurring" className="ml-2 block text-sm text-gray-900">
+                        Recurring Package (Monthly Billing)
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 ml-6">Enable for packages with automated monthly billing and T-5 invoice generation</p>
                   </div>
                 </>
               )}
@@ -1285,6 +1302,11 @@ export function ClassTypeManager() {
                         <span className={`px-2 py-1 rounded text-xs ${getCourseTypeColor(pkg.course_type || '')}`}>
                           {formatCourseType(pkg.course_type || '')}
                         </span>
+                        {pkg.is_recurring && (
+                          <span className="px-2 py-1 rounded text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400">
+                            Monthly
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex space-x-1">
@@ -1461,6 +1483,11 @@ export function ClassTypeManager() {
                         <span className={`px-2 py-1 rounded text-xs ${getCourseTypeColor(pkg.course_type || '')}`}>
                           {formatCourseType(pkg.course_type || '')}
                         </span>
+                        {pkg.is_recurring && (
+                          <span className="px-2 py-1 rounded text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400">
+                            Monthly
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex space-x-1">

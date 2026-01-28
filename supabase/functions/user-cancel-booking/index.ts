@@ -96,10 +96,11 @@ serve(async (req) => {
     const url = `${base}/rest/v1/bookings?or=(booking_id.eq.${encoded},id.eq.${encoded})`
 
     const payload: Record<string, any> = {
-      status: 'cancelled',
+      status: 'user_cancelled',  // Updated to use new enum status
       user_cancelled: true,
       cancelled_at: new Date().toISOString(),
       cancelled_by: 'user',
+      cancelled_reason: 'Cancelled by user via cancellation link',
       cancel_token: null,
       cancel_token_expires_at: null
     }

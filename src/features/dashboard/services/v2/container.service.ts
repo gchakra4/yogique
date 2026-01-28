@@ -163,10 +163,136 @@ export class ContainerService extends BaseService {
 
   async deleteContainer(id: string): Promise<ServiceResult<void>> {
     try {
-      // TODO: Soft delete logic, check active bookings
+      // First, delete all assignments for this container
+      // This automatically frees up instructors assigned to those assignments
+      const { error: assignmentsError } = await this.client
+        .from('class_assignments')
+        .delete()
+        .eq('class_container_id', id);
+
+      if (assignmentsError) {
+        console.error('[ContainerService] Failed to delete assignments:', assignmentsError);
+        return {
+          success: false,
+          error: {
+            code: 'DELETE_ASSIGNMENTS_FAILED',
+            message: 'Failed to delete program assignments',
+            details: assignmentsError,
+          },
+        };
+      }
+
+      // Now delete the container itself
+      const { error: containerError } = await this.client
+        .from('class_containers')
+        .delete()
+        .eq('id', id);
+
+      if (containerError) {
+        console.error('[ContainerService] Failed to delete container:', containerError);
+        return {
+          success: false,
+          error: {
+            code: 'DELETE_CONTAINER_FAILED',
+            message: 'Failed to delete program',
+            details: containerError,
+          },
+        };
+      }
+
       return this.success(undefined);
     } catch (error) {
       return this.handleError(error, 'deleteContainer');
+    }
+  }
+
+  async archiveContainer(id: string): Promise<ServiceResult<void>> {
+    try {
+      // First, archive all assignments for this container
+      // Set is_active to false which frees up the instructors
+      const { error: assignmentsError } = await this.client
+        .from('class_assignments')
+        .update({ is_active: false, archived_at: new Date().toISOString() })
+        .eq('class_container_id', id);
+
+      if (assignmentsError) {
+        console.error('[ContainerService] Failed to archive assignments:', assignmentsError);
+        return {
+          success: false,
+          error: {
+            code: 'ARCHIVE_ASSIGNMENTS_FAILED',
+            message: 'Failed to archive program assignments',
+            details: assignmentsError,
+          },
+        };
+      }
+
+      // Now archive the container itself
+      const { error: containerError } = await this.client
+        .from('class_containers')
+        .update({ is_active: false, archived_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (containerError) {
+        console.error('[ContainerService] Failed to archive container:', containerError);
+        return {
+          success: false,
+          error: {
+            code: 'ARCHIVE_CONTAINER_FAILED',
+            message: 'Failed to archive program',
+            details: containerError,
+          },
+        };
+      }
+
+      return this.success(undefined);
+    } catch (error) {
+      return this.handleError(error, 'archiveContainer');
+    }
+  }
+
+  async unarchiveContainer(id: string): Promise<ServiceResult<void>> {
+    try {
+      // First, unarchive all assignments for this container
+      // Set is_active to true and clear archived_at
+      const { error: assignmentsError } = await this.client
+        .from('class_assignments')
+        .update({ is_active: true, archived_at: null })
+        .eq('class_container_id', id);
+
+      if (assignmentsError) {
+        console.error('[ContainerService] Failed to unarchive assignments:', assignmentsError);
+        return {
+          success: false,
+          error: {
+            code: 'UNARCHIVE_ASSIGNMENTS_FAILED',
+            message: 'Failed to restore program assignments',
+            details: assignmentsError,
+          },
+        };
+      }
+
+      // Now unarchive the container itself
+      const { error: containerError } = await this.client
+        .from('class_containers')
+        .update({ is_active: true, archived_at: null })
+        .eq('id', id);
+
+      if (containerError) {
+        console.error('[ContainerService] Failed to unarchive container:', containerError);
+        return {
+          success: false,
+          error: {
+            code: 'UNARCHIVE_CONTAINER_FAILED',
+            message: 'Failed to restore program',
+            details: containerError,
+          },
+        };
+      }
+
+      return this.success(undefined);
+    } catch (error) {
+      return this.handleError(error, 'unarchiveContainer');
     }
   }
 
