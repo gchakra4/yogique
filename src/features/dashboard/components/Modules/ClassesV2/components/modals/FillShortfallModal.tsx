@@ -120,14 +120,12 @@ export default function FillShortfallModal({ isOpen, onClose, container, onFille
         setLoading(true)
         setError(null)
         try {
-            // Import the adjustment service
-            const adjustmentSvc = await import('../../../../../../dashboard/components/Modules/ClassAssignmentManager/services/adjustmentClassService')
-
             // Get container package
             const packageId = container.package_id
             if (!packageId) throw new Error('Container must have a package assigned')
 
             // Get instructor and default times from first assignment or container
+            // Instructor is now optional - can be assigned later
             const { data: firstAssignment } = await supabase
                 .from('class_assignments')
                 .select('instructor_id, start_time, end_time')
@@ -135,36 +133,46 @@ export default function FillShortfallModal({ isOpen, onClose, container, onFille
                 .limit(1)
                 .single()
 
-            const instructorId = container.instructor_id || firstAssignment?.instructor_id
-            if (!instructorId) throw new Error('No instructor found. Please assign an instructor to this program or create at least one class with an instructor.')
+            const instructorId = container.instructor_id || firstAssignment?.instructor_id || null
 
             const startTime = firstAssignment?.start_time || '10:00'
             const endTime = firstAssignment?.end_time || '11:00'
 
-            // Create adjustment classes for each recommendation
+            // Create adjustment classes directly via class_assignments insert
+            // (bypassing the adjustment service validation which checks instructors table)
             let created = 0
             const errors: string[] = []
 
             for (const rec of analysis.recommendations) {
                 try {
-                    const result = await adjustmentSvc.createAdjustmentClass({
-                        instructorId,
-                        packageId,
-                        calendarMonth: analysis.calendarMonth,
-                        date: rec.dateString,
-                        startTime,
-                        endTime,
-                        adjustmentReason: rec.reason,
-                        bookingIds: [], // No specific bookings for adjustment
-                        bookingType: container.container_type || 'individual',
-                        paymentAmount: 0,
-                        notes: `Auto-filled adjustment class for ${container.display_name}`
-                    })
+                    const { data: inserted, error: insertErr } = await supabase
+                        .from('class_assignments')
+                        .insert({
+                            class_container_id: container.id,
+                            package_id: packageId,
+                            class_package_id: packageId,
+                            instructor_id: instructorId,
+                            date: rec.dateString,
+                            start_time: startTime,
+                            end_time: endTime,
+                            schedule_type: 'monthly',
+                            booking_type: container.container_type || 'individual',
+                            class_status: 'scheduled',
+                            payment_status: 'pending',
+                            instructor_status: 'pending',
+                            payment_amount: 0,
+                            notes: `Auto-filled adjustment class for ${container.display_name}`,
+                            calendar_month: analysis.calendarMonth,
+                            is_adjustment: true,
+                            adjustment_reason: rec.reason,
+                        })
+                        .select('id')
+                        .single()
 
-                    if (result.success) {
-                        created++
+                    if (insertErr) {
+                        errors.push(`${rec.dateString}: ${insertErr.message}`)
                     } else {
-                        errors.push(`${rec.dateString}: ${result.error}`)
+                        created++
                     }
                 } catch (err: any) {
                     errors.push(`${rec.dateString}: ${err?.message || 'Failed'}`)

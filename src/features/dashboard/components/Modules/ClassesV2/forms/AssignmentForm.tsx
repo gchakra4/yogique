@@ -131,15 +131,14 @@ export default function AssignmentForm({
             if (!value) return 'End time is required';
             if (form.start_time && value <= form.start_time) return 'End time must be after start time';
         }
-        if (key === 'instructor_id') {
-            if (!value && !containerInstructor) return 'Instructor is required';
-        }
+        // instructor_id is now optional - can be assigned later
         return null;
     }
 
     function validateForm(): boolean {
         const nextErrors: Record<string, string> = {};
-        (['class_date', 'start_time', 'end_time', 'instructor_id'] as (keyof Assignment)[]).forEach((k) => {
+        // instructor_id is now optional, removed from required validation
+        (['class_date', 'start_time', 'end_time'] as (keyof Assignment)[]).forEach((k) => {
             const err = validateField(k, (form as any)[k]);
             if (err) nextErrors[k] = err;
         });
@@ -573,7 +572,7 @@ export default function AssignmentForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium">Instructor {containerInstructor ? '(Default available)' : <span className="text-red-500">*</span>}</label>
+                    <label className="block text-sm font-medium">Instructor <span className="text-gray-500">(optional - can assign later)</span></label>
                     {containerInstructor && (
                         <div className="bg-blue-50 p-2 rounded mb-2 text-sm">Default: {containerInstructor.name}</div>
                     )}
@@ -581,10 +580,9 @@ export default function AssignmentForm({
                         value={form.instructor_id || ''}
                         onChange={(e) => setField('instructor_id', e.target.value || null)}
                         className={`mt-1 block w-full p-2 border ${errors.instructor_id ? 'border-red-500' : 'border-gray-300'} rounded`}
-                        required={!containerInstructor}
                         aria-invalid={!!errors.instructor_id}
                     >
-                        <option value="">{containerInstructor ? 'Use program default' : 'Select instructor'}</option>
+                        <option value="">{containerInstructor ? 'Use program default' : 'No instructor (assign later)'}</option>
                         {instructors.map((ins) => (
                             <option key={ins.id} value={ins.id}>{ins.name}{ins.id === containerInstructor?.id ? ' (Default)' : ''}</option>
                         ))}
