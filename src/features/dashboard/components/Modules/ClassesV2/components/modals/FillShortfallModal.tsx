@@ -123,20 +123,20 @@ export default function FillShortfallModal({ isOpen, onClose, container, onFille
             // Import the adjustment service
             const adjustmentSvc = await import('../../../../../../dashboard/components/Modules/ClassAssignmentManager/services/adjustmentClassService')
 
-            // Get container instructor & package
-            const instructorId = container.instructor_id
+            // Get container package
             const packageId = container.package_id
-
-            if (!instructorId) throw new Error('Container must have an instructor assigned')
             if (!packageId) throw new Error('Container must have a package assigned')
 
-            // Get default times from first assignment or use defaults
+            // Get instructor and default times from first assignment or container
             const { data: firstAssignment } = await supabase
                 .from('class_assignments')
-                .select('start_time, end_time')
+                .select('instructor_id, start_time, end_time')
                 .eq('class_container_id', container.id)
                 .limit(1)
                 .single()
+
+            const instructorId = container.instructor_id || firstAssignment?.instructor_id
+            if (!instructorId) throw new Error('No instructor found. Please assign an instructor to this program or create at least one class with an instructor.')
 
             const startTime = firstAssignment?.start_time || '10:00'
             const endTime = firstAssignment?.end_time || '11:00'
