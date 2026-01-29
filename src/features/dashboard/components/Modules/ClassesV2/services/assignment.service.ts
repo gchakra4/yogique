@@ -56,6 +56,15 @@ export class AssignmentService {
         console.error('Failed to insert assignment_bookings', error)
         throw error
       }
+      // Mark bookings as classes_assigned (bulk RPC)
+      try {
+        const uniqueBookingIds = Array.from(new Set(bookingIds.filter(Boolean)));
+        if (uniqueBookingIds.length > 0) {
+          await supabase.rpc('mark_bookings_classes_assigned', { p_booking_ids: uniqueBookingIds });
+        }
+      } catch (e) {
+        console.warn('Failed to mark bookings as classes_assigned (bulk)', e);
+      }
     }
 
     // Normalize booking ids

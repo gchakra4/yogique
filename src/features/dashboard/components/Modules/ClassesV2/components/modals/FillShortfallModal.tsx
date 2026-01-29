@@ -1,3 +1,4 @@
+import AssignmentBookingsService from '@/features/dashboard/services/v2/assignment-bookings.service'
 import { supabase } from '@/shared/lib/supabase'
 import { useEffect, useState } from 'react'
 
@@ -189,25 +190,12 @@ export default function FillShortfallModal({ isOpen, onClose, container, onFille
                 }
             }
 
-            // Attach enrolled students to all created assignments
+            // Attach enrolled students to all created assignments using service (centralized logic)
             if (createdAssignmentIds.length > 0 && enrolledBookingIds.length > 0) {
-                const assignmentBookings = []
-                for (const assignmentId of createdAssignmentIds) {
-                    for (const bookingId of enrolledBookingIds) {
-                        assignmentBookings.push({
-                            assignment_id: assignmentId,
-                            booking_id: bookingId,
-                            class_container_id: container.id
-                        })
-                    }
-                }
-
-                const { error: linkErr } = await supabase
-                    .from('assignment_bookings')
-                    .insert(assignmentBookings)
-
-                if (linkErr) {
-                    console.warn('Failed to link students to adjustment classes:', linkErr)
+                const bookingsService = new AssignmentBookingsService()
+                const res = await bookingsService.attachBookingsToAssignments(createdAssignmentIds, enrolledBookingIds, container.id)
+                if (!res.success) {
+                    console.warn('Failed to link students to adjustment classes:', res.error)
                 }
             }
 

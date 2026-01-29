@@ -939,9 +939,13 @@ export function BookingManagement() {
                     >
                       <option value="pending">Pending</option>
                       <option value="confirmed">Confirmed</option>
-                      <option value="cancelled">Cancelled</option>
+                      <option value="classes_assigned">Classes Assigned</option>
+                      <option value="active">Active</option>
+                      <option value="suspended">Suspended</option>
+                      <option value="discontinued">Discontinued</option>
                       <option value="completed">Completed</option>
-                      <option value="rescheduled">Rescheduled</option>
+                      <option value="admin_cancelled">Admin Cancelled</option>
+                      <option value="user_cancelled">User Cancelled</option>
                     </select>
                   </div>
 
@@ -1166,7 +1170,7 @@ export function BookingManagement() {
 
                   {/* Action Buttons */}
                   <div className="border-t pt-4 flex flex-wrap gap-3 justify-end">
-                    {hasPermission(currentUserRole, 'bookings', 'assign') && (selectedBooking.status === 'confirmed' || selectedBooking.status === 'pending') && (
+                    {hasPermission(currentUserRole, 'bookings', 'assign') && selectedBooking.status === 'confirmed' && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -1201,41 +1205,68 @@ export function BookingManagement() {
                       </Button>
                     )}
 
-                    {/* Show completed/reschedule buttons for confirmed bookings */}
-                    {selectedBooking.status === 'confirmed' && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleUpdateBookingStatus(selectedBooking.id, 'completed')}
-                          className="flex items-center text-blue-700 hover:bg-blue-50"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Mark Completed
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleUpdateBookingStatus(selectedBooking.id, 'rescheduled')}
-                          className="flex items-center text-yellow-700 hover:bg-yellow-50"
-                        >
-                          <AlertTriangle className="w-4 h-4 mr-1" />
-                          Mark Rescheduled
-                        </Button>
-                      </>
+                    {/* Activate for confirmed/classes_assigned, or reactivate suspended */}
+                    {(selectedBooking.status === 'confirmed' || selectedBooking.status === 'classes_assigned' || selectedBooking.status === 'suspended') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleActivateBooking(selectedBooking.id)}
+                        className="flex items-center text-green-700 hover:bg-green-50"
+                      >
+                        <Play className="w-4 h-4 mr-1" />
+                        {selectedBooking.status === 'suspended' ? 'Reactivate' : 'Mark Active'}
+                      </Button>
                     )}
 
-                    {/* Show cancel button for pending and confirmed bookings */}
+                    {/* Suspend button for active bookings */}
+                    {selectedBooking.status === 'active' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSuspendBooking(selectedBooking.id)}
+                        className="flex items-center text-amber-700 hover:bg-amber-50"
+                      >
+                        <Pause className="w-4 h-4 mr-1" />
+                        Suspend
+                      </Button>
+                    )}
+
+                    {/* Mark completed for active bookings */}
+                    {selectedBooking.status === 'active' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUpdateBookingStatus(selectedBooking.id, 'completed')}
+                        className="flex items-center text-blue-700 hover:bg-blue-50"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Mark Completed
+                      </Button>
+                    )}
+
+                    {/* Discontinue for confirmed/classes_assigned/active */}
+                    {(selectedBooking.status === 'confirmed' || selectedBooking.status === 'classes_assigned' || selectedBooking.status === 'active') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDiscontinueBooking(selectedBooking.id)}
+                        className="flex items-center text-gray-700 hover:bg-gray-50"
+                      >
+                        <Ban className="w-4 h-4 mr-1" />
+                        Discontinue
+                      </Button>
+                    )}
+
+                    {/* Admin cancel for pending/confirmed */}
                     {(selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleUpdateBookingStatus(selectedBooking.id, 'cancelled')}
+                        onClick={() => handleUpdateBookingStatus(selectedBooking.id, 'admin_cancelled', 'Cancelled by admin')}
                         className="flex items-center text-red-700 hover:bg-red-50"
                       >
                         <X className="w-4 h-4 mr-1" />
-                        Cancel Booking
+                        Admin Cancel
                       </Button>
                     )}
 

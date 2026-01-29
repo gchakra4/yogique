@@ -8,6 +8,7 @@ import AssignStudentsModal from './modals/AssignStudentsModal';
 import DeleteConfirmModal from './modals/DeleteConfirmModal';
 import EditAssignmentModal from './modals/EditAssignmentModal';
 import FillShortfallModal from './modals/FillShortfallModal';
+import ViewAssignmentModal from './modals/ViewAssignmentModal';
 
 interface ContainerDrawerProps {
     isOpen: boolean;
@@ -44,6 +45,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
     const [isUnassignModalOpen, setIsUnassignModalOpen] = useState(false);
     const [unassignTarget, setUnassignTarget] = useState<any | null>(null);
     const [isEditAssignmentModalOpen, setIsEditAssignmentModalOpen] = useState(false);
+    const [isViewAssignmentModalOpen, setIsViewAssignmentModalOpen] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
     const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
     const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(false);
@@ -92,7 +94,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
         if (!container?.id) return;
         setIsLoadingAssignments(true);
         try {
-            // Fetch assignments with enrolled student counts
+            // Fetch assignments with enrolled student counts (use left join to include assignments without bookings)
             const { data, error } = await supabase
                 .from('class_assignments')
                 .select(`
@@ -103,7 +105,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                     instructor_id, 
                     class_status, 
                     notes,
-                    assignment_bookings!inner(booking_id, bookings:booking_id(first_name, last_name, email))
+                    assignment_bookings(booking_id, bookings:booking_id(first_name, last_name, email))
                 `)
                 .eq('class_container_id', container.id)
                 .order('date', { ascending: true })
@@ -128,12 +130,20 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                 }
 
                 const assignment = assignmentsMap.get(row.id);
-                if (row.assignment_bookings?.[0]?.bookings) {
-                    const booking = row.assignment_bookings[0].bookings;
-                    const name = `${booking.first_name || ''} ${booking.last_name || ''}`.trim() || booking.email || 'Unknown';
-                    assignment.enrolled_students.push({
-                        booking_id: row.assignment_bookings[0].booking_id,
-                        name
+                // Handle multiple assignment_bookings rows (left join can return multiple rows per assignment)
+                if (Array.isArray(row.assignment_bookings)) {
+                    row.assignment_bookings.forEach((ab: any) => {
+                        if (ab?.bookings) {
+                            const booking = ab.bookings;
+                            const name = `${booking.first_name || ''} ${booking.last_name || ''}`.trim() || booking.email || 'Unknown';
+                            // Avoid duplicates
+                            if (!assignment.enrolled_students.some((s: any) => s.booking_id === ab.booking_id)) {
+                                assignment.enrolled_students.push({
+                                    booking_id: ab.booking_id,
+                                    name
+                                });
+                            }
+                        }
                     });
                 }
             });
@@ -308,7 +318,7 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                                                                 <button
                                                                     onClick={() => {
                                                                         setSelectedAssignment(a);
-                                                                        setIsEditAssignmentModalOpen(true);
+                                                                        setIsViewAssignmentModalOpen(true);
                                                                     }}
                                                                     className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline text-left"
                                                                 >
@@ -453,6 +463,19 @@ export const ContainerDrawer: React.FC<ContainerDrawerProps> = ({
                         setIsUnassignModalOpen(false);
                         setUnassignTarget(null);
                     }
+                }}
+            />
+
+            <ViewAssignmentModal
+                isOpen={isViewAssignmentModalOpen}
+                onClose={() => {
+                    setIsViewAssignmentModalOpen(false);
+                    setSelectedAssignment(null);
+                }}
+                assignment={selectedAssignment}
+                onEdit={() => {
+                    setIsViewAssignmentModalOpen(false);
+                    setIsEditAssignmentModalOpen(true);
                 }}
             />
 
