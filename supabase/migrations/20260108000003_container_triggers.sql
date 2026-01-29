@@ -49,43 +49,55 @@ $$;
 -- 2) Function: update_container_booking_count()
 --    AFTER INSERT OR DELETE OR UPDATE on assignment_bookings
 --    Keeps class_containers.current_booking_count in sync
+--    Counts unique bookings per container, not total rows
 CREATE OR REPLACE FUNCTION update_container_booking_count()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_container_id UUID;
+    v_unique_count INTEGER;
 BEGIN
-    IF TG_OP = 'INSERT' THEN
-        IF NEW.class_container_id IS NOT NULL THEN
-            UPDATE class_containers
-            SET current_booking_count = current_booking_count + 1,
-                updated_at = NOW()
-            WHERE id = NEW.class_container_id;
-        END IF;
-        RETURN NEW;
+    -- Determine which container(s) to update
+    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+        v_container_id := NEW.class_container_id;
     ELSIF TG_OP = 'DELETE' THEN
-        IF OLD.class_container_id IS NOT NULL THEN
-            UPDATE class_containers
-            SET current_booking_count = GREATEST(0, current_booking_count - 1),
-                updated_at = NOW()
-            WHERE id = OLD.class_container_id;
-        END IF;
+        v_container_id := OLD.class_container_id;
+    END IF;
+
+    -- Recalculate unique booking count for affected container
+    IF v_container_id IS NOT NULL THEN
+        SELECT COUNT(DISTINCT booking_id)
+        INTO v_unique_count
+        FROM assignment_bookings
+        WHERE class_container_id = v_container_id;
+
+        UPDATE class_containers
+        SET 
+            current_booking_count = v_unique_count,
+            capacity_booked = v_unique_count,
+            updated_at = NOW()
+        WHERE id = v_container_id;
+    END IF;
+
+    -- If UPDATE changed containers, also update the old container
+    IF TG_OP = 'UPDATE' AND OLD.class_container_id IS DISTINCT FROM NEW.class_container_id AND OLD.class_container_id IS NOT NULL THEN
+        SELECT COUNT(DISTINCT booking_id)
+        INTO v_unique_count
+        FROM assignment_bookings
+        WHERE class_container_id = OLD.class_container_id;
+
+        UPDATE class_containers
+        SET 
+            current_booking_count = v_unique_count,
+            capacity_booked = v_unique_count,
+            updated_at = NOW()
+        WHERE id = OLD.class_container_id;
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
         RETURN OLD;
-    ELSIF TG_OP = 'UPDATE' THEN
-        -- If container changed, decrement old and increment new
-        IF OLD.class_container_id IS DISTINCT FROM NEW.class_container_id THEN
-            IF OLD.class_container_id IS NOT NULL THEN
-                UPDATE class_containers
-                SET current_booking_count = GREATEST(0, current_booking_count - 1),
-                    updated_at = NOW()
-                WHERE id = OLD.class_container_id;
-            END IF;
-            IF NEW.class_container_id IS NOT NULL THEN
-                UPDATE class_containers
-                SET current_booking_count = current_booking_count + 1,
-                    updated_at = NOW()
-                WHERE id = NEW.class_container_id;
-            END IF;
-        END IF;
+    ELSE
         RETURN NEW;
     END IF;
 END;

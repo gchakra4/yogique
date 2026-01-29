@@ -75,9 +75,35 @@ export default function AssignStudentsModal({ container, isOpen, onClose, onSucc
 
             const res = await service.assignBookingsToContainer(container.id, bookingIds, { overrideCapacity: allowOverride });
             if (!res.success) {
-                setError(res.error?.message || 'Assignment failed');
+                const errCode = res.error?.code;
+                const errDetails = res.error?.details;
+
+                if (errCode === 'PACKAGE_MISMATCH') {
+                    setError(`❌ Package mismatch: Cannot assign bookings from different packages. ${errDetails ? JSON.stringify(errDetails) : ''}`);
+                } else {
+                    setError(res.error?.message || 'Assignment failed');
+                }
+                console.error('[AssignStudentsModal] Assignment error:', res.error);
             } else {
                 const assignedCount = res.data?.assignedCount ?? 0;
+                const packageMismatches = res.data?.packageMismatches || [];
+
+                console.log('[AssignStudentsModal] Assignment result:', res.data);
+
+                if (packageMismatches.length > 0) {
+                    alert(`⚠️ ${packageMismatches.length} booking(s) skipped due to package mismatch. Check console for details.`);
+                }
+
+                // Refresh available bookings so UI reflects updated booking statuses
+                try {
+                    const refreshRes = await service.getAvailableBookings(container.id, { search: undefined });
+                    if (refreshRes.success) {
+                        setBookings(refreshRes.data || []);
+                    }
+                } catch (e) {
+                    console.warn('[AssignStudentsModal] Failed to refresh bookings after assignment', e);
+                }
+
                 // optimistic UI: call onSuccess and close
                 onSuccess?.({ assignedCount });
                 onClose();
