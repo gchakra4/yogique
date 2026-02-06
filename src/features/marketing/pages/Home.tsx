@@ -244,7 +244,7 @@ export function Home() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/book/private-group">
+                <Link to="/yogique-for-you">
                   <Button
                     size="lg"
                     className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300 shadow-md"
@@ -255,9 +255,13 @@ export function Home() {
                     </span>
                   </Button>
                 </Link>
-                <Link to="/book/corporate">
-                  <Button variant="outline" size="lg" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 hover:scale-105 px-8 py-4 text-lg font-semibold rounded-lg">
-                    Corporate Enquiry
+                <Link to="/schedule">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 hover:scale-105 px-6 py-3.5 text-base sm:px-8 sm:py-4 sm:text-lg font-semibold rounded-lg whitespace-nowrap"
+                  >
+                    Book a community class
                   </Button>
                 </Link>
               </div>
@@ -587,7 +591,7 @@ export function Home() {
             Schedule your first class today and take the first step towards a healthier, more balanced life.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/book/private-group">
+            <Link to="/yogique-for-you">
               <Button
                 size="lg"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 text-lg font-semibold rounded-lg transition-all duration-300 shadow-md"
