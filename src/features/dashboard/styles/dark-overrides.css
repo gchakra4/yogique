@@ -1,0 +1,154 @@
+/* Scoped dark-mode overrides for dashboard modules
+   This file maps common light-mode utility classes used across dashboard modules
+   to appropriate dark-mode equivalents when the app root has the `dark` class.
+   It intentionally targets utility class names so we don't need to edit dozens
+   of component files — only visual styles are changed.
+*/
+
+.universal-dashboard {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+.dark .universal-dashboard {
+    background-color: #0f172a;
+    color: #f1f5f9;
+    color-scheme: dark;
+}
+
+/* Background overrides */
+.dark .universal-dashboard .bg-white {
+    background-color: #1f2937;
+}
+
+.dark .universal-dashboard .bg-gray-50 {
+    background-color: #111827;
+}
+
+.dark .universal-dashboard .bg-gray-100 {
+    background-color: #1f2937;
+}
+
+/* Catch classes that include bg-white together with opacity utilities (bg-white bg-opacity-*) */
+.dark .universal-dashboard [class*="bg-white"] {
+    background-color: #1f2937;
+}
+
+
+/* Text color overrides */
+.dark .universal-dashboard .text-gray-900 {
+    color: #f3f4f6;
+}
+
+.dark .universal-dashboard .text-gray-800 {
+    color: #f3f4f6;
+}
+
+.dark .universal-dashboard .text-gray-700 {
+    color: #e5e7eb;
+}
+
+.dark .universal-dashboard .text-gray-600 {
+    color: #9ca3af;
+}
+
+.dark .universal-dashboard .text-gray-500 {
+    color: #9ca3af;
+}
+
+.dark .universal-dashboard .text-gray-400 {
+    color: #d1d5db;
+}
+
+/* Form controls: many modules rely on browser-default input/select backgrounds (white) */
+.dark .universal-dashboard input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']),
+.dark .universal-dashboard select,
+.dark .universal-dashboard textarea {
+    background-color: #0b1220;
+    color: #f1f5f9;
+    border-color: #334155;
+}
+
+.dark .universal-dashboard input:not([type='checkbox']):not([type='radio'])::placeholder,
+.dark .universal-dashboard textarea::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}
+
+.dark .universal-dashboard select option {
+    background-color: #0b1220;
+    color: #f1f5f9;
+}
+
+.dark .universal-dashboard input:disabled,
+.dark .universal-dashboard select:disabled,
+.dark .universal-dashboard textarea:disabled {
+    background-color: #0f172a;
+    color: #94a3b8;
+}
+
+/* Border overrides */
+.dark .universal-dashboard .border-gray-200 {
+    border-color: #374151;
+}
+
+.dark .universal-dashboard .border-gray-300 {
+    border-color: #374151;
+}
+
+/* Hover states commonly used on table rows and cards */
+.dark .universal-dashboard .hover\:bg-gray-50:hover {
+    background-color: #1f2937;
+}
+
+.dark .universal-dashboard .hover\:bg-gray-100:hover {
+    background-color: #1f2937;
+}
+
+/* Buttons / tabs */
+.dark .universal-dashboard .tab-button {
+    background-color: transparent;
+    color: #e5e7eb;
+}
+
+.dark .universal-dashboard .tab-button.active {
+    color: #ffffff;
+    background-color: #1f2937;
+}
+
+/* Force any light button backgrounds to dark variants in dashboard */
+.dark .universal-dashboard [class*="bg-white"][class*="px-"],
+.dark .universal-dashboard [class*="bg-gray-100"][class*="px-"] {
+    background-color: #1f2937;
+    color: #f3f4f6;
+    border-color: #374151;
+}
+
+/* Make sure icons pick up lighter colors in dark mode */
+.dark .universal-dashboard .text-gray-400 svg,
+.dark .universal-dashboard .text-gray-400 {
+    color: #d1d5db;
+}
+
+/* Generic card and panel backgrounds */
+.dark .universal-dashboard .bg-white.rounded-xl,
+.dark .universal-dashboard .bg-white.rounded,
+.dark .universal-dashboard .bg-white.shadow-lg,
+.dark .universal-dashboard .bg-white.p-6 {
+    background-color: #1f2937;
+}
+
+/* Ensure semi-transparent white panels used for previews don't wash out the page */
+.dark .universal-dashboard [class*="bg-white"][class*="bg-opacity-"] {
+    background-color: #1f2937;
+}
+
+/* Mobile-specific tweaks: ensure padding and spacing remain readable */
+.dark .universal-dashboard .dashboard-main {
+    background-color: transparent;
+}
+
+/* Fallback for any element that used bg-white and should be dark */
+.dark .universal-dashboard .force-dark-bg {
+    background-color: #1f2937;
+}

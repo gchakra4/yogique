@@ -250,15 +250,15 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'published':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border border-green-200 dark:border-green-700'
       case 'draft':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-100 border border-gray-200 dark:border-slate-700'
       case 'pending_review':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700'
       case 'rejected':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border border-red-200 dark:border-red-700'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-100 border border-gray-200 dark:border-slate-700'
     }
   }
 
@@ -269,11 +269,11 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
   const getActionColor = (action: string) => {
     switch (action) {
       case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700'
       case 'rejected':
-        return 'bg-red-100 text-red-800 border-red-200'
+        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-700'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-700'
     }
   }
 
@@ -304,7 +304,7 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
     <div className="space-y-6">
       <div className="flex items-start sm:items-center justify-between">
         <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold text-gray-900">Article Management</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Article Management</h2>
         </div>
         <div className="flex-shrink-0 ml-3">
           <ResponsiveActionButton onClick={handleCreateNew} className="flex items-center">
@@ -319,10 +319,10 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden dark:bg-slate-800">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+              <thead className="bg-gray-50 dark:bg-slate-800/60">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Title
@@ -344,21 +344,21 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-700">
                 {articles.map((article) => (
-                  <tr key={article.id} className="hover:bg-gray-50">
+                  <tr key={article.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/60">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {article.title}
                         {hasModeratorFeedback(article) && (
                           <MessageSquare className="w-4 h-4 text-blue-500 inline ml-2" />
                         )}
                       </div>
-                      <div className="text-sm text-gray-500 truncate max-w-xs">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
                         {article.preview_text}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       {article.category}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -371,13 +371,13 @@ export function ArticleManagement({ authorId }: ArticleManagementProps) {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       <div className="flex items-center">
-                        <Eye className="w-4 h-4 mr-1 text-gray-400" />
+                        <Eye className="w-4 h-4 mr-1 text-gray-400 dark:text-gray-300" />
                         {article.view_count}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(article.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
