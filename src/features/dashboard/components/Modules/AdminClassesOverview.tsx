@@ -8,8 +8,8 @@ import {
     Users
 } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
+import { useInstructorsList } from '../../../instructor-rates/hooks/useInstructorsList';
 import { AdminClassFilters, useAdminClassOverview } from '../../hooks/useAdminClassOverview';
-import { useInstructors } from '../../hooks/useInstructors'; // JS hook is fine for TS usage
 import { AdminClassDrilldownModal } from './AdminClassDrilldownModal';
 
 /**
@@ -49,10 +49,10 @@ export const AdminClassesOverview: React.FC = () => {
 
     // Data
     const { rows, loading, error, aggregates, ratingDistribution, refetch } = useAdminClassOverview(filters, { autoReloadMs: 60000 });
-    const { instructors } = useInstructors();
+    const { instructors } = useInstructorsList();
     const instructorMap = useMemo(() => {
         const m = new Map<string, any>();
-        instructors.forEach((i: any) => m.set(i.id, i));
+        instructors.forEach((i: any) => m.set(i.user_id, i));
         return m;
     }, [instructors]);
 
