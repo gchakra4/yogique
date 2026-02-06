@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import './features/dashboard/styles/dark-overrides.css'
 import './index.css'
 import { SettingsProvider } from './shared/contexts/SettingsContext'
 

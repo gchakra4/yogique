@@ -5,6 +5,7 @@ import { Footer } from '../../../shared/components/layout/Footer';
 import { Header } from '../../../shared/components/layout/Header';
 import RoleBasedNavigation from '../../../shared/components/navigation/RoleBasedNavigation';
 import { DashboardModule, getModulesForRole, hasModuleAccess, UserRole } from '../../../shared/config/roleConfig';
+import '../styles/dark-overrides.css';
 
 // Lazy load components (Modules add here)
 const ClassAssignmentManager = React.lazy(() => import('./Modules/ClassAssignmentManager'));

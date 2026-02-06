@@ -434,8 +434,8 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
     if (filteredTemplates.length === 0) {
       return (
         <div className="text-center py-12">
-          <h2 className="text-xl text-gray-600">No templates found</h2>
-          <p className="text-gray-500">Please check the template configuration</p>
+          <h2 className="text-xl text-gray-600 dark:text-gray-300">No templates found</h2>
+          <p className="text-gray-500 dark:text-gray-400">Please check the template configuration</p>
         </div>
       )
     }
@@ -443,14 +443,14 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Choose a Template</h2>
-          <p className="text-gray-600 mb-8">Select a template that matches your newsletter style</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">Choose a Template</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-8">Select a template that matches your newsletter style</p>
         </div>
         <div className="flex justify-center mb-6 gap-2 flex-wrap px-2">
           {categories.map(cat => (
             <button
               key={cat}
-              className={`px-4 py-2 rounded-full border ${templateCategory === cat ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'} transition`}
+              className={`px-4 py-2 rounded-full border ${templateCategory === cat ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-100 border-gray-300 dark:border-slate-600'} transition`}
               onClick={() => setTemplateCategory(cat)}
             >
               {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -461,7 +461,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className="md:border md:border-gray-200 rounded-none md:rounded-lg overflow-hidden cursor-pointer hover:md:shadow-lg transition relative bg-white md:bg-white snap-center min-w-full md:min-w-0"
+              className="md:border md:border-gray-200 dark:md:border-slate-700 rounded-none md:rounded-lg overflow-hidden cursor-pointer hover:md:shadow-lg transition relative bg-white md:bg-white dark:bg-slate-800 snap-center min-w-full md:min-w-0"
             >
               <div className="h-48 bg-gray-100 flex items-center justify-center" onClick={() => setPreviewTemplate(template)}>
                 <img
@@ -469,7 +469,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
                   alt={template.name}
                   className="w-full h-full object-contain md:object-cover"
                 />
-                <span className="absolute top-2 right-2 bg-white bg-opacity-80 px-2 py-1 rounded text-xs shadow">Preview</span>
+                <span className="absolute top-2 right-2 bg-white/80 dark:bg-slate-800/60 px-2 py-1 rounded text-xs shadow">Preview</span>
               </div>
               <div className="p-3 md:p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -478,7 +478,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
                     {template.category}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">{template.description}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{template.description}</p>
                 <button
                   className="mt-3 w-full bg-blue-600 text-white rounded px-3 py-3 md:py-2 hover:bg-blue-700 transition"
                   onClick={() => handleTemplateSelect(template)}
@@ -491,7 +491,7 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
         </div>
         {previewTemplate && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-lg max-w-2xl w-full p-4 md:p-6 relative">
+            <div className="bg-white rounded-lg max-w-2xl w-full p-4 md:p-6 relative dark:bg-slate-800">
               <button
                 className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
                 onClick={() => setPreviewTemplate(null)}
@@ -499,11 +499,11 @@ export function NewsletterCreation({ onBack, editingNewsletter }: NewsletterCrea
                 ×
               </button>
               <h3 className="text-xl font-bold mb-2">{previewTemplate.name}</h3>
-              <div className="mb-2 text-gray-600">{previewTemplate.description}</div>
+              <div className="mb-2 text-gray-600 dark:text-gray-300">{previewTemplate.description}</div>
               <div className="mb-4">
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{previewTemplate.category}</span>
               </div>
-              <div className="border rounded p-2 md:p-4 bg-gray-50 mb-4 overflow-x-hidden" dangerouslySetInnerHTML={{ __html: previewTemplate.htmlContent.replace('{{TITLE}}', 'Sample Title').replace('{{CONTENT}}', 'Sample content...') }} />
+              <div className="border rounded p-2 md:p-4 bg-gray-50 dark:bg-slate-900/40 mb-4 overflow-x-hidden" dangerouslySetInnerHTML={{ __html: previewTemplate.htmlContent.replace('{{TITLE}}', 'Sample Title').replace('{{CONTENT}}', 'Sample content...') }} />
               <button
                 className="w-full bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700 transition"
                 onClick={() => { handleTemplateSelect(previewTemplate); setPreviewTemplate(null); }}

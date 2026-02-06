@@ -522,6 +522,88 @@
   margin: 20px;
 }
 
+/* ========================================
+   DASHBOARD DARK MODE
+   The /dashboard layout uses custom CSS classes (not only Tailwind utilities).
+   These rules ensure the dashboard chrome (sidebar/tabs/content) respects the
+   global ThemeContext which toggles the `dark` class on <html>.
+   ======================================== */
+
+.dark .universal-dashboard {
+  background-color: var(--bg-primary);
+}
+
+.dark .dashboard-sidebar {
+  background-color: var(--bg-secondary);
+  border-right-color: var(--border-color);
+  box-shadow: none;
+}
+
+.dark .dashboard-content {
+  background-color: var(--bg-primary);
+}
+
+.dark .dashboard-tabs {
+  background-color: var(--bg-primary);
+  border-bottom-color: var(--border-color);
+}
+
+.dark .tab-button {
+  color: var(--text-secondary);
+}
+
+.dark .tab-button:hover:not(:disabled) {
+  color: var(--text-primary);
+  background-color: color-mix(in srgb, var(--bg-secondary) 85%, black 15%);
+}
+
+.dark .tab-button.active {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
+}
+
+.dark .dashboard-tab-content {
+  background-color: var(--bg-primary);
+}
+
+.dark .navigation-header {
+  border-bottom-color: var(--border-color);
+}
+
+.dark .navigation-header h3 {
+  color: var(--text-primary);
+}
+
+.dark .user-role {
+  color: var(--text-secondary);
+}
+
+.dark .navigation-link {
+  color: var(--text-secondary);
+}
+
+.dark .navigation-link:hover {
+  background-color: color-mix(in srgb, var(--bg-secondary) 85%, black 15%);
+  color: #60a5fa;
+}
+
+.dark .module-container {
+  background-color: var(--bg-primary);
+  box-shadow: none;
+}
+
+.dark .module-container h2 {
+  color: var(--text-primary);
+}
+
+.dark .module-container p {
+  color: var(--text-secondary);
+}
+
+.dark .loading {
+  color: var(--text-secondary);
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .dashboard-main {
@@ -533,6 +615,10 @@
     max-height: 200px;
     border-right: none;
     border-bottom: 1px solid #e9ecef;
+  }
+
+  .dark .dashboard-sidebar {
+    border-bottom-color: var(--border-color);
   }
 
   /* Make dashboard tabs horizontally scrollable but hide native scrollbars for a cleaner mobile look */

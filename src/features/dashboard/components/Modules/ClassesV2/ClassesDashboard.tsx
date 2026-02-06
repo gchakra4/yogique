@@ -127,13 +127,13 @@ const ClassesDashboard: React.FC = () => {
 
     // Render skeleton/placeholder UI per Task 1.11
     return (
-        <div className="classes-dashboard h-full flex flex-col bg-gray-50">
+        <div className="classes-dashboard h-full flex flex-col bg-gray-50 dark:bg-slate-900">
             {/* Header */}
-            <header className="bg-white border-b border-gray-200 px-6 py-4">
+            <header className="bg-white border-b border-gray-200 px-6 py-4 dark:bg-slate-900 dark:border-slate-700">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Programs</h1>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Programs</h1>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             Manage your yoga programs and classes
                         </p>
                     </div>
@@ -172,14 +172,14 @@ const ClassesDashboard: React.FC = () => {
                             placeholder="Search programs..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                         />
                     </div>
                     {packages.length > 0 && (
                         <select
                             value={filters.packageId || ''}
                             onChange={(e) => setFilters(prev => ({ ...prev, packageId: e.target.value || null }))}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                         >
                             <option value="">All Packages</option>
                             {packages.map((pkg: any) => (
@@ -190,8 +190,8 @@ const ClassesDashboard: React.FC = () => {
                     <button
                         onClick={() => setShowArchived(!showArchived)}
                         className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${showArchived
-                                ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
-                                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                            ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-200'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:hover:bg-slate-800'
                             }`}
                         title={showArchived ? 'Show active programs' : 'Show archived programs'}
                     >
@@ -210,7 +210,7 @@ const ClassesDashboard: React.FC = () => {
                     <div className="flex items-center justify-center h-64">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-                            <p className="text-gray-600">Loading programs...</p>
+                            <p className="text-gray-600 dark:text-gray-400">Loading programs...</p>
                         </div>
                     </div>
                 )}
@@ -222,8 +222,8 @@ const ClassesDashboard: React.FC = () => {
                             <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <p className="text-gray-900 font-semibold mb-2">Failed to load programs</p>
-                            <p className="text-gray-600 mb-4">There was an error loading your programs</p>
+                            <p className="text-gray-900 dark:text-white font-semibold mb-2">Failed to load programs</p>
+                            <p className="text-gray-600 dark:text-gray-400 mb-4">There was an error loading your programs</p>
                             <button
                                 onClick={() => refetch()}
                                 className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
@@ -241,8 +241,8 @@ const ClassesDashboard: React.FC = () => {
                             <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
-                            <p className="text-gray-900 font-semibold mb-2">No programs found</p>
-                            <p className="text-gray-600 mb-4">
+                            <p className="text-gray-900 dark:text-white font-semibold mb-2">No programs found</p>
+                            <p className="text-gray-600 dark:text-gray-400 mb-4">
                                 {searchQuery || filters.packageId
                                     ? 'Try adjusting your filters'
                                     : 'Get started by creating your first program'}
