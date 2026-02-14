@@ -65,10 +65,12 @@ export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
     { id: 'admin_classes_overview', title: 'Classes Overview', component: 'AdminClassesOverview', icon: 'bar-chart', order: 16 },
     { id: 'template_mappings', title: 'Template Mappings', component: 'AdminTemplateMappings', icon: 'message-square', order: 17 },
     { id: 'audit_logs', title: 'Audit Logs', component: 'AuditLogs', icon: 'archive', order: 17 },
+      { id: 'attendance_register', title: 'Attendance Register', component: 'AttendanceRegister', icon: 'attendance', order: 4 },
   ],
 
   admin: [
     { id: 'overview', title: 'Overview', component: 'Overview', icon: 'dashboard', order: 1 },
+    { id: 'attendance_register', title: 'Attendance Register', component: 'AttendanceRegister', icon: 'attendance', order: 3 },
     { id: 'user_management', title: 'User Management', component: 'UserManagement', icon: 'users', order: 2 },
     { id: 'instructor_management', title: 'Instructor Management', component: 'InstructorManagement', icon: 'teacher', order: 3 },
     { id: 'rate_management', title: 'Rate Management', component: 'InstructorRatesPage', icon: 'dollar-sign', order: 4 },
@@ -85,12 +87,14 @@ export const ROLE_MODULES: Record<UserRole, ModuleConfig[]> = {
 
   instructor: [
     { id: 'teaching_dashboard', title: 'Teaching Dashboard', component: 'TeachingDashboard', icon: 'graduation-cap', order: 1 },
+    { id: 'attendance_register', title: 'Attendance Register', component: 'AttendanceRegister', icon: 'attendance', order: 2 },
     { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 2 },
     // User Profile removed from instructor modules
   ],
 
   yoga_acharya: [
     { id: 'teaching_dashboard', title: 'Teaching Dashboard', component: 'TeachingDashboard', icon: 'graduation-cap', order: 1 },
+    { id: 'attendance_register', title: 'Attendance Register', component: 'AttendanceRegister', icon: 'attendance', order: 2 },
     { id: 'programs_v2', title: 'Programs', component: 'ClassesDashboard', icon: 'grid', order: 2 },
     { id: 'class_assignment', title: 'Class Management', component: 'ClassAssignmentManager', icon: 'edit', order: 3 },
     { id: 'article_management', title: 'Article Management', component: 'ArticleManagement', icon: 'book', order: 4 },

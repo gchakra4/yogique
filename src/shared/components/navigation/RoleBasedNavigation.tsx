@@ -36,6 +36,7 @@ const RoleBasedNavigation: React.FC<RoleBasedNavigationProps> = ({ user, classNa
     const iconMap: Record<string, string> = {
       dashboard: '📊',
       users: '👥',
+      attendance: '📝',
       teacher: '🧑‍🏫',
       'credit-card': '💳',
       settings: '⚙️',
