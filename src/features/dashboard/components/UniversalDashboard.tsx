@@ -25,6 +25,7 @@ const ClassTypeManager = React.lazy(() => import('./Modules/ClassTypeManager'));
 const ArticleWorkflow = React.lazy(() => import('./Modules/ArticleWorkflow'));
 const NewsletterManagement = React.lazy(() => import('./Modules/NewsletterManagement'));
 const TeachingDashboard = React.lazy(() => import('./Modules/TeachingDashboard'));
+const AttendanceRegister = React.lazy(() => import('./Modules/AttendanceRegister'));
 const Overview = React.lazy(() => import('./Modules/OverView'));
 const AdminClassesOverview = React.lazy(() => import('./Modules/AdminClassesOverview'));
 const MessageMonitor = React.lazy(() => import('./Modules/MessageMonitor'));
@@ -88,6 +89,7 @@ const UniversalDashboard: React.FC<UniversalDashboardProps> = ({ user }) => {
     Overview,
     AdminClassesOverview,
     AdminTemplateMappings,
+    AttendanceRegister,
     AuditLogs: React.lazy(() => import('./Modules/AuditLogs')),
     InstructorRatesPage: React.lazy(() => import('../../instructor-rates/pages/InstructorRatesPage')),
     MessageMonitor,

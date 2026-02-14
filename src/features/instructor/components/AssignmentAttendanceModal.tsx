@@ -45,7 +45,7 @@ export const AssignmentAttendanceModal: React.FC<AssignmentAttendanceModalProps>
             role="dialog"
             aria-modal="true"
         >
-            <div className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div className="w-full h-full sm:h-auto sm:max-w-3xl bg-white dark:bg-slate-900 rounded-none sm:rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col max-h-none sm:max-h-[90vh]">
                 {/* Header */}
                 <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-gray-200 dark:border-slate-700">
                     <div className="flex flex-col">

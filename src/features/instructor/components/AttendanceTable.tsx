@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { LoadingSpinner } from '../../../shared/components/ui/LoadingSpinner';
 import { STATUS_METADATA } from '../../../shared/constants/attendanceStatus';
 import { AttendanceRecord, AttendanceStatus } from '../../../shared/types/attendance';
@@ -18,6 +18,11 @@ interface AttendanceTableProps {
     lockEditing?: boolean;                  // When true disable status changes
     className?: string;
     onStatusChange?: (memberId: string, status: AttendanceStatus, record: AttendanceRecord) => void;
+    onCountsChange?: (payload: {
+        totalMarked: number;
+        totalAttendees: number;
+        counts: Record<AttendanceStatus, number>;
+    }) => void;
     compact?: boolean;
     showNotes?: boolean;
     hideHeader?: boolean;
@@ -38,6 +43,7 @@ export const AttendanceTable: React.FC<AttendanceTableProps> = ({
     lockEditing = false,
     className = '',
     onStatusChange,
+    onCountsChange,
     compact = false,
     showNotes = false,
     hideHeader = false,
@@ -85,13 +91,32 @@ export const AttendanceTable: React.FC<AttendanceTableProps> = ({
     const totalMarked = records.length;
     const totalAttendees = attendees.length;
 
+    useEffect(() => {
+        if (!onCountsChange) return;
+        onCountsChange({ totalMarked, totalAttendees, counts });
+    }, [counts, onCountsChange, totalAttendees, totalMarked]);
+
     const handleChange = async (memberId: string, status: AttendanceStatus) => {
         if (lockEditing) return;
         try {
             await upsert({ member_id: memberId, status });
-            const rec = recordMap.get(memberId);
-            if (rec && onStatusChange) {
-                onStatusChange(memberId, status, rec);
+            if (onStatusChange) {
+                const nowIso = new Date().toISOString();
+                const prev = recordMap.get(memberId);
+                const optimistic: AttendanceRecord = prev
+                    ? { ...prev, status, updated_at: nowIso, marked_at: nowIso }
+                    : {
+                        id: 'optimistic-' + crypto.randomUUID(),
+                        assignment_id: assignmentId,
+                        member_id: memberId,
+                        status,
+                        notes: null,
+                        marked_by: 'optimistic',
+                        marked_at: nowIso,
+                        updated_at: nowIso,
+                        makeup_of_assignment_id: null
+                    };
+                onStatusChange(memberId, status, optimistic);
             }
         } catch {
             // error surfaced in hook
